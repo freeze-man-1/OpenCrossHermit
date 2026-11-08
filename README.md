@@ -1,4 +1,4 @@
-# Cross Hermit — modern port
+# OpenCrossHermit — a modern Cross Hermit port
 
 A fan-made port of the 2002 PC strategy RPG *Cross Hermit* to C++20 and SDL2,
 for Windows, Linux, macOS and the web (Emscripten). It runs the original
@@ -241,6 +241,6 @@ build you share.
 | `tools/inventory/` | the porting progress report |
 | `tests/` | unit, headless and network tests |
 
-The font is Noto Sans CJK, under the SIL Open Font License (`resources/fonts/`).
+The port's own code is under the MIT License (`LICENSE`). The font is Noto Sans CJK, under the SIL Open Font License (`resources/fonts/`).
 *Cross Hermit* and its data belong to their rights holders. This project ships
 none of it, and you need your own copy to play.
