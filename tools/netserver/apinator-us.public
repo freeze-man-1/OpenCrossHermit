@@ -1,0 +1,6 @@
+# Public settings for the "Apinator US" server choice, safe to commit: the key is
+# public and the channel signing goes through the auth URL (apinator-auth.mjs on
+# Cloudflare). Never put APINATOR_SECRET here; CMake ignores it in .public files.
+APINATOR_KEY=app_0f146333e1b00597e3ec7ede6ed24bb90aa44b2a
+APINATOR_CLUSTER=us
+APINATOR_AUTH_URL=https://apinator-auth-us.booddr1980.workers.dev/

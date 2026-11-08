@@ -1,0 +1,85 @@
+# skillexp: keys are hashes of the Japanese (tools/export_text.py)
+@46d162e0ca094e7c	Concentration (passive)\nSharpens focus, so preparation is less easily broken\nby heavy damage.
+@4d7d19ff564ebc0b	Break Smash (active)\nA devastating blow to enemies in an area.\n★Warrior line only.
+@defe705a004c7519	Toughness (passive)\nRaises [Armor] and [Body]. Lowers [Will], leaving you\nweaker to magic.
+@e814fdbae3b60ee3	Burn Nap (active)\nSpins on the spot, striking every adjacent unit.\n★Warrior line only.
+@7c8d74f50b215e89	Life (passive)\nInvigorates body and mind, raising maximum [HP].
+@af5c818820a42f20	Aura Ray (active)\nUnleashes a burst of energy at enemies in an area,\ndealing slight damage.\n★Warrior line only.
+@2c8744e9f95188e5	Angelic Arms (active)\nWith holy protection, raises physical [Power] and\n[Hit].\n★Warrior line only.
+@8e7c0c48f7e60056	Shield Smith (passive)\nDefensive know-how raises [Armor] and [Evade], but\nlowers [Barrier].\n★Swordsman line only.
+@cd19dc3f33bbcf68	Attack Sense (passive)\nDeeper attack know-how raises physical [Power].
+@42490ac35aeecfb6	Multi Attack (active)\nUses speed to strike several times at once. All\nrecovery time comes after the attack.\n★Swordsman line only.
+@e4760cdb368f16ce	Air Slash (active)\nTurns a sword's force into a shockwave with the\nwind, striking distant enemies.\n★Swordsman line only.
+@1127fa3b34336932	Eagle Claw (active)\nLeaps high and lands a heavy blow. On a hit,\ndestroys the target's [GOOD conditions].\n★Swordsman line only.
+@b0a3227d95cd6d8d	Skill Mastery (passive)\nSharpens focus to speed [MP regen], but slows [HP\nregen].
+@5425c33fc139bef5	Hawk Eye (active)\nFor a short time, see even farther than a Hunter.\n★Swordsman line only.
+@9d252b2956ec8bce	Spiral Shot (active)\nShorter range, but stronger than a normal attack.\n★Hunter line only.
+@b7df2c4bdb628241	Multi Shoot (active)\nFires several arrows at once. All recovery time comes\nafter the attack.\n★Hunter line only.
+@a7dac735ff184265	Regenerate (passive)\nSpeeds [HP regen].
+@824bda6d40adbc0a	Silver Arrowhead (passive)\nRaises physical [Power] and [Hit].\n★Hunter line only.
+@686ab9e1e46e8670	Arrow Rain (active)\nLoses many arrows skyward to rain down on a group.\n★Hunter line only.
+@1e6303172892e5b6	Poison Arrow (active)\nA poisoned arrow. On a hit, inflicts the BAD condition\n[Poison], draining [HP] for a time.\n★Hunter line only.
+@3f25b3529ba7f9ae	Snipe (active)\nA carefully calculated shot at an enemy at the limit of\nrange.\n★Hunter line only.
+@c9073b86224fe370	Mage Killer (active)\nAn enchanted arrow that damages [MP] and inflicts\nthe BAD condition [Mask], narrowing sight.\n★Hunter line only.
+@026cd358ebc45f46	Dissolution (active)\nLowers the target's magic defense.\n★Hunter line only.
+@1be8ee79794aa0e1	Poison Trap (active)\nSets a trap that inflicts the BAD condition [Deadly\nPoison] nearby, draining [HP] for a time. It catches\nevery unit but you.\n★Hunter line only.
+@cc0d35d98fff9c34	Crack Shot (active)\nLowers the target's armor.\n★Hunter line only.
+@fc4cb1a0d9513860	Entangle Prison (active)\nSets a trap that inflicts the BAD condition [Slow]\nnearby, slowing actions. It catches every unit but\nyou.\n★Hunter line only.
+@6873ee9312d055cf	Swift (passive)\nRaises [Evade] against physical attacks.
+@6a61600be45eeb95	Critical Arrow (passive)\nMastering the bow's essence raises physical [Hit].\n★Hunter line only.
+@15adc44959ba38aa	Recover (active)\nMay destroy [BAD conditions] on allies in an area,\nand restores a little [HP].
+@8da0d549de3eead0	Bless (passive)\nSpeeds [MP regen].
+@487879514e3d175b	Heal (active)\nRestores a little HP to allies around the chosen spot.
+@3c67e74696da2643	Holy Purge (active)\nSends holy light out from an ally, striking enemies\naround them.
+@8e884aa6c35fd9fe	Hermit Charm (passive)\nRaises [Barrier] and [Will] against magic.
+@f7beac5377e0ea40	Major Heal (active)\nRestores [HP] to allies around the target.\n★Priest line only.
+@16bfc7a283cfa763	Great Heal (active)\nA long chant that restores a great deal of the target's\n[HP].\n★Priest line only.
+@7a2e83184027cdc2	Acid Chain (active)\nRaises acid gas at the target's feet, a magic attack on\nenemies in an area. Inflicts the BAD condition [Attack\nDown].\n★Priest line only.
+@51e76dbe16ab31dc	Word of Curse (active)\nCasts words of curse at enemies in an area, inflicting\nthe BAD condition [Restraint] and draining [MP] for a\ntime.\n★Priest line only.
+@32732d4080bbc4c2	Truth (passive)\nRaises [Armor] and [Body].\n★Priest line only.
+@a28aba829a183651	Power Blast (active)\nDeals a physical blow to a distant target.
+@0c1f1dad8252b610	Dark Chime (passive)\nSpeeds [HP regen] and [MP regen].\n★Priest line only.
+@591c77f36bc63457	Blood Ritual (active)\nA long chant at the cost of your own [MP] that\nrestores [MP] to allies around you.\n★Priest line only.
+@8bcde3168a1a2539	Dark Force (active)\nA blow charged with darkness. Inflicts the BAD\ncondition [Restraint], damaging [MP] for a time.\n★Priest line only.
+@d3636335de8405bd	Enchant Weapon (active)\nEnchants your weapon, granting the GOOD condition\n[Attack Up].
+@6b4e9a144ad2e058	Mind Leak (active)\nWeakens the target's mind with the BAD condition\n[Magic Guard Down].
+@a89ae5862861edd7	Clairvoyance (active)\nMagic grants the GOOD condition [True Sight],\nwidening the target's sight.
+@fb357dc995a16830	Noise (active)\nRaises dust around the target to break focus. The\nBAD condition [Magic Atk Down] lowers magic attack\nfor a time.
+@7c097daa31acefed	Dispel Magic (active)\nDestroys [GOOD conditions] on the target and those\nnearby, and restores a little [MP].\n★Mage line only.
+@ab7b3e46e4c2574a	Life Force (active)\nAt a great cost in [MP], swiftly restores [HP] to allies\naround you.
+@a5e417a3088df20e	Refuse Magic (active)\nDons armor that blocks magic, raising [Barrier] and\n[Will].
+@7f7f7c5c4c7f3d10	Phantom Image (active)\nLightens the body for swift action.
+@8b679464a00bccd9	Magic Growth (active)\nGrows magic plants at your feet, restoring [MP] to\nallies around you.\n★Mage line only.
+@c9b6052f0171079f	Stone Fang (active)\nStone fangs thrust up from cracks in the earth.\nInflicts the BAD condition [Poison], draining [HP] for\na time.
+@7d932fa49f5c0626	Gaia (active)\nThe earth's protection grants a GOOD condition that\nraises [Armor] and [Body].
+@400b2a7368f8a86a	Earth Bind (active)\nGouges the ground and crushes foes between\nboulders. Inflicts the BAD condition [Deadly Poison],\ndraining much [HP] for a time.\n★Mage line only.
+@1bfb3658d32891eb	Magic Resist (active)\nThe earth's breath softens magic. A GOOD condition\nraises [Barrier] and [Will].
+@b5936344f9617b7d	Wilderness (passive)\nThe earth's protection toughens body and mind,\nraising [Body] and [Will].
+@b9cf3191c4424ea4	Sylph Field (active)\nA soft wind wraps the body, granting a physical\ndefense GOOD condition, mainly raising evasion.
+@a64773959eecd161	Slow (active)\nHolds back movement around the target with the\nBAD condition [Slow]: slower movement, and longer\npreparation and recovery on attacks and skills.\n★Priest line only.
+@861922e32466f1d9	Thunderbolt (active)\nDrops lightning on enemies over a wide area. Not\nvery strong, but very quick to chant.
+@47325baa2184293a	Tender Wind (active)\nA gentle wind restores a little [HP] to all around you,\nfriend or foe.
+@b0b5760dce74dbc0	Feather Walk (passive)\nThe wind's protection raises [Move].
+@0d4fe46403a5de98	Quick Gate (passive)\nThe wind's protection shortens the time needed to\nwithdraw.
+@bd73ac1dbc1a1dfa	Tear Storm (active)\nA small storm at one enemy damages [MP] and\ninflicts the BAD condition [Magic Guard Down].\n★Mage line only.
+@4d9fb75417642745	Web (active)\nA whip of freezing water. Inflicts the BAD condition\n[Frostbite], slowing actions.
+@29f3f6b20df60153	Freeze Lance (active)\nCreates spears of ice that strike several targets.
+@1301a67fea4a61b3	Magic Reduce (active)\nAfter a long chant, restores a little lost [MP].\n★Mage line only.
+@f59599a04e54cbb9	Icicle Fall (active)\nFreezes the area in a sudden chill and inflicts the\nBAD condition [Attack Down].\n★Mage line only.
+@3a528ea62a86abf8	Magician's Charm (passive)\nRaises maximum [MP].
+@2d4f7d60440318b1	Frost Harden (active)\nIce crystals strike every unit in range and inflict the\nBAD condition [Frostbite].
+@39c2eb6f3662ca6c	Tentacles Pile (active)\nTentacles of water seize nearby enemies. Inflicts the\nBAD condition [Curse], heavily damaging [MP] for a\ntime.
+@73d0943407cfe892	Fire Arrow (active)\nHurls a mass of flame at the target.
+@69c0af83aa9e884a	Heat Accel (passive)\nRaises magical strength and the [Power] of magic\nattacks.\n★Mage line only.
+@ced6c9592a1e0021	Explosion (active)\nA huge blast that catches friend and foe alike.
+@1ce271658fbfe0ad	Master Force (passive)\nDraws out hidden magic, raising magic [Power] to its\nlimit.\n★Mage line only.
+@e13f7e86083857a5	Strike Nova (active)\nShort range and a very long chant, but deals huge\ndamage.
+@9c5a6924774f285e	Haste (active)\nQuickens movement around the target with the\nGOOD condition [Haste]: faster movement, and\nshorter preparation and recovery on attacks and\nskills.\n★Priest line only.
+@4ed9154ebcd081a8	Shooting Star (active)\nDrops a mass of flame from high above, burning\nenemies around it.\n★Mage line only.
+@433de13fbff8ced4	Striker (passive)\nRaises physical [Hit].
+@b39610668da78684	Iconoclast (active)\nSummons a spirit called an Icon from the earth,\ndamaging the [MP] of everyone but you. Inflicts the\nBAD condition [Curse], draining [MP] over time.
+@925e70007ad494c2	Power Word (active)\nGrants the GOOD condition [All Guard Up] and\nexplosive attack power for just a few seconds.
+@f68f36eefdbe1b9d	Holy Oath (passive)\nSlightly extends [Engage Time].
+@072b4604f8010e5e	Soul Punisher (active)\nA magic strike on one target, with the longest chant\nand greatest power.
+@c099b2cf5f8e6e3d	Resurrect Orb (passive)\nRaises [HP regen] to its limit, but greatly lowers [MP\nregen].
+@6309a4250b626f5d	Sacrifice (passive)\nReduces the [Engage Time] lost when you withdraw\nat zero [HP].

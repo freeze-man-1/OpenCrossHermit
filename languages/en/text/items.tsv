@@ -1,0 +1,193 @@
+# items: keys are hashes of the Japanese (tools/export_text.py)
+@9ef792f855d560d8	Dark God Stone Zem
+@075b0f73c2f4b4d9	Light God Stone Il
+@ae1730428921fe83	Bursting Orb
+@e2aefbaaeb62be41	Watcher's Necklace
+@51d44d27f463e124	Saint's Leather
+@4cee2ae78caa58fe	Holy King's Armor El
+@9091b8d969ab278b	Light Staff Heaven
+@e7f788c08478ffdb	Lightspeed Bow Canaan
+@8b9af21b93627146	Endless Bow Zadisley
+@9ad46ca42748596f	Holy Wall Delight
+@f40d19a5aae7994c	Sacred Sword Solverse
+@cabf3e3f3219ee42	Sky Sword Etherion
+@c872f5a81333affb	Earth God Stone Wen
+@ead13709cdb4c6e9	Wind God Stone Doa
+@5f25ffee734d0d42	Water God Stone Tis
+@27900b69af2a9a42	Fire God Stone Rat
+@701caa951a72d142	Demon King's Living Armor
+@88d1bea09ec4a664	Dark Armor Rabaral
+@4fbd3d1600068038	Dark Staff Zero
+@a497f01e4b94570a	Silent Crossbow Ein
+@8f91bbe7642de8f4	Black King's Bow Noah
+@5b34d0caf848d227	Dark Shield Idula
+@e1e8a0c4e8c517b9	Lightless Sword Tsarg
+@5c0bcbfcca8764c9	Eternal Night Blade Lin
+@79835101d1900bf4	N'Dula Apocrypha
+@22b3d7e7726a8432	Glass Statue of Zola
+@3b32660f2de18b7e	Bracelet of Wisdom
+@5ad3616c0f378830	Abyssal King Stone
+@a53597fad961a8bd	Fire God's Leather
+@279cd816474cade6	Crimson Armor Bahad
+@5459f8665d3a2aae	Fire Staff Nova
+@0197cc43154e11da	Firing Bow Vitra
+@9c227d484c5275ad	Aina's Flame Bow
+@388569c1acd2045b	Holy Fire Shield Leia
+@1d6b6920d7116992	Fierce Flame Sword Wagna
+@f701af4f0d653104	Hellfire Eisheran
+@15c9d7d177af11cb	Mamel's Shoes
+@c2bd617e3fc2a72e	Mamel's Cloak
+@0000f6e834456195	Mamel's Robe
+@17e732d3e2be7d9d	Mamel's Hat
+@8f2b9a7702147415	Glacier Mail
+@e8be5434d78915bc	Permafrost Aequerio
+@b3ba69bc37bb0e4c	Water Staff Selt
+@2f9f75dc7cea1752	Sprite's Spray Bow
+@372ffb48a1e27390	Flowing Bow Hydroad
+@ecea546cbd5bcf9b	Mirror Shield Carla
+@f7accad34be50af4	Frost Sword Qual
+@55d13091e5f1e766	Crystal Sword Aqualide
+@1b64cf541fb47ef9	Vilmenas's Gold Key
+@65614f4a24ddfdcf	Galent's Warding Mirror
+@a7b9d8decbdea455	Grail of the End
+@81aba94ee298ecdf	Ring of Foresight
+@5ea12b250d946631	Windwoven Mail
+@4dd7f19de97f089a	Flight Armor Fesa
+@876cd17f8d081352	Wind Staff Whirlwin
+@a56be6f3b645425b	Whirlwind Crossbow Valon
+@60995960d31e8734	Gale Bow Lucion
+@00186ba4cf3632bc	Lastorm's Gale Shield
+@5e9f1ad5ca8591ba	Wind Sword Vander
+@5e2e3fe46d3d3038	Thunder Testa
+@df07a8a174c8c423	Tear Pierce
+@cf13eff81dca7a6c	Temira Scope
+@992e7a33fc67cb73	Bracelet of Spellcraft
+@2a7121f506b9388d	Hometos's Gem
+@e98dbf412cb531cb	God Tree Leather
+@8a688e73f8838600	Deep Green Armor Flora
+@e5630b3fac75ab1c	Earth Staff Dora
+@00553b40e7fb6a58	Crumbling Crossbow Forg
+@9621279e7552faf7	Rift Bow Beastein
+@5e27581b7a3ad2ec	Unmoving Shield Inas
+@9472fdfeb1a63e63	Earthbreaker Ashen
+@0b088f383c7b060c	Earth Cleaver Radia
+@696047e2063687ef	Ring of Dark and Solitude
+@d56951ca2850c09c	Ring of Light and Promise
+@df8126853bcad923	Gauntlets of the Sun
+@16c92fb786a6b37f	Ring of Void and Mastery
+@95a754c987bd65b2	Red Silver Chain
+@5695e015f0f958ff	Resolve Armor Feriam
+@577feea87ef55ec0	Imperial Fatima
+@b00fcddc048a2ecd	Repeater Igron
+@bb93b146053aa36e	Cliffcaled's Howling Bow
+@c04fd95950aee28d	Claw Shield Goura
+@8f1892f4c120603c	Hartina's Sky Sword
+@0031caa5f9707f97	Danhel of Daring
+@59b3e85c22596455	Ring of Earth and Pride
+@d7d1c2cfe90a71a8	Ring of Wind and Spirit
+@67c4fe5eb5f8021c	Ring of Water and Creation
+@28f1288b955a825c	Ring of Fire and Ruin
+@560fef086744f1b0	Lord Leather
+@7947f06199b284dd	Lambach's Strange Armor
+@af6cf9738002f5af	Lushas's Twin Spirit Staff
+@e8c3eadcfd4da8d2	Black Crossbow Exad
+@fff364eadec411a8	Magic Bow Faryard
+@888a30683665957a	Dragon Head Scale Shield
+@49da7f1866b8b4fd	Griffin Scepter
+@04fe2e5c276c1346	Fierce Blade Detoile
+@bed07c1e180d190a	Golden Bell of Twilight
+@8e2013486762ce54	Selan's Elixir
+@2781fe60da262def	Greaves Heavy Dance
+@b81125dd1bfafa70	Attezam's Necklace
+@adb68fae132bb829	Elven Chain
+@b552892ef606f331	Magic Dragon Battle Armor
+@7a64fb7b0b778833	Moon Staff Serenity
+@bce9cc2f913657da	Soul Pierce
+@dcc038bb00f62ddd	White Spirit Recurve
+@9f830fe29da5a169	Black Beetle Scale Shield
+@48020a4700923c52	Dragon Tail Spiral Blade
+@aa3d0febd20a197a	Frazetta's Strange Blade
+@e829918c8f4e8136	Yel's Silver Key
+@15b2631a4a6d027b	Jade Egg
+@22e7554630ad9e58	Paladin's Gauntlets
+@6822013722dd457a	Ring of Greed
+@70645aba0830b7c4	Unicorn Lion Leather
+@c7cb0da220409875	Kirasteel Heavy Armor
+@0a934be3f748974a	Paladine's Magic Staff
+@45d7b5f1eff48d92	Swift Strike Zigbash
+@5250034c7029d7d8	Wind Bow Exar
+@a5445368342dafff	Spire's Magic Mirror
+@401169081b411f44	Estria's Rapier
+@3a8558cd7234d3f5	Quake Sword Zwart
+@50af33af6d61f4a3	Zilmea's Holy Charm
+@8b40a0bd04a81147	Temira Lens
+@510cdb030846018a	Karen's Heavenly Robe
+@af148b2aa3f7887d	Enchantress Tess's Necklace
+@358590340f49b20a	Pure Silver Mail
+@8c0b75d33178f774	Dragon Wing Lindur
+@3df99c4511c6f63e	Treasure Staff Rakia
+@95ee5d242b392adb	White Flash Belcross
+@2c4bc85515522f7c	Dahatma's Short Bow
+@4f08a5435dc5160b	Covenant Cross Shield
+@0d55e2a40dde99d4	Mad Blade Kashuna
+@e39a78f6a2f2b652	Greatsword of Oath and Guard
+@19092c9c7f08bf27	Hidden Book: Dark Mercy
+@3fd7098362837481	Sun Book: Regal Light
+@9712bc20d718fc0a	Cloak of the Far Realm
+@6698386502827031	Nell's Ritual Ring
+@5856ebe5b13a0c4c	Mani's Feather Armor
+@5a44c9ba171c5862	Heavenly Breastplate
+@9ac2fed156e01f3f	Fald's Wing Staff
+@6e9b0e62f0fd66a0	Jet Black Bullet
+@04c964e91a6a666c	Azure Bow Gorgon
+@48bae0168a5279e1	Shield of Power
+@823ac663a6eed4ca	Gale Jewel Sword
+@96e152e1966e288e	Scimitar of Judgment
+@1324659cedd26ec6	Vol. 4: The Promised Land
+@1c28bb7e8422403c	Vol. 3: Wind of Illusion
+@b2c1c11615ce56a2	Vol. 2: Water of Insight
+@6e75f87ccec0d800	Vol. 1: Flame of Truth
+@9481eddf7de73c62	Tunic of Blessing
+@018a2912d1b2d890	Yelt's Plate Armor
+@eedf7cb83564e519	Holy Staff Celeste
+@c7f99cc8a296d02e	Quake Crossbow Reda
+@d6ecdbef95db44b8	Demon-Breaking Bow
+@a52e430c211db783	Moonlight Shield
+@d5fbc43016441222	Silver Wing Perchette
+@4cc08f85b1f43f14	Greatsword of Sin and Penalty
+@0a52f30cd503b755	Book of Enigma
+@2a6fefa3230d0f72	Winter Moon
+@6d508718e89baa70	Healing Boots
+@d7bcfd76fb9e91cf	Falmodes's Ring
+@e4e151acf18b4735	Denehere's Leather
+@6aed7b76322566c3	Twilight Metal Armor
+@1445a671c00a6e22	Blue Stone Staff
+@cab3532f0715f236	Crossbow Bar
+@ef53154f3d04b605	Finian's True Bow
+@5e6dfb80a73b528b	Starlight Shield
+@d933ce36d8ecad31	Gale of Gils
+@4bccf1a8d630ca32	Greatsword Gospel
+@a29825f105e0612f	Robery's Charm
+@b9ab1b715ac4c36a	Selan's Reagent
+@ba37d320ba221898	Moonlight Gauntlets
+@b422038d741ea1ce	Necklace of Oaths
+@10b9e2824a0948a2	Nameless Sage's Leather
+@ea833a300541cbe3	Nameless Sage's Armor
+@27a368302804b7c6	Nameless Sage's Staff
+@0de1e830197fcd8f	Nameless Sage's Crossbow
+@0de1c230197f8cfd	Nameless Sage's Bow
+@221c293025c67b43	Nameless Sage's Shield
+@0d345a3018ec2670	Nameless Sage's Sword
+@d1f7727f20a871ec	Nameless Sage's Greatsword
+@123d5150fdd9109d	Scroll of Beginnings
+@484205626780e203	Fen Bird Plume
+@1f8c7cc39dfe1146	First Dean's Hat
+@061352c2718079bb	Pale Silver Ring
+@304d601803bd3bc1	Novice Swordsman's Leather
+@b9b407a5d0678d62	Novice Warrior's Armor
+@b6af92bf8daaaa12	Novice Caster's Staff
+@729540447ceec6af	Novice Hunter's Crossbow
+@72955a447ceef2dd	Novice Hunter's Bow
+@365d151cd7581596	Novice Swordsman's Shield
+@44bdd41cdea77d05	Novice Swordsman's Sword
+@fa4b667da6309f6b	Novice Warrior's Greatsword

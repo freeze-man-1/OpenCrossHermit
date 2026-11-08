@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross Hermit (port)</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg: #0d1118; --panel: #182030; --text: #e8e6df; --dim: #9aa3b2; --accent: #f0c060; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+               font: 15px/1.4 system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; }
+  #bar { display: none; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 16px;
+         width: 100%; box-sizing: border-box; max-width: 1024px; }
+  #bar.on { display: flex; }
+  #bar button, #bar label { background: var(--panel); color: var(--text); border: 1px solid var(--accent);
+         border-radius: 4px; padding: 6px 14px; font: inherit; cursor: pointer; }
+  #bar .note { color: var(--dim); flex: 1; min-width: 200px; }
+  #bar input { display: none; }
+  #drop { outline: 3px dashed var(--accent); }
+  canvas { display: block; flex: none; max-width: 100%; max-height: calc(100vh - 60px); aspect-ratio: 4 / 3;
+           background: #000; outline: none; }
+  #status { color: var(--dim); padding: 8px 16px; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <label>Add game files…<input id="pick" type="file" multiple></label>
+  <button id="erase" type="button">Erase imported files</button>
+  <span class="note">The JP 1.2 update exe, plus data.z (JP disc) and/or cd1 (TW disc), or the disc images;
+    language pack .zip files too.
+    Nothing is uploaded: the files stay in this browser.</span>
+</div>
+<input id="pickSave" type="file" accept=".sav" multiple hidden>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+<div id="status">Loading…</div>
+<script>
+  // The imported game files live in IndexedDB (/gamedata), as do the saves
+  // (/save). Both are loaded before main() runs.
+  var statusEl = document.getElementById('status');
+  var Module = {
+    canvas: document.getElementById('canvas'),
+    // SDL_Log goes to stderr, which the browser would show in red as errors.
+    printErr: function (t) { (/^(INFO|DEBUG|VERBOSE): /.test(t) ? console.log : console.error)(t); },
+    preRun: [function () {
+      ['/save', '/gamedata', '/import'].forEach(function (d) { if (!FS.analyzePath(d).exists) FS.mkdir(d); });
+      FS.mount(IDBFS, {}, '/save');
+      FS.mount(IDBFS, {}, '/gamedata');
+      Module.legacySaveReady = false;
+      Module.chPreMounted = true;
+      addRunDependency('idbfs');
+      FS.syncfs(true, function (err) {
+        if (err) console.error('IDBFS load', err);
+        Module.legacySaveReady = true;
+        removeRunDependency('idbfs');
+      });
+    }],
+    setStatus: function (t) { statusEl.textContent = t; statusEl.style.display = t ? '' : 'none'; },
+    // Called by the game files screen.
+    chShowImport: function (on) { document.getElementById('bar').classList.toggle('on', on); },
+    // Called by the save and load screens.
+    chPickSave: function () { document.getElementById('pickSave').click(); },
+    chDownload: function (bytes, name) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+    },
+  };
+  window.onerror = function (m) { Module.setStatus('Error: ' + m); };
+
+  async function addFiles(files) {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+    for (const f of files) {
+      Module.setStatus('Reading ' + f.name + '…');
+      const path = '/import/' + f.name.replace(/[\/\\]/g, '_');
+      FS.writeFile(path, new Uint8Array(await f.arrayBuffer()));
+      Module.ccall('ch_web_add_file', null, ['string'], [path]);
+    }
+    Module.setStatus('');
+  }
+  // The game checks each save before it keeps it. Saves are far under 1 MB.
+  var saveUploads = 0;
+  async function addSaves(files) {
+    for (const f of files) {
+      let path = '';
+      if (f.size <= 1048576) {
+        path = '/import/upload' + saveUploads++ + '.tmp';
+        FS.writeFile(path, new Uint8Array(await f.arrayBuffer()));
+      }
+      Module.ccall('ch_web_add_save', null, ['string', 'string'], [f.name, path]);
+    }
+  }
+  document.getElementById('pickSave').addEventListener('change', function (e) {
+    addSaves(Array.from(e.target.files)); e.target.value = '';
+  });
+  document.getElementById('pick').addEventListener('change', function (e) {
+    addFiles(Array.from(e.target.files)); e.target.value = '';
+  });
+  document.addEventListener('dragover', function (e) { e.preventDefault(); document.body.id = 'drop'; });
+  document.addEventListener('dragleave', function () { document.body.id = ''; });
+  document.addEventListener('drop', function (e) {
+    e.preventDefault(); document.body.id = '';
+    const files = Array.from(e.dataTransfer.files);
+    const saves = files.filter(function (f) { return /\.sav$/i.test(f.name); });
+    if (saves.length && Module.chSaveScreen) addSaves(saves);
+    else if (saves.length) {
+      Module.setStatus('To add a save, open the Save or Load screen and drop it there.');
+      setTimeout(function () { Module.setStatus(''); }, 6000);
+    }
+    const others = files.filter(function (f) { return !/\.sav$/i.test(f.name); });
+    if (others.length) addFiles(others);
+  });
+  document.getElementById('erase').addEventListener('click', function () {
+    if (!confirm('Delete the imported game files from this browser? Saves are kept.')) return;
+    (function rm(p) {
+      for (const n of FS.readdir(p)) {
+        if (n === '.' || n === '..') continue;
+        const q = p + '/' + n;
+        if (FS.isDir(FS.stat(q).mode)) { rm(q); FS.rmdir(q); } else FS.unlink(q);
+      }
+    })('/gamedata');
+    FS.syncfs(false, function () { location.reload(); });
+  });
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

@@ -1,0 +1,8 @@
+# Hand-written one-line guesses for big unported functions (shown instead of the automatic hint).
+address,guess
+00471070,"unit steps toward its target cell: cell deltas from +0x2ec/+0x2f0 to +0x4d0/+0x4d2, line walk"
+004653d0,"UnitCtrl constructor: sprite sets, unit array, GDI font for the unit labels"
+0043f480,"map draw pass: D3D texture-stage setup then tile/layer drawing (fog layer?)"
+0043e540,"map draw pass variant (when +0xb288 == 0): D3D texture-stage setup then tiles"
+00491ef0,"apply an attack's result from unit A to unit B (indices < 250); special case for record 0x1c6"
+0048ff70,"status-condition cno (1..69): counts which of its six linked conditions the unit has"

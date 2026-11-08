@@ -1,0 +1,9 @@
+# kscapabilityup: keys are hashes of the Japanese (tools/export_text.py)
+@eabf2ef13b72f7b9	★All classes★\nRaises HP and HP regen, and\nslightly improves armor.\n★Warrior line★\nNormal attack Hit and Power\nup.
+@b1420756b0a25f15	★All classes★\nRaises evasion, move speed\nand HP.\n★Swordsman line★\nNormal attack Hit and Power\nup.
+@f7d77d063ef663c2	★All classes★\nWidens sight and improves\nBody resistance to poison and\nparalysis.\n★Hunter line★\nNormal attack Hit, Power and\nRange up.
+@1d45924f449373bb	★All classes★\nImproves Will resistance to\ncurses and masks. Raises MP\nand MP regen.\n★Priest line★\nNormal attack Power and\nRange up.
+@e74839e447e992e7	★All classes★\nImproves Barrier against magic\nand raises MP.\n★Mage line★\nNormal attack Power and\nRange up.
+@d47a2181a8c58ac9	★All classes★\nGreatly raises HP and HP regen,\nand improves Body resistance\nto poison and paralysis. Vital\nfor melee fighters.
+@6f6414c9045b7e8d	★All classes★\nGreatly raises MP and MP\nregen, and improves Will\nresistance to curses and masks.\nA must for heavy skill use.
+@e2ff3f3771abe528	★All classes★\nEXP spent raises the\ncharacter's level. Higher levels\nreduce Engage Time.

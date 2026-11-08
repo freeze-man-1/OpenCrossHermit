@@ -1,0 +1,227 @@
+<title>Cross Hermit Port Coverage</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: one reading column of dense tables; each status is a stacked bar
+   drawn to the same 0-100% scale, so categories compare by eye. */
+:root {
+  --bg: #f5f6f4; --panel: #ffffff; --fg: #1d2421; --muted: #5d6963; --rule: #d9dedb;
+  --accent: #2f5d8a;
+  --ported: #2e8b57; --partial: #d39a2b; --missing: #c4544a; --na: #b9c1bd;
+  --track: #e7ebe8;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141917; --panel: #1c2320; --fg: #e3e8e5; --muted: #9aa7a0; --rule: #2e3833;
+  --accent: #7fb0e0; --ported: #4fb87c; --partial: #e2b04f; --missing: #e0766b; --na: #55605a; --track: #29322e;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141917; --panel: #1c2320; --fg: #e3e8e5; --muted: #9aa7a0; --rule: #2e3833;
+  --accent: #7fb0e0; --ported: #4fb87c; --partial: #e2b04f; --missing: #e0766b; --na: #55605a; --track: #29322e;
+  color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 14px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+main { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px; }
+h1, h2 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: 30px; line-height: 1.15; }
+h2 { font-size: 20px; }
+h3 { font-size: 15px; margin: 0; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+.muted { color: var(--muted); }
+.mono, td.num, .addr { font-family: var(--f-mono); font-size: 12.5px; }
+.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+header { display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.tile .big { font-family: var(--f-display); font-size: 32px; line-height: 1; font-variant-numeric: tabular-nums; }
+.tile .sub { font-size: 12.5px; color: var(--muted); }
+
+.bar { display: flex; height: 10px; border-radius: 2px; overflow: hidden; background: var(--track); min-width: 80px; }
+.bar span { display: block; height: 100%; }
+.b-ported { background: var(--ported); } .b-partial { background: var(--partial); } .b-missing { background: var(--missing); } .b-na { background: var(--na); }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: middle; text-align: left; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tr.tier td { background: var(--track); font-weight: 600; font-size: 12.5px; }
+td.barcell { width: 22%; min-width: 120px; }
+.pct { font-weight: 600; }
+
+.gaps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 14px; }
+.gap { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.gap .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.gap ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.gap li { display: grid; grid-template-columns: 7.2em 3.2em 1fr; gap: 8px; padding: 5px 0; border-top: 1px solid var(--rule); align-items: baseline; }
+.gap li .g { font-size: 12.5px; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+.chip { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 3px; border: 1px solid currentColor; white-space: nowrap; }
+.s-ported { color: var(--ported); } .s-partial { color: var(--partial); } .s-missing { color: var(--missing); } .s-notneeded { color: var(--muted); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+input, select { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); color: var(--fg); }
+input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#q { flex: 1 1 220px; min-width: 0; }
+td.guess { font-size: 12.5px; color: var(--muted); min-width: 260px; }
+td.refs { font-size: 11.5px; color: var(--muted); font-family: var(--f-mono); }
+ul.notes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+code { font-family: var(--f-mono); font-size: 12.5px; }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">ch.exe · MSVC debug build · C++20/SDL2 port</div>
+    <h1>Cross Hermit Port Coverage</h1>
+    <p class="muted" id="sub"></p>
+  </header>
+
+  <section>
+    <div class="tiles" id="tiles"></div>
+    <div class="legend">
+      <span><i class="b-ported"></i>Ported</span><span><i class="b-partial"></i>Partial</span><span><i class="b-missing"></i>Missing</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Progress by category</h2>
+    <p class="muted">Library code, and game functions nothing in the exe calls ("not needed"), are left out of every percentage. "By size" weighs each function by its decompiled line count, which tracks the porting effort better than the plain count.</p>
+    <div class="scroll"><table id="cats"></table></div>
+  </section>
+
+  <section>
+    <h2>Largest gaps in gameplay code</h2>
+    <p class="muted">The ten biggest functions not yet ported in each gameplay category (debug-only code left out). The hint comes from the source file, the ported functions it calls or is called by, and its strings; a "?" after the file means the file was inferred from neighbouring functions.</p>
+    <div class="gaps" id="gaps"></div>
+  </section>
+
+  <section>
+    <h2>All functions</h2>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search address, file, hint, port file" aria-label="Search functions">
+      <select id="fc" aria-label="Category"></select>
+      <select id="fs" aria-label="Status">
+        <option value="">All statuses</option><option value="ported">Ported</option><option value="partial">Partial</option>
+        <option value="missing">Missing</option><option value="not needed">Not needed (library, no caller)</option>
+      </select>
+      <select id="fo" aria-label="Sort">
+        <option value="addr">By address</option><option value="size">Largest first</option>
+      </select>
+      <span class="muted" id="count"></span>
+    </div>
+    <div class="scroll"><table id="all"></table></div>
+  </section>
+
+  <section>
+    <h2>How this was measured</h2>
+    <ul class="notes" id="notes"></ul>
+  </section>
+</main>
+
+<script>
+const D=/*__DATA__*/null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = n => n.toLocaleString('en-US');
+const pct = (a, b) => b ? (100 * a / b) : 0;
+const p1 = x => x.toFixed(1) + '%';
+const rows = D.rows;
+const game = rows.filter(r => r.i !== 'crt');
+
+function tally(list) {
+  const t = {n: 0, l: 0, ported: [0,0], partial: [0,0], missing: [0,0]};
+  for (const r of list) { if (r.s === 'not needed') continue; t.n++; t.l += r.l; if (t[r.s]) { t[r.s][0]++; t[r.s][1] += r.l; } }
+  return t;
+}
+function bar(t, k) {  // k: 0 count, 1 lines
+  const tot = k ? t.l : t.n;
+  return `<div class="bar" role="img" aria-label="${p1(pct(t.ported[k], tot))} ported">` +
+    ['ported','partial','missing'].map(s => `<span class="b-${s}" style="width:${pct(t[s][k], tot)}%"></span>`).join('') + '</div>';
+}
+
+// summary
+const all = tally(game), core = tally(game.filter(r => r.i === 'core'));
+const crt = rows.filter(r => r.i === 'crt');
+$('#sub').textContent = `${fmt(rows.length)} functions in the exe: ${fmt(game.length)} game functions (${fmt(all.l)} decompiled lines) and ${fmt(crt.length)} library functions the port does not need. Generated ${D.meta.generated}.`;
+const tile = (label, t, note) => `<div class="tile"><div class="eyebrow">${label}</div>
+  <div class="big">${p1(pct(t.ported[1], t.l))}</div>
+  ${bar(t, 1)}
+  <div class="sub">by size · ${p1(pct(t.ported[0], t.n))} by count (${fmt(t.ported[0])} of ${fmt(t.n)} functions)${t.partial[0] ? `, ${t.partial[0]} partial` : ''}${note ? ' · ' + note : ''}</div></div>`;
+const ui = tally(game.filter(r => r.i === 'ui')), eng = tally(game.filter(r => r.i === 'engine'));
+$('#tiles').innerHTML = tile('All game code', all) + tile('Core gameplay', core) + tile('Menus and UI', ui) +
+  tile('Engine/platform', eng, 'largely replaced by SDL2 rather than ported');
+
+// category table, grouped by importance
+const tiers = ['core','ui','engine','optional','debug','crt'];
+let h = `<thead><tr><th>Category</th><th class="num">Functions</th><th class="num">Ported</th><th class="num">Partial</th><th class="num">Missing</th><th>By count</th><th class="num">Lines</th><th>By size</th><th class="num">Size %</th></tr></thead><tbody>`;
+for (const tier of tiers) {
+  const inTier = rows.filter(r => r.i === tier);
+  if (!inTier.length) continue;
+  const tt = tally(inTier);
+  if (tier === 'crt') {
+    h += `<tr class="tier"><td colspan="9">${esc(D.meta.imp[tier])}</td></tr>
+      <tr><td>CRT/library</td><td class="num">${fmt(inTier.length)}</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td colspan="2" class="muted">MSVC runtime, D3DX and other static libraries</td><td class="num">${fmt(inTier.reduce((a, r) => a + r.l, 0))}</td><td class="num">n/a</td></tr>`;
+    continue;
+  }
+  h += `<tr class="tier"><td colspan="6">${esc(D.meta.imp[tier])}</td><td class="num">${fmt(tt.l)}</td><td>${bar(tt,1)}</td><td class="num pct">${p1(pct(tt.ported[1], tt.l))}</td></tr>`;
+  for (const c of D.meta.cats) {
+    const list = inTier.filter(r => r.c === c);
+    if (!list.length) continue;
+    const t = tally(list);
+    h += `<tr><td>${esc(c)}</td><td class="num">${fmt(t.n)}</td><td class="num">${fmt(t.ported[0])}</td><td class="num">${fmt(t.partial[0])}</td><td class="num">${fmt(t.missing[0])}</td>
+      <td class="barcell">${bar(t,0)}<div class="muted num" style="text-align:left">${p1(pct(t.ported[0], t.n))}</div></td>
+      <td class="num">${fmt(t.l)}</td><td class="barcell">${bar(t,1)}</td><td class="num pct">${p1(pct(t.ported[1], t.l))}</td></tr>`;
+  }
+}
+$('#cats').innerHTML = h + '</tbody>';
+
+// gaps
+const gapCats = D.meta.cats.filter(c => game.some(r => r.c === c && r.i === 'core')).concat(['Menus/preparation']);
+$('#gaps').innerHTML = gapCats.map(c => {
+  const list = game.filter(r => r.c === c && r.i !== 'debug');
+  const miss = list.filter(r => r.s !== 'ported' && r.s !== 'not needed').sort((a, b) => b.l - a.l);
+  const t = tally(list);
+  const top = miss.slice(0, 10);
+  return `<div class="gap"><div class="head"><h3>${esc(c)}</h3><span class="muted mono">${fmt(t.missing[1] + t.partial[1])} lines left in ${fmt(miss.length)} functions</span></div>
+    ${bar(t,1)}
+    <ol>${top.map(r => `<li><span class="addr">${r.a}</span><span class="num mono">${r.l}</span><span class="g">${r.s === 'partial' ? '<span class="chip s-partial">partial</span> ' : ''}${esc(r.g)}</span></li>`).join('')}</ol></div>`;
+}).join('');
+
+// full table
+const fc = $('#fc');
+fc.innerHTML = '<option value="">All categories</option>' + D.meta.cats.filter(c => rows.some(r => r.c === c)).map(c => `<option>${esc(c)}</option>`).join('');
+try { const s = JSON.parse(localStorage.getItem('chcov') || '{}'); for (const k of ['q','fc','fs','fo']) if (s[k] != null) $('#' + k).value = s[k]; } catch (e) {}
+function renderAll() {
+  const q = $('#q').value.trim().toLowerCase(), c = fc.value, s = $('#fs').value, o = $('#fo').value;
+  try { localStorage.setItem('chcov', JSON.stringify({q, fc: c, fs: s, fo: o})); } catch (e) {}
+  let list = rows.filter(r => (!c || r.c === c) && (!s || r.s === s) &&
+    (!q || (r.a + ' ' + r.n + ' ' + r.f + ' ' + r.g + ' ' + r.r.join(' ')).toLowerCase().includes(q)));
+  if (o === 'size') list = list.slice().sort((a, b) => b.l - a.l);
+  const shown = list.slice(0, 400);
+  $('#count').textContent = list.length > shown.length ? `showing ${shown.length} of ${fmt(list.length)}` : `${fmt(list.length)} functions`;
+  $('#all').innerHTML = `<thead><tr><th>Address</th><th class="num">Lines</th><th>Status</th><th>Category</th><th>Source file</th><th>Hint</th><th>Port</th></tr></thead><tbody>` +
+    shown.map(r => `<tr><td class="addr">${r.a}${r.n.startsWith('FUN_') ? '' : '<div class="muted">' + esc(r.n) + '</div>'}</td><td class="num">${r.l}</td>
+      <td><span class="chip s-${r.s.replace(' ', '')}">${r.s}</span></td><td>${esc(r.c)}</td><td class="mono">${esc(r.f)}${r.h && r.h !== 'assert' ? '<span class="muted">?</span>' : ''}</td>
+      <td class="guess">${r.i === 'crt' ? '' : esc(r.g)}</td><td class="refs">${r.r.map(esc).join('<br>')}</td></tr>`).join('') + '</tbody>';
+}
+for (const id of ['q','fc','fs','fo']) $('#' + id).addEventListener('input', renderAll);
+renderAll();
+
+// method notes
+const M = D.meta;
+$('#notes').innerHTML = [
+  `Functions come from the Ghidra export of the whole exe (<code>CH.exe.c</code>), merged with the battle export (<code>ch_battle_v2.c</code>, ${fmt(M.battle)} functions). Size is the decompiled line count, signature to closing brace.`,
+  `Game code is told from library code by the debug build's stack checks: every game function fills its locals with <code>0xCCCCCCCC</code> or calls <code>__chkesp</code>; no library function does.`,
+  `Source files come from the assert path strings (<code>E:\\CrossHermit\\GAME\\SRC\\…</code>) read out of ch.exe. ${fmt(M.how.assert)} functions have their own assert; ${fmt(M.how.between)} sit between two functions of the same file; ${fmt(M.how.nearest)} sit between two different files and were split by which side they call. Files with no assert at all (UnitCtrlAttack.cpp, for one) end up inside a neighbour.`,
+  `A function counts as ported when its <code>FUN_xxxxxxxx</code> appears anywhere in <code>game/</code>, <code>tests/</code>, <code>engine/</code> or <code>main.cpp</code> (${fmt(M.port_refs)} addresses). A mention whose own sentence says "not ported" makes it missing, or partial when other mentions exist; <code>tools/inventory/overrides.csv</code> corrects the rest by hand. A function named only in passing (as a caller, say) still counts as ported, so the figures lean optimistic.`,
+  `Port comments name ${M.unknown.length} addresses the decompile has no function for: ${M.unknown.map(a => '<code>' + a + '</code>').join(', ')} (0042e6a0 is from the Japanese build).`,
+  `Re-run with <code>python3 tools/inventory/build_inventory.py</code>; it rewrites <code>functions.csv</code> and this page.`
+].map(x => `<li>${x}</li>`).join('');
+</script>

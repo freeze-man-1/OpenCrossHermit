@@ -1,0 +1,1080 @@
+# Hand corrections the comment heuristics get wrong. Empty fields keep the computed value.
+# status: ported | partial | missing ; category: one of the report's categories
+address,status,category,note
+0043c160,ported,,line-of-sight visible() is in tactics_map; tactics_units.cpp:857 comment is stale
+004b8d50,ported,,KojinTask start is in kojin_task.cpp; han_task.hpp:23 comment is stale
+00432700,not needed,,no caller in ch.exe: a map check (event 0 at time 0) no map uses
+00432770,not needed,,no caller in ch.exe: a map check (event 0 at time 0) no map uses
+00436850,not needed,,no caller in ch.exe: a map 0x50 test
+00431b30,not needed,Network,no caller in ch.exe: versus score totals
+00498ac0,not needed,,no caller in ch.exe: an empty script hook
+00498b50,not needed,,no caller in ch.exe: an empty script hook
+00498e00,not needed,,no caller in ch.exe: an empty script hook
+00431910,,Network,versus scoring of the network maps (FUN_004368b0)
+00431990,,Network,versus scoring of the network maps (FUN_004368b0)
+00431a60,,Network,versus scoring of the network maps (FUN_004313f0 / FUN_004368b0)
+00498ea0,not needed,,no caller in ch.exe: a second copy of FUN_00498f30 (change sides)
+0044fbb0,not needed,,the save-data paths object's constructor ("SaveData\\" under the program folder): the port's vfs::saveRoot
+0044fe60,not needed,,that object's destructor
+# Unreachable, from tools/inventory/find_unreachable.py (both decompiles' calls, ch.exe's direct calls and pointers): never ported.
+004374c0,not needed,,no caller in ch.exe
+004374f0,not needed,,no caller in ch.exe
+00437530,not needed,,only called from unused FUN_004374f0
+00437560,not needed,,no caller in ch.exe
+00437650,not needed,,no caller in ch.exe
+00437c10,not needed,,no caller in ch.exe
+00437c50,not needed,,no caller in ch.exe
+004385a0,not needed,,no caller in ch.exe
+004387f0,not needed,,no caller in ch.exe
+004390e0,not needed,,no caller in ch.exe
+004391c0,not needed,,no caller in ch.exe
+004392b0,not needed,,no caller in ch.exe
+004392e0,not needed,,no caller in ch.exe
+00439350,not needed,,no caller in ch.exe
+00439520,not needed,,no caller in ch.exe
+00439a00,not needed,,no caller in ch.exe
+00439be0,not needed,,no caller in ch.exe
+0043c320,not needed,,no caller in ch.exe
+0043c390,not needed,,no caller in ch.exe
+0043c400,not needed,,no caller in ch.exe
+0043d9a0,not needed,,no caller in ch.exe
+0043e010,not needed,,no caller in ch.exe
+0043e540,not needed,,no caller in ch.exe
+0043f480,not needed,,no caller in ch.exe
+00441a50,not needed,,no caller in ch.exe
+00442840,not needed,,no caller in ch.exe
+00443be0,not needed,,no caller in ch.exe
+004447d0,not needed,,no caller in ch.exe
+00449480,not needed,,no caller in ch.exe
+0044c970,not needed,,no caller in ch.exe
+0044d0d0,not needed,,no caller in ch.exe
+0044ea20,not needed,,no caller in ch.exe
+0044ea50,not needed,,no caller in ch.exe
+0044f460,not needed,,no caller in ch.exe
+0044faa0,not needed,,no caller in ch.exe
+004502d0,not needed,,no caller in ch.exe
+004507d0,not needed,,no caller in ch.exe
+00450a60,not needed,,only called from unused FUN_00450c70
+00450ac0,not needed,,no caller in ch.exe
+00450c70,not needed,,no caller in ch.exe
+00452f30,not needed,,no caller in ch.exe
+00453650,not needed,,no caller in ch.exe
+00454850,not needed,,no caller in ch.exe
+00455680,not needed,,only called from unused FUN_004936e0
+00455a70,not needed,,only called from unused FUN_00493720
+00455e20,not needed,,no caller in ch.exe
+00456130,not needed,,only called from unused FUN_00493760
+00456b60,not needed,,no caller in ch.exe
+00456b90,not needed,,no caller in ch.exe
+00457440,not needed,,no caller in ch.exe
+00457500,not needed,,no caller in ch.exe
+00457730,not needed,,only called from unused FUN_00457500
+004587d0,not needed,,no caller in ch.exe
+004591e0,not needed,,no caller in ch.exe
+00459300,not needed,,only called from unused FUN_004591e0
+00459450,not needed,,no caller in ch.exe
+00459650,not needed,,no caller in ch.exe
+00459740,not needed,,only called from unused FUN_00459650
+00459ac0,not needed,,no caller in ch.exe
+00459db0,not needed,,no caller in ch.exe
+0045a130,not needed,,only called from unused FUN_00459ac0 / FUN_00459db0
+0045a190,not needed,,no caller in ch.exe
+0045c5d0,not needed,,no caller in ch.exe
+0045d5f0,not needed,,no caller in ch.exe
+0045dc90,not needed,,no caller in ch.exe
+0045e090,not needed,,no caller in ch.exe
+0045e1e0,not needed,,no caller in ch.exe
+0045e3a0,not needed,,no caller in ch.exe
+0045e5d0,not needed,,no caller in ch.exe
+0045edc0,not needed,,no caller in ch.exe
+0045f260,not needed,,no caller in ch.exe
+0045f610,not needed,,no caller in ch.exe
+0045f690,not needed,,no caller in ch.exe
+0045f750,not needed,,no caller in ch.exe
+0045f9c0,not needed,,only called from unused FUN_0045f610 / FUN_0045f690 / FUN_0045f750
+0045ffe0,not needed,,no caller in ch.exe
+00460010,not needed,,no caller in ch.exe
+004604f0,not needed,,no caller in ch.exe
+00461660,not needed,,no caller in ch.exe
+00461690,not needed,,no caller in ch.exe
+00461780,not needed,,only called from unused FUN_00461690
+00461bd0,not needed,,no caller in ch.exe
+00462e10,not needed,,no caller in ch.exe
+00462e40,not needed,,no caller in ch.exe
+00462e70,not needed,,no caller in ch.exe
+00462f60,not needed,,only called from unused FUN_00462e70
+00463420,not needed,,no caller in ch.exe
+00464680,not needed,,no caller in ch.exe
+004646b0,not needed,,no caller in ch.exe
+00466820,not needed,,no caller in ch.exe
+00467d80,not needed,,no caller in ch.exe
+00468810,not needed,,no caller in ch.exe
+0046a2f0,not needed,,no caller in ch.exe
+0046b350,not needed,,no caller in ch.exe
+0046bf70,not needed,,no caller in ch.exe
+004700e0,not needed,,no caller in ch.exe
+00470900,not needed,,no caller in ch.exe
+00470d80,not needed,,no caller in ch.exe
+00471070,not needed,,only called from unused FUN_00471d70
+00471d70,not needed,,no caller in ch.exe
+00471f50,not needed,,only called from unused FUN_00471d70
+00472090,not needed,,only called from unused FUN_00471d70
+004721d0,not needed,,no caller in ch.exe
+00474170,not needed,,no caller in ch.exe
+00474560,not needed,,no caller in ch.exe
+00478820,not needed,,no caller in ch.exe
+0047a240,not needed,,no caller in ch.exe
+0047cb60,not needed,,no caller in ch.exe
+0047e400,not needed,,no caller in ch.exe
+0047e430,not needed,,no caller in ch.exe
+0047f980,not needed,,no caller in ch.exe
+00481d00,not needed,,no caller in ch.exe
+00482ef0,not needed,,no caller in ch.exe
+00483310,not needed,,no caller in ch.exe
+00483790,not needed,,no caller in ch.exe
+00483c00,not needed,,no caller in ch.exe
+00483ca0,not needed,,no caller in ch.exe
+00483ef0,not needed,,no caller in ch.exe
+00483f40,not needed,,no caller in ch.exe
+00484080,not needed,,no caller in ch.exe
+004843a0,not needed,,no caller in ch.exe
+00484810,not needed,,no caller in ch.exe
+00484cf0,not needed,,no caller in ch.exe
+00485110,not needed,,no caller in ch.exe
+004853f0,not needed,,no caller in ch.exe
+004858d0,not needed,,no caller in ch.exe
+00485bd0,not needed,,no caller in ch.exe
+00485ed0,not needed,,no caller in ch.exe
+004861b0,not needed,,no caller in ch.exe
+004864b0,not needed,,no caller in ch.exe
+00486990,not needed,,no caller in ch.exe
+00486e40,not needed,,no caller in ch.exe
+00487340,not needed,,no caller in ch.exe
+00487830,not needed,,no caller in ch.exe
+00487cb0,not needed,,no caller in ch.exe
+004881a0,not needed,,no caller in ch.exe
+004886c0,not needed,,no caller in ch.exe
+00489fd0,not needed,,no caller in ch.exe
+0048a050,not needed,,no caller in ch.exe
+0048cd60,not needed,,no caller in ch.exe
+0048e1f0,not needed,,no caller in ch.exe
+0048f150,not needed,,no caller in ch.exe
+0048f1a0,not needed,,no caller in ch.exe
+0048f1e0,not needed,,no caller in ch.exe
+00490f90,not needed,,no caller in ch.exe
+00492450,not needed,,no caller in ch.exe
+00492560,not needed,,no caller in ch.exe
+004925b0,not needed,,no caller in ch.exe
+00492680,not needed,,no caller in ch.exe
+004927c0,not needed,,no caller in ch.exe
+00492810,not needed,,no caller in ch.exe
+00492860,not needed,,no caller in ch.exe
+00492990,not needed,,no caller in ch.exe
+004929e0,not needed,,no caller in ch.exe
+00492ae0,not needed,,no caller in ch.exe
+00492b30,not needed,,no caller in ch.exe
+00492b80,not needed,,no caller in ch.exe
+00492c20,not needed,,no caller in ch.exe
+00492d90,not needed,,no caller in ch.exe
+00493250,not needed,,no caller in ch.exe
+004936e0,not needed,,no caller in ch.exe
+00493720,not needed,,no caller in ch.exe
+00493760,not needed,,no caller in ch.exe
+00495180,not needed,,no caller in ch.exe
+00496360,not needed,,no caller in ch.exe
+004963d0,not needed,,no caller in ch.exe
+0049dc20,not needed,,no caller in ch.exe
+0049dd30,not needed,,no caller in ch.exe
+# The message box (mesbox.cpp) is only opened by the network lobby (nettask.cpp FUN_00443c10 / FUN_00444330 / FUN_00445150 / FUN_00446780 / FUN_00447d00)
+00441270,,Network,message box setup (only the network lobby uses it)
+00441360,,Network,message box teardown (only the network lobby uses it)
+004413f0,,Network,message box release (only the network lobby uses it)
+00441470,,Network,message box load data\Tactics\MesBox.bin (only the network lobby uses it)
+00441540,,Network,message box sprites (only the network lobby uses it)
+004415e0,,Network,message box load (only the network lobby uses it)
+00441630,,Network,message box buttons (only the network lobby uses it)
+004418f0,,Network,message box draw (only the network lobby uses it)
+# Network play inside the battle task (tacticstask.cpp): the lockstep exchange, the chat box and the map flares; all behind FUN_00456b20 (DAT_007f4491) or the watcher flag (FUN_004577f0)
+00456bc0,,Network,lockstep exchange (FUN_00416fa0 buffers); only inside FUN_004539b0's network block
+00457030,,Network,lockstep exchange; only inside FUN_004539b0's network block
+00457110,,Network,lockstep exchange; only inside FUN_004539b0's network block
+00457830,,Network,closes the chat input (FUN_00425ed0); only network play opens it
+00457890,,Network,opens the chat input; network play only (FUN_00456b20)
+00457aa0,,Network,sends a chat line; network play or watcher only
+00457c40,,Network,the chat log box; empty without network play
+00457d00,,Network,chat log update; network play only (FUN_00456b20)
+00457e00,,Network,chat message out (FUN_00419450)
+00457f50,,Network,chat message in (FUN_00419450 / FUN_0041ad60)
+00458060,,Network,chat message by player number (FUN_0041ad60)
+00458100,,Network,reads the chat/flare toggle +0x18d; only FUN_00458180 sets it (network play)
+00458130,,Network,sets the chat/flare toggle +0x18d
+00458180,,Network,the chat/flare toggle button; network play only (FUN_00456b20)
+00458280,,Network,flare draw; network play only (FUN_00456b20)
+00458380,,Network,flare message out; network play only
+00458450,,Network,flare message in (FUN_00419450)
+00453930,,Network,the network handshake step (+0x34 1): only FUN_004538d0 in network play leads to it
+00459350,not needed,,window procedure of the dialog object only FUN_004591e0 creates (FUN_004591e0 has no caller)
+004593f0,not needed,,dialog procedure only FUN_004591e0 passes (FUN_004591e0 has no caller)
+004597d0,not needed,,TactRetTask (data\Tactics\TactRet.bin): its only constructor FUN_00459740 is unused (called only from FUN_00459650, which nothing calls)
+00459880,not needed,,TactRetTask (data\Tactics\TactRet.bin): its only constructor FUN_00459740 is unused (called only from FUN_00459650, which nothing calls)
+004598c0,not needed,,TactRetTask (data\Tactics\TactRet.bin): its only constructor FUN_00459740 is unused (called only from FUN_00459650, which nothing calls)
+00459930,not needed,,TactRetTask (data\Tactics\TactRet.bin): its only constructor FUN_00459740 is unused (called only from FUN_00459650, which nothing calls)
+00459a00,not needed,,TactRetTask (data\Tactics\TactRet.bin): its only constructor FUN_00459740 is unused (called only from FUN_00459650, which nothing calls)
+00459b10,not needed,,TactRetTask (data\Tactics\TactRet.bin): its only constructor FUN_00459740 is unused (called only from FUN_00459650, which nothing calls)
+00459cc0,not needed,,TactRetTask (data\Tactics\TactRet.bin): its only constructor FUN_00459740 is unused (called only from FUN_00459650, which nothing calls)
+00496410,not needed,,replay recorder / player (ReplayData.rep): the mode +0x117c3c is only ever set to 0 (both FUN_00496390 calls pass 0); recording (1) and playback (2) never run
+00496450,not needed,,replay recorder / player (ReplayData.rep): the mode +0x117c3c is only ever set to 0 (both FUN_00496390 calls pass 0); recording (1) and playback (2) never run
+00496490,not needed,,replay recorder / player (ReplayData.rep): the mode +0x117c3c is only ever set to 0 (both FUN_00496390 calls pass 0); recording (1) and playback (2) never run
+004964f0,not needed,,replay recorder / player (ReplayData.rep): the mode +0x117c3c is only ever set to 0 (both FUN_00496390 calls pass 0); recording (1) and playback (2) never run
+00496690,not needed,,replay recorder / player (ReplayData.rep): the mode +0x117c3c is only ever set to 0 (both FUN_00496390 calls pass 0); recording (1) and playback (2) never run
+004967b0,not needed,,replay recorder / player (ReplayData.rep): the mode +0x117c3c is only ever set to 0 (both FUN_00496390 calls pass 0); recording (1) and playback (2) never run
+004968b0,not needed,,replay recorder / player (ReplayData.rep): the mode +0x117c3c is only ever set to 0 (both FUN_00496390 calls pass 0); recording (1) and playback (2) never run
+004969d0,not needed,,replay recorder / player (ReplayData.rep): the mode +0x117c3c is only ever set to 0 (both FUN_00496390 calls pass 0); recording (1) and playback (2) never run
+0048ceb0,,Network,sends this frame's commands to the other players (FUN_00416fa0 buffers)
+0048d280,,Network,takes the other players' commands (called in FUN_004539b0's network block and from FUN_00457110)
+0048d400,,Network,network command packing for FUN_0048ceb0
+0048d490,,Network,network command unpacking (from FUN_00456bc0)
+004db420,not needed,,no caller in ch.exe (no call, jump or stored address)
+004db470,not needed,,no caller in ch.exe (no call, jump or stored address)
+004de100,not needed,,no caller in ch.exe (no call, jump or stored address)
+004dfb20,not needed,,no caller in ch.exe (no call, jump or stored address)
+004e21b0,not needed,,no caller in ch.exe (no call, jump or stored address)
+004e30f0,not needed,,no caller in ch.exe (no call, jump or stored address)
+004cb7c0,not needed,,no caller in ch.exe (no call, jump or stored address)
+004cd570,not needed,,no caller in ch.exe (no call, jump or stored address)
+004cd760,not needed,,no caller in ch.exe (no call, jump or stored address)
+004cdf80,not needed,,no caller in ch.exe (no call, jump or stored address)
+004ce730,not needed,,no caller in ch.exe (no call, jump or stored address)
+004ce780,not needed,,no caller in ch.exe (no call, jump or stored address)
+004ce7c0,not needed,,no caller in ch.exe (no call, jump or stored address)
+004ce870,not needed,,no caller in ch.exe (no call, jump or stored address)
+004d1640,not needed,,no caller in ch.exe (no call, jump or stored address)
+004d1730,not needed,,no caller in ch.exe (no call, jump or stored address)
+004bd510,not needed,,no caller in ch.exe: an empty TacticsResult hook
+004bd840,not needed,,no caller in ch.exe: an empty AllResult hook
+004d31c0,not needed,,no caller in ch.exe: an empty ysub hook
+004d4840,not needed,,no caller in ch.exe: stops the BGM when the system is up
+005060b0,not needed,,no caller in ch.exe: an empty OpTask hook
+005060e0,not needed,,no caller in ch.exe: loads data\op\opdata.bin as bank 0
+00506070,not needed,,no caller in ch.exe: calls FUN_00505fc0
+00505fc0,not needed,,only FUN_00506070 calls it, which nothing calls
+004a2700,not needed,,no caller in ch.exe: removes an entry from a unit's list
+004a28d0,not needed,,no caller in ch.exe: a search with no result
+004a2950,not needed,,no caller in ch.exe: empty
+004a2d60,not needed,,no caller in ch.exe: FUN_004a2980(0)
+004da120,not needed,,no caller in ch.exe (SLProg)
+004da160,not needed,,only FUN_004da120 calls it, which nothing calls
+004da1e0,not needed,,no caller in ch.exe (SLProg)
+004d1b40,not needed,,only FUN_004da160 (dead) calls it: returns its argument
+004d1b70,not needed,,only FUN_004da1e0 (dead) calls it: empty
+0049fff0,not needed,,only FUN_004a0020's state 3 calls it, which is never entered
+00493c40,,Network,flare click: only while the network chat flare toggle (FUN_00458100) is on; sends FUN_00458380
+004376b0,,Debug/editor,the route search's debug dialog (DialogBoxParamA 0x9f): the order of the four search directions
+0044f940,not needed,,no caller in ch.exe
+0046fec0,not needed,,no caller in ch.exe
+00471ab0,not needed,,no caller in ch.exe
+00465280,not needed,,no caller in ch.exe
+00468c00,,Network,the network relation table: DAT_00618668 with the players of one side allied (only when FUN_00456b20)
+00464f80,,Debug/editor,an anim loader only for the unit viewer (FUN_0045b9e0)
+00471ca0,not needed,,only called by FUN_00471ab0, which nothing calls
+0044f870,not needed,,no caller in ch.exe
+00464640,,Menus/preparation,an empty call of FUN_00464010 (the trial build's title sprite)
+0044ffa0,not needed,,only called by FUN_0044fe60 (not needed: that object's destructor)
+00450050,not needed,,nothing calls it (a sprintf into the dead pathfind object's buffer)
+00450020,not needed,,nothing calls it (empty)
+0044e7a0,not needed,,nothing calls it (a node's cell of the coarse graph)
+0044e740,not needed,,only called by FUN_0044e7a0 (not needed)
+0044e9a0,not needed,,only called by FUN_0044f870 (not needed)
+00401000,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00401090,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004010d0,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00401810,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00401d30,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00401e20,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00401e90,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00401fd0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+004026d0,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00402740,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00402780,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00402db0,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00402de0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00403480,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00403500,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00403550,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00403580,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+004035d0,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403620,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004036c0,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403730,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403910,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403990,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403a00,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403aa0,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403af0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00403b30,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00403b70,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403bd0,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00403d50,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00403e70,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00403f10,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00404100,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00404410,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00404870,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00404b40,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00404b90,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00404c20,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00404ca0,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00405130,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00405160,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004059e0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00405a80,not needed,,platform layer (system\directx\d3dtex.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00405bc0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00405d80,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00405ec0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00405ff0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00406370,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+004063d0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+004064a0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00406780,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00406df0,not needed,,platform layer (system\directx\d3dtex.cpp): no game function reaches it
+00407780,not needed,,platform layer (system\directx\d3dxsp.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00407830,not needed,,platform layer (system\directx\d3dxsp.cpp): no game function reaches it
+00407a10,not needed,,platform layer (system\directx\d3dxsp.cpp): no game function reaches it
+00407a50,not needed,,platform layer (system\directx\d3dxsp.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00408130,not needed,,platform layer (system\directx\d3dxsp.cpp): no game function reaches it
+00408c00,not needed,,platform layer (system\directx\d3dxsp.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00408c30,not needed,,platform layer (system\directx\d3dxsp.cpp): no game function reaches it
+00408d30,not needed,,platform layer (system\directx\d3dxsp.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00408ea0,not needed,,platform layer (system\directx\d3dxspfont.cpp): no game function reaches it
+00408f90,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409140,not needed,,platform layer (system\directx\d3dxspfont.cpp): no game function reaches it
+004091a0,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004091f0,not needed,,platform layer (system\directx\d3dxspfont.cpp): no game function reaches it
+00409240,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409290,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409300,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409360,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004093d0,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409480,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409500,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409770,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409900,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004099f0,not needed,,platform layer (system\directx\d3dxspfont.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409a70,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409ad0,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00409b20,not needed,,platform layer (system\directx\dxanim.cpp): no game function reaches it
+00409e80,not needed,,platform layer (system\directx\dxanim.cpp): no game function reaches it
+0040a1e0,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040a220,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040a390,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040ad20,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040b590,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040b660,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040b6a0,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040b7b0,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040b800,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040b960,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040b990,not needed,,platform layer (system\directx\dxanim.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040ba20,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040baa0,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bae0,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bb20,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bb90,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bbd0,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bc90,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bcd0,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): no game function reaches it
+0040bd10,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bd80,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bdd0,not needed,,platform layer (system\directx\dxanimdatactrl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040be70,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bf30,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040bfa0,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040c0f0,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040c140,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040c1a0,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040c1f0,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040c2a0,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040c340,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040c610,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040c9c0,not needed,,platform layer (system\directx\dxaudio.cpp): no game function reaches it
+0040cbd0,not needed,,platform layer (system\directx\dxaudio.cpp): no game function reaches it
+0040cc80,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040cf00,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040d330,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040d7b0,not needed,,platform layer (system\directx\dxaudio.cpp): no game function reaches it
+0040d7e0,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040d880,not needed,,platform layer (system\directx\dxaudio.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040d8c0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040d970,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040d9c0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+0040d9f0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+0040dab0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040db10,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040db90,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040dbf0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040dc80,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040dcd0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040dec0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+0040def0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+0040df20,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040e170,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+0040e1e0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+0040e210,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040e2a0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040e510,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040ea80,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040eb90,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040ed20,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040edd0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040f0d0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040f3e0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040fc20,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0040ff30,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410270,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004103f0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+004104e0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+004105a0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+00410730,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004107b0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410830,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410870,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004108b0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+004108f0,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+00410a30,not needed,,platform layer (system\directx\dxdraw.cpp): no game function reaches it
+00410c20,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410c70,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410cb0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410db0,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410e90,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410f30,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00410f90,not needed,,platform layer (system\directx\dxdraw.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00411090,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00411290,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00411d00,not needed,,platform layer (system\directx\dxinput.cpp): no game function reaches it
+00411df0,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412290,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412390,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004124f0,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412650,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004128c0,not needed,,platform layer (system\directx\dxinput.cpp): no game function reaches it
+00412a30,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412a70,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412b40,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412b70,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412c10,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412c70,not needed,,platform layer (system\directx\dxinput.cpp): no game function reaches it
+00412d40,not needed,,platform layer (system\directx\dxinput.cpp): no game function reaches it
+00412dd0,not needed,,platform layer (system\directx\dxinput.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00412e30,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413150,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413360,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413450,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413560,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004135d0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413630,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413680,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+004136d0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413730,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413850,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004138a0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413b10,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413cf0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413e50,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413e80,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00413f00,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00413fa0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414010,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414090,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414190,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414280,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+004142b0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004142e0,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00414340,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00414370,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+004143a0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414400,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414440,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004144b0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004144e0,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00414610,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414c30,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414de0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00414f30,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00414f90,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415010,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00415070,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004150a0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004150e0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004152c0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415370,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415420,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004154f0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415530,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004155d0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415610,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415930,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415990,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415a90,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415b40,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415d90,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415dd0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00415e60,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00415f50,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416140,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416260,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004162c0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416320,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416370,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004163e0,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00416540,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416640,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+004167e0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416870,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004168b0,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+004169a0,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00416af0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416b80,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416bd0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416c40,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416cc0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416f60,not needed,,platform layer (system\directx\dxmain.cpp): no game function reaches it
+00416fa0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00416ff0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417050,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417090,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004170c0,not needed,,platform layer (system\directx\dxmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417530,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004175a0,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417610,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417650,not needed,,platform layer (system\directx\dxpaltbl.cpp): no game function reaches it
+004176e0,not needed,,platform layer (system\directx\dxpaltbl.cpp): no game function reaches it
+00417850,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004178f0,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417950,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417a10,not needed,,platform layer (system\directx\dxpaltbl.cpp): no game function reaches it
+00417a70,not needed,,platform layer (system\directx\dxpaltbl.cpp): no game function reaches it
+00417b80,not needed,,platform layer (system\directx\dxpaltbl.cpp): no game function reaches it
+00417bd0,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417c10,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417c40,not needed,,platform layer (system\directx\dxpaltbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417c80,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417cc0,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00417e00,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004181b0,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00418720,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004187b0,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+00418af0,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+00418b20,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00419240,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00419450,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00419540,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00419710,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004198b0,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00419920,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+00419ba0,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+00419de0,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00419f00,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00419f90,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00419fe0,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041a030,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041a4d0,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041a520,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041a560,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041a6d0,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041a800,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041ab10,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041ad60,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041ae70,not needed,,platform layer (system\directx\dxplay.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041bd40,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041be10,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041c2b0,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041c320,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041c830,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041c9d0,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041ce60,not needed,,platform layer (system\directx\dxplay.cpp): no game function reaches it
+0041d040,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d0d0,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d130,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d1b0,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d210,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d2e0,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d3c0,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d400,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d5d0,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d790,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d7c0,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d7f0,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041d8a0,not needed,,platform layer (system\directx\dxshow.cpp): no game function reaches it
+0041d8e0,not needed,,platform layer (system\directx\dxshow.cpp): no game function reaches it
+0041d930,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041da80,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041db30,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041df60,not needed,,platform layer (system\directx\dxshow.cpp): no game function reaches it
+0041e1e0,not needed,,platform layer (system\directx\dxshow.cpp): no game function reaches it
+0041e590,not needed,,platform layer (system\directx\dxshow.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041e620,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041e6b0,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041e720,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041e7f0,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041e940,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041ead0,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041eb30,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041eb70,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041ebf0,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041ee30,not needed,,platform layer (system\directx\dxtexpos.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041eeb0,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041ef20,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041ef60,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041efd0,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041f2a0,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041f5a0,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041f670,not needed,,platform layer (system\directx\dxtextbl.cpp): no game function reaches it
+0041f710,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041f830,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041f890,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041f900,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041f930,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041f9e0,not needed,,platform layer (system\directx\dxtextbl.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041fa50,not needed,,platform layer (system\dib.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0041fb00,not needed,,platform layer (system\dib.cpp): no game function reaches it
+0041fc50,not needed,,platform layer (system\dib.cpp): no game function reaches it
+0041fc90,not needed,,platform layer (system\dib.cpp): no game function reaches it
+0041fcd0,not needed,,platform layer (system\dib.cpp): no game function reaches it
+0041fd10,not needed,,platform layer (system\dib.cpp): no game function reaches it
+0041fdc0,not needed,,platform layer (system\dib.cpp): no game function reaches it
+0041fe00,not needed,,platform layer (system\dib.cpp): no game function reaches it
+00420210,not needed,,platform layer (system\dib.cpp): no game function reaches it
+00420550,not needed,,platform layer (system\dib.cpp): no game function reaches it
+00420610,not needed,,platform layer (system\dib.cpp): no game function reaches it
+00420760,not needed,,platform layer (system\dib.cpp): no game function reaches it
+00420830,not needed,,platform layer (system\dib.cpp): no game function reaches it
+00420990,not needed,,platform layer (system\dib.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004209c0,not needed,,platform layer (system\dib.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004209f0,not needed,,platform layer (system\dib.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00420ac0,not needed,,platform layer (system\format.cpp): no game function reaches it
+00420b00,not needed,,platform layer (system\format.cpp): no game function reaches it
+00420b50,not needed,,platform layer (system\format.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00420ba0,not needed,,platform layer (system\format.cpp): no game function reaches it
+00420ca0,not needed,,platform layer (system\format.cpp): no game function reaches it
+00420d80,not needed,,platform layer (system\format.cpp): no game function reaches it
+00420df0,not needed,,platform layer (system\format.cpp): no game function reaches it
+00420ef0,not needed,,platform layer (system\format.cpp): no game function reaches it
+00420ff0,not needed,,platform layer (system\format.cpp): no game function reaches it
+004210d0,not needed,,platform layer (system\format.cpp): no game function reaches it
+004212e0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00421540,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004215f0,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00421660,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00421d50,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00421ea0,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00421f50,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00422090,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00422290,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004222d0,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00422300,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422330,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422560,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004225a0,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004225e0,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00422610,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422640,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00422680,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004226e0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422750,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+004227c0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422830,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+004228a0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422910,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422af0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422c60,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422cd0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00422f20,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423100,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+004232f0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423480,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004234d0,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00423510,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423540,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004235f0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423800,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423950,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+004239c0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+004239f0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423a60,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423ad0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423ba0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423d80,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00423ef0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424140,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424320,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424510,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424670,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004246c0,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00424700,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00424730,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004248e0,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00424980,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424a90,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00424b20,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424c30,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424cc0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424de0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424e70,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424ed0,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424f30,not needed,,platform layer (system\mtask.cpp): no game function reaches it
+00424f80,not needed,,platform layer (system\mtask.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00425930,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00425a50,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00425ac0,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00425c70,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00425cc0,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00425de0,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00425e60,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00425ed0,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00425f50,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00425fc0,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00426040,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004260b0,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00426110,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00426190,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004261e0,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00426210,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00426250,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004262a0,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00426310,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004263b0,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004264d0,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004265f0,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00426640,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004266b0,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+004266e0,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00426820,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00426a80,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00426bc0,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00426f10,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+00427060,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+004271e0,not needed,,platform layer (system\sysime.cpp): no game function reaches it
+004272e0,not needed,,platform layer (system\sysime.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004275f0,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427650,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004277a0,not needed,,platform layer (system\syslinklist.cpp): no game function reaches it
+00427890,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427990,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427a80,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427ae0,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427b70,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427bf0,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427c40,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427c90,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427d20,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427d60,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427de0,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427e30,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427e70,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427eb0,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00427f70,not needed,,platform layer (system\syslinklist.cpp): no game function reaches it
+00428070,not needed,,platform layer (system\syslinklist.cpp): no game function reaches it
+004280c0,not needed,,platform layer (system\syslinklist.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004288b0,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+004288e0,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428910,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428980,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+004289b0,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00428a00,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00428ad0,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428b60,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00428b90,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428bc0,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428c00,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428c40,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428cc0,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00428d10,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00428d60,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428db0,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00428e00,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428e80,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00428f10,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00428f80,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00428ff0,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429060,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+004290d0,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00429160,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+004291c0,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00429220,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+00429280,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+004292e0,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429310,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429340,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429380,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+004293b0,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004293e0,not needed,,platform layer (system\sysmem.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429440,not needed,,platform layer (system\sysmem.cpp): no game function reaches it
+004294c0,not needed,,platform layer (system\system.cpp): no game function reaches it
+00429540,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429580,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004295c0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429670,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004296b0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429720,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004297a0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004297e0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429820,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004298e0,not needed,,platform layer (system\system.cpp): no game function reaches it
+00429990,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429aa0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+00429be0,not needed,,platform layer (system\system.cpp): no game function reaches it
+00429c70,not needed,,platform layer (system\system.cpp): no game function reaches it
+00429f40,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a030,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a100,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a1a0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a240,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a2b0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a2f0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a330,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a370,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a4b0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a510,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a550,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a5a0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a610,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a680,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a790,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a7e0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042a8e0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042a930,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042a9c0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042abc0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042ac50,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042add0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042ae20,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042ae70,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042aec0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042af00,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042af80,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b010,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b050,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042b090,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b0d0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042b120,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b190,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b1e0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b240,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042b2d0,not needed,,platform layer (system\system.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0042b2f0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b320,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b360,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b480,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b4e0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b5e0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b620,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b660,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b6c0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b750,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b7b0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b810,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b870,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b8e0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b950,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042b980,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042ba30,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042baf0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bb90,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bc20,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bc80,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bcb0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bd10,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bd90,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bde0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042be70,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bf00,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bf50,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bf90,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042bff0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c100,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c160,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c1a0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c1d0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c210,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c270,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c2c0,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c300,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c380,not needed,,platform layer (system\system.cpp): no game function reaches it
+0042c400,not needed,,platform layer (system\system.cpp): no game function reaches it
+0049e150,not needed,,platform layer (yoshida\winmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+0049e850,not needed,,platform layer (yoshida\winmain.cpp): no game function reaches it
+0049e8d0,not needed,,platform layer (yoshida\winmain.cpp): every game function that reaches it is ported, doing the same through the port's engine (SDL, VFS, mixer, sprite banks, AnmPlayer)
+004db190,not needed,,platform layer (common\comsound.cpp): no game function reaches it
+004db1e0,not needed,,platform layer (common\comsound.cpp): no game function reaches it
+004f1510,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f1710,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f1dc0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f2640,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f2880,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f2cb0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f2dc0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f3810,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f3ae0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f4200,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f4d00,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f71c0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f7890,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f7f20,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004f9fc0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fa0e0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fa1f0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fa6f0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fa960,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004faaa0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fb1e0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fb2d0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fb320,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fb3f0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fb430,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fc1d0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fc240,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fc570,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fca10,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fda40,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fdae0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fdb70,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fdca0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fdd70,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fde30,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004fe1a0,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004ff070,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+00504830,,Menus/preparation,the demo task's (FUN_004e3ae0 / FUN_004e3980 call it); filed under edtask.cpp by address only
+004037f0,,Debug/editor,platform layer (system\directx\d3dtex.cpp) reached only from debug/editor code (0045cef0...)
+00406a10,,Debug/editor,platform layer (system\directx\d3dtex.cpp) reached only from debug/editor code (0045cef0...)
+00406b70,,Debug/editor,platform layer (system\directx\d3dtex.cpp) reached only from debug/editor code (0045cef0...)
+00406ca0,,Debug/editor,platform layer (system\directx\d3dtex.cpp) reached only from debug/editor code (0045cef0...)
+00409810,,Network,platform layer (system\directx\d3dxspfont.cpp) reached only from network code (004418f0...)
+0040b6d0,,Debug/editor,platform layer (system\directx\dxanim.cpp) reached only from debug/editor code (0045b000...)
+0040b740,,Debug/editor,platform layer (system\directx\dxanim.cpp) reached only from debug/editor code (0045b000...)
+004109e0,,Network,platform layer (system\directx\dxdraw.cpp) reached only from network code (00444820...)
+00415ed0,,Debug/editor,platform layer (system\directx\dxmain.cpp) reached only from debug/editor code (0045d2c0...)
+004168e0,,Debug/editor,platform layer (system\directx\dxmain.cpp) reached only from debug/editor code (0045ae00...)
+00416d20,,Debug/editor,platform layer (system\directx\dxmain.cpp) reached only from debug/editor code (0045d2c0...)
+0041e140,,Debug/editor,platform layer (system\directx\dxshow.cpp) reached only from debug/editor code (0045a230...)
+0041ed80,,Debug/editor,platform layer (system\directx\dxtexpos.cpp) reached only from debug/editor code (0045ae00...)
+00426160,,Network,platform layer (system\sysime.cpp) reached only from network code (00457890...)
+00426500,,Network,platform layer (system\sysime.cpp) reached only from network code (00448490...)
+00426d90,,Network,platform layer (system\sysime.cpp) reached only from network code (00448490...)
+00428120,,Network,platform layer (system\syslinklist.cpp) reached only from network code (00443c10...)
+00417f60,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004180b0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418110,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418250,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004182f0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004183e0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004184a0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418780,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004188b0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418900,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418a00,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418c20,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418ef0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418f30,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00418f70,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004190f0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004192e0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004194a0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004195e0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00419780,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00419950,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004199a0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00419b30,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00419c60,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00419e40,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+00419f60,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041a120,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041a1e0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041ab60,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041abf0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041ac70,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041acf0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041ade0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041aea0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041aee0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041af20,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041afd0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041b0f0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041b190,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041b200,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+0041b4a0,not needed,,DirectPlay (system\directx\dxplay.cpp): replaced by the relay transport (game/net/net_transport.cpp, net_session.cpp, tools/netserver/relay.mjs)
+004c4490,not needed,,no caller in ch.exe: returns its third argument
+004c4d80,not needed,,no caller in ch.exe: reads the first word of a 0x26-byte record at 0x624520
+004b7dc0,not needed,,no caller in ch.exe: wraps FUN_004b7e20
+004b85d0,not needed,,no caller in ch.exe: splits a count for FUN_004b8660
+004b8660,not needed,,only called by the uncalled FUN_004b85d0
+004b88c0,not needed,,no caller in ch.exe: draws rect 0x61bf30 row idx
+00424fc0,not needed,,no caller in ch.exe: appends to DebugAssert.log
+00428480,not needed,,no caller in ch.exe: tSysListBoxCtrl select counting up from the last item
+004d67c0,not needed,,no caller in ch.exe: empty
+004d7a10,not needed,,no caller in ch.exe: a message loop around FUN_004d9880
+004d9880,not needed,,empty; only called by the uncalled FUN_004d7a10
+004d9d10,not needed,,no caller in ch.exe: wraps FUN_004d9c00
+004da020,not needed,,compiler static initialiser of a global YbcScript (FUN_004cdbe0 / FUN_004cdd00)
+004da060,not needed,,compiler static initialiser: constructs the global YbcScript
+004da0a0,not needed,,compiler static initialiser: registers its destructor with atexit
+004da0e0,not needed,,compiler atexit destructor of the global YbcScript
+004da1a0,not needed,,compiler static initialiser: registers FUN_004da1e0 with atexit
+004ab1a0,not needed,,no caller in ch.exe: draws one of the Han buttons (DAT_0061b628) by its rect
+004ae340,not needed,,empty; called by the Kojin tabs FUN_004abb60 / FUN_004ae370
+00461810,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00461900,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00461940,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+004619a0,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00461a70,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00461c00,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00461e50,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00461f70,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462100,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+004621b0,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462270,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+004623b0,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+004624b0,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462530,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+004625f0,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+004626b0,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+004627a0,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462860,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462910,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462a90,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462b90,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462d10,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462dd0,not needed,,TitleTrialTask2: never created (FUN_00461690 has no caller) and TitleTrial2.bin is not in the game
+00462ff0,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+004630e0,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463120,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463180,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463250,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463450,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+004636c0,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+004637e0,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463970,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463a20,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463ae0,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463c20,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463d20,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463da0,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463e60,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00463f20,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00464010,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+004640d0,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00464180,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00464300,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00464400,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00464580,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00464640,not needed,,TitleTrialTask3: never created (FUN_00462e70 has no caller) and TitleTrial3.bin is not in the game
+00504ed0,not needed,,HataTask's deleting destructor wrapper (FUN_00504e10 is ~HataTask)
+00505130,not needed,,no caller in ch.exe: a bank-10 draw variant (stretched sub-rect)
+00505360,not needed,,no caller in ch.exe: a bank-10 draw variant (tinted, scaled)
+005056b0,not needed,,no caller in ch.exe: a bank-10 draw variant (tinted sub-rect, rotated)
+005057f0,not needed,,no caller in ch.exe: a bank-10 draw variant (tinted sub-rect, scaled and rotated)
+00505930,not needed,,no caller in ch.exe: a bank-10 draw variant (centred sub-rect, scaled)
+00505df0,not needed,,returns 0; its one caller (FUN_004e3ae0) ignores it
+00505e80,not needed,,no caller in ch.exe: creates a bare HataTask
+00505f70,not needed,,the bare HataTask's constructor, only called by the uncalled FUN_00505e80
+004e3260,not needed,,empty
+004e3290,not needed,,empty

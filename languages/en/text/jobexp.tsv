@@ -1,0 +1,17 @@
+# jobexp: keys are hashes of the Japanese (tools/export_text.py)
+@bb51a5106608ba63	Strong in physical attack and defense, but weak to\nmagic. Can equip little beyond Warrior skills, but can\ncarry the most items.
+@969c158216dce1ad	Strong in physical attack and defense, but weak to\nmagic. Can equip little beyond Warrior skills, but can\ncarry the most items.
+@9ae6bc254a47a760	Balanced in physical and magic, with no flaws and\nno standout strength. Can also equip some sorcery\nand clerical skills, though not the high-level ones.
+@d06b6c483a13957c	Has wide sight and the fastest movement, but can't\ntake many hits. A bow's front and back skills oppose\neach other and can't be equipped together. Can also\nequip low-level sorcery and clerical skills.
+@9deab957564db20e	Has near-perfect magic defense. Light and Dark, the\nclerical skills, oppose each other and can't be\nequipped together. Can equip very little sorcery.
+@a39af485576e1746	High magic defense, but next to no physical defense.\nUses sorcery: Void, Earth, Wind, Water and Fire. Earth\nand Wind oppose each other, as do Water and Fire;\nopposed skills can't be equipped together.
+@16bfdf7d0abd3f6e	A Warrior specialized on the physical side.
+@55c72bcd66041782	A Swordsman specialized on the physical side.
+@e9c752b57e9cf29d	A Hunter specialized on the physical side.
+@92b4b4f727c2853d	A Priest specialized on the physical side.
+@203fd4bf3520182c	A Mage specialized on the physical side.
+@87cd3225b41df4d4	A Warrior specialized on the magic side.
+@ec4e4dd5d6da6420	A Swordsman specialized on the magic side.
+@e01ce2c5577c44b7	A Hunter specialized on the magic side.
+@b1e9702e0df68b17	A Priest specialized on the magic side.
+@eabeebfe84b4179e	A Mage specialized on the magic side.

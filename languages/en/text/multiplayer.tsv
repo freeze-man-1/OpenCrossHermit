@@ -1,0 +1,21 @@
+# multiplayer: keys are hashes of the Japanese (tools/export_text.py)
+@7d27b3deaec0b86f	Could not join the session.
+@43644141dfbb08b9	Could not search for sessions.
+@1ddd34d6a95ca846	Cannot open the file.
+@32497e9c53c0f7e4	Not made yet!!
+@52e8651782580d46	The start program number was set twice.
+@eba0b20aee413029	Stopping here.
+@fc47329301025d86	The connection was lost.
+@0eb7d62b0e53b941	the session can be joined.
+@fd9d08c46e6c66f8	Only when the game versions match
+@de1980d8051d1efb	you cannot join this session.
+@b490c38e8c264a91	The game versions differ, so
+@db254603be41fc60	Please correct it.
+@10879a9067b0055b	The IP address is not valid.
+@d99b76d7923f10d3	Returning to the title screen.
+@299360f9c5e80972	An error occurred.
+@5202f955db491800	Could not create a new session.
+@7c70d1431818e22a	Please try again.
+@b7aefaee646f0333	Could not connect.
+@448c434ded10465a	Multiplayer cannot run.
+@a3513f5227fdb5d4	Could not start DirectPlay.

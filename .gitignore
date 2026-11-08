@@ -1,0 +1,28 @@
+# Build output
+build*/
+preview/
+*.bmp
+
+# The player's game files and anything extracted from them
+gamedata/
+assets/
+*.iso
+*.z
+cd1
+*.exe
+ch_data.bin
+game.zip
+tools.zip
+
+# Decompiler exports of the original executables
+tools/decomp/
+
+# Server credentials
+*.env
+
+__pycache__/
+
+.claude/
+
+# Language pack drafts: Japanese next to the translation, made from the player's files
+languages/work/

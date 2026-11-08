@@ -1,0 +1,86 @@
+# Desktop builds (Linux, Windows, macOS) and the web build, which is
+# published to GitHub Pages from main. No game files are involved: the
+# tests that need them are skipped, and players import their own.
+name: build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, name: linux }
+          - { os: windows-2022, name: windows }
+          - { os: macos-14,     name: macos }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev zlib1g-dev libssl-dev ninja-build
+      - name: Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sdl2 sdl2_ttf sdl2_mixer openssl ninja
+      - name: Dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: vcpkg install sdl2 sdl2-ttf "sdl2-mixer[mpg123]" zlib openssl --triplet x64-windows
+      - name: Configure
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          else
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          fi
+      - name: Build
+        run: cmake --build build --config Release -j 4
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Package
+        shell: bash
+        run: |
+          cmake --install build --config Release --prefix dist/cross-hermit
+          if [ "$RUNNER_OS" = Windows ]; then cp build/Release/*.dll dist/cross-hermit/; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cross-hermit-${{ matrix.name }}
+          path: dist/cross-hermit
+
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with: { version: 4.0.10 }
+      - name: Build
+        run: |
+          emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-web -j 4
+          mkdir -p site
+          cp build-web/game.html site/index.html
+          cp build-web/game.js build-web/game.wasm build-web/game.data site/
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+
+  pages:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: web
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

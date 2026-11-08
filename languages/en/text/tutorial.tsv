@@ -1,0 +1,365 @@
+# tutorial: keys are hashes of the Japanese (tools/export_text.py)
+@e29a363e14912387	"Getting Started"
+@33978a0bc48cd2c2	Here I will explain the basic steps
+@9e331e7276723eff	of putting together your Teams.
+@0083eebfd4f21d20	1. Form Teams of up to 4 Students per Teacher.
+@9429d07f14b103f1	On this Team screen, each Teacher
+@cb00f9ce2d724985	leads a Team of at most "4" Students.
+@3dc86fd82a9e0d39	2. Choose a Quest or Lecture for each Team.
+@3f330a368195f45f	Here, for each Team, you choose
+@c18408bdb5038db1	whether it goes on a Quest or takes a Lecture.
+@52863bb9296b7762	3. Press "Advance Schedule" to move on.
+@52e4ebaa5c9689eb	When every Team is set, the
+@9b4b06feff6ea122	[Advance Schedule] button lights up;
+@c190c488d532fa24	left-click it to advance the schedule.
+@39bb88cf51892d93	...That concludes the overview of Team setup.
+@01556e575c40592f	Did you follow all of that?
+@409f08b91d0428e5	Sorry, once more please.
+@2f59936750858f23	I understand.
+@1e6b6482d15d353c	Then I will explain from the beginning.
+@d2fead13687f34f6	Is there anything else you are unsure of?
+@7232eec7d2c55107	  No, that's all.
+@da9dc0f0b156b596	  Explain how to form Teams.
+@ee260a83158e6b02	  Explain choosing Lectures.
+@3bd822d9aab0c330	  Explain choosing Quests.
+@55990a75039ed736	No, that's all.
+@6c4d68c381436513	Then if you have any more questions,
+@d5c1c8f423d0e9cd	please ask me at any time.
+@9bbabfb2bee84d59	Explain how to form Teams.
+@e63e138ee818f947	How to form Teams, then.
+@528c56ff7e3a36d3	Explain choosing Lectures.
+@9e0cc3f963128bd1	Choosing Lectures, then.
+@803cb27457571879	Explain choosing Quests.
+@9e05d93716ac73a7	Choosing Quests, then.
+@11c8c62ab549cb3a	"Forming Teams"
+@2be4835bd2ffdbbe	Here I will show you in practice
+@b04d9e0efc3c8402	how to "form a Team."
+@79593f22ef15b42e	Teams are put together in this area.
+@133ea9124beea7f0	I will explain the right-hand area later.
+@5d483e6ad22cbf01	If a Team has no one in it, you must
+@b0d6f5e1c5226714	first assign it a Teacher.
+@6d9edbfabfd283c2	From this [Teacher Pool],
+@01bea004b1115d6c	left-click a Teacher to pick up
+@877082620d933b1b	their face icon.
+@7ecfdb871283ca7f	Then, still holding the icon,
+@8f5a9afed0d95d89	carry it to any [Teacher slot].
+@ca12eea216976880	1. Drag & drop a Teacher icon
+@d199d4815de5d49c	onto a [Teacher slot]
+@642396bb9e71a632	Release the left button where you want
+@dceedacd5d658e98	it, and the Teacher is assigned.
+@4715537e52f6b856	Next, assign Students to the Team.
+@3058f7245db0fc7a	Just as with the Teacher,
+@01debe540841ddc8	left-click a Student icon in the
+@2dbb36e997dba3d7	[Student Pool] to pick it up.
+@ca1cfdbe44a7c0f2	Carry it to any [Student slot].
+@c3fd0da7423112d1	2. Drag & drop a Student icon onto a [Student slot]
+@b49412224bcd0e83	The Team now has its Teacher and Students.
+@56b9aa56ddf35cf6	That is all there is to assigning a Team.
+@3469906ce3b48aaf	A Team can have up to 1 Teacher
+@5b3a720f2eb04b8d	and up to 4 Students.
+@3dcb0ecc7188bf4d	*Each Teacher can take up to 4 Students.
+@f5e2c72e1f9a6279	That concludes forming Teams.
+@6fc5816ec9cdf15c	  Explain the points to watch.
+@13688234e3a12765	Explain the points to watch.
+@4228c61048efc003	The points to watch, then.
+@7c185b846de6b886	"Choosing Lectures"
+@3f3305368195ebe0	Here I will explain how to choose
+@240ca5b8d468766f	a "Lecture" for each Team.
+@a98106da45310a11	Once a Team has been formed,
+@31156a9c02c72376	left-click this icon and you will be
+@605f80a6fed21c90	able to "choose a Lecture."
+@2e86e54c536d5008	1. Click a Team's Lecture icon
+@095f8c187a3b436c	Lectures are chosen in this area.
+@ae7c82abbe8630d8	The Lecture titles are shown here.
+@921882da4ffa7bd7	Left-click a title and it appears
+@3f54335f720ea3c9	over here, which means
+@0ebec233edfda835	it has been selected.
+@0c5707d94314d86d	2. Left-click a Lecture to choose it
+@b1c24d88fe3cac9d	While a title is selected,
+@4ac74b23355a22cd	its content is shown here.
+@470c554d8180b427	Check what it covers and decide
+@c48712e1d9f16141	whether it should be taught.
+@d93f75957205a77d	Lectures come in three levels.
+@954af4bfe0de7149	Raise a Lecture's level with these
+@94e3cd7b22606ab5	buttons, and give your Students
+@49fd12d7dbe606e5	a better Lecture.
+@7a23f97ceeb6af23	Lastly, what a Lecture covers depends
+@109ab2444c867be0	on the Teacher, so do check.
+@d2836a728dbaf46d	That concludes choosing Lectures.
+@3867ca660a11a448	Understood. Then, lastly,
+@fdfc5ddb3762ff89	pressing this "Advance Schedule" button
+@e785a01350ebd6b7	moves on to that week's actions.
+@67248b6932d96a14	Before pressing "Advance Schedule,"
+@6f1d0f4393438ae9	be sure to SAVE your game.
+@5e68ece0a752cc10	Now, is there anything else you are unsure of?
+@9cb89cc086e0e43c	"Choosing Quests"
+@df027819c31e457d	Here I will explain choosing a "Quest."
+@d146cfb919b9005a	able to "choose a Quest."
+@46371c1246a8332e	1. Click a Team's Quest icon
+@7dd5b5f8dbe46406	Quests are chosen in this area.
+@b54852ce8711e016	The Quest titles are shown here.
+@8d722bc5c6b6086b	2. Left-click a Quest to choose it
+@6d6da4dc20fa2352	While a title is selected, the Quest's
+@6f70128e94e77d38	content is shown here.
+@8c9bdf1d84850db8	whether the Team should go on it.
+@2c153e7da64f0e6e	Quests are either "Limited"
+@a409bdf78ccca126	or "Free."
+@d0dfd6e4d8c2f367	For a "Limited" Quest, the number beside
+@60b7352d87a13f54	the title is the time left,
+@e1a23c27aeb38671	and on its last week it shows "Now."
+@e4cb8750fd0bf25c	A Quest marked "Now" must be
+@3f4b371006c2630b	taken that week, or it will be
+@c56096444af6f6e6	gone from the next week on,
+@3b4a05a71593838b	so do take care.
+@444bc7e3134fb0bf	That concludes choosing Quests.
+@73a47d75f11e30e0	"The Status Screen"
+@725c185a75964ff7	Here I will explain how to read
+@664a78ce82b3fd81	each unit's status.
+@412f515338b16cb7	"Character Art" shows the face
+@40bcd3bb4060f0d5	of the selected unit.
+@ebbe96eb2034eb9a	"Character LV" shows
+@74a9148fa9cc5612	their current level.
+@540317eafaaec250	"Basic Status" lists
+@4f279c39788afce1	the unit's stats.
+@baeca72a2e8ecb5c	For what each means, see the screen.
+@da914bc0959c95fc	Next, I will explain how to read
+@e72a66ae6b0379c9	the battle status.
+@38244a4db1d4498c	The "Main Status" looks
+@9f6754f44c1796d7	like this.
+@6d46f99bbaddd884	Note the "Engage Time":
+@ac3200d9206deb0e	it grows shorter as the
+@45cf47d45ac33300	unit's level rises.
+@8d72e2a10d0b1043	The higher a unit's level,
+@59064585086775c6	the more careful you must be.
+@ab791b999847c9dc	Next, the Attack status.
+@b8b502d649d12d36	This part is the Attack status.
+@09078dca94b3e1fa	For Mages and Priests, Hit is
+@3f64f426a4374b5a	always "Sure,"
+@86f8daaeb3e3b540	while other classes show a number.
+@e795cb42bcd62b9f	The higher it is, the easier it is to hit.
+@5bff8e1f98902738	During a Quest, Power has a range
+@04afa6bf71f25e3e	from its low to its high,
+@af3bdbd728b61a84	so actual Power varies.
+@99dc4bca3cc8f009	This screen shows the average.
+@a286de171a47e951	For the finer details, see the screen.
+@f67c2636aeb03e73	The Defense status
+@95ceab84cea16c93	is here.
+@6b4911dbd9430863	Note "Resist" here.
+@17ceae9cab4fbc34	"Barrier" blocks that much
+@e6e06bb0c8f249ca	magic damage outright, while
+@29841a75e343da08	"Resist" cuts that many percent
+@0333b30c9a33b33d	of the damage.
+@9d12df92c0a2e9ce	Lastly, I will explain the class panel.
+@2673576d37fe1b4e	This "Class" box is the current class.
+@fe75890e35214508	The "Skills + Items" box on the right
+@ea3580a39ec680d6	lists the equipped skills and items,
+@2117747997e68305	and how many of each can be equipped.
+@0e38fa631cc47d0a	Here you can check each unit's stats.
+@b977a40fa4634ef2	That concludes the status screen.
+@1fccde4173c040b1	  Explain equipping Skills.
+@7108354778102e98	  Explain equipping Items.
+@f3987a9d750a50c9	  Explain changing Class.
+@b81fe822d018f11e	  Explain raising Stats.
+@0f733693668293b3	  Explain the Student list.
+@3f934a7f687610e0	Explain equipping Skills.
+@2613e14abbc71a70	Equipping Skills, then.
+@1ee44d8b8c4930d7	Explain equipping Items.
+@f5366fe91790e4c5	Equipping Items, then.
+@9275b99af1f3cf32	Explain changing Class.
+@0c41d8d4056b838a	Changing Class, then.
+@7c157e3b73d77e77	Explain raising Stats.
+@ff14b2eb106fdaa5	Raising Stats, then.
+@cac43ba51472ae7e	Explain the Student list.
+@c954de9e1ee43916	The Student list, then.
+@32f189466de7d3ad	"The Skill Screen"
+@293eec6a64b49899	Here I will explain
+@f3df63dcf91a3492	how to equip Skills.
+@08d3447fb07d3555	From this "Skill Pool,"
+@5e6015057b2b342d	left-click a lit icon
+@0b84bd630d0f4451	to pick it up.
+@9887b6895afe8baf	Then, still holding the icon,
+@44061c8fa40033f0	carry it to this "Equip Pocket."
+@2e37ca6353cd2611	- Equipping a Skill
+@c7b780b4062ededb	- Pick up an icon from the Skill Pool,
+@5c64774f3d7517d3	  drag & drop it into an empty pocket
+@d9de60edb1486809	Release the button where you want it,
+@f219e77e0cec79ee	and the Skill is equipped.
+@09b5c8bca30d4d16	Equipped Skills are masked in white.
+@ce641d56164ab888	Equipped Skills also show in the
+@1ce8b9ab720ca26b	"Skill" box at the top of the screen.
+@f40e29818ecdd384	That is how equipping works.
+@f9abc29814c41dce	There are some points to watch
+@33a5ca2e69b46e9d	when equipping Skills.
+@b77d1e60585cc061	Each unit has its own
+@aa4a26fd5b858f35	"permission to equip":
+@a5aa5ba3519b5bc0	a Skill can't be equipped until
+@d3bebab5ef2f07e4	that unit has "learned" it.
+@f83b6a2b7c40614a	I will explain learning later.
+@19b23cb02178b98e	Watch for Skills marked "X."
+@12ee540d92e4c486	These may be "usable," yet the
+@056e0eb7db1add9b	unit's class keeps them
+@9e104e389f5a40e0	from being equipped.
+@7c5a2bfd0351d9d2	- Points to watch with Skills
+@eaf10d0500d82832	  - Skills marked "X" or shown dark
+@a7b7cd72a7c1cd5a	    can't be equipped
+@c7f85750d35bdc8e	These are called "opposed."
+@6a0041268aceaa4f	For example, with a heavy-warrior Skill
+@fec53ee27832914e	equipped, the opposed light-warrior
+@b7754e820db2c4a7	Skills can't be equipped with it.
+@7062721d241b1ca7	How many you can equip depends on class.
+@ff1b0af69d14bbbb	Check it at this spot on the screen.
+@94b2b93527497697	On the left, the number equipped;
+@26fa087eed4f2c7b	on the right, the number allowed.
+@c243d4764a9fb86d	Next, the "learning Skills"
+@09b12f6bf76e6892	I mentioned a moment ago.
+@8958db3cffef7084	To see what a Skill does,
+@d66d8207b6dd01b3	and its "details," left-click
+@2e896ac5ac52457b	its icon.
+@cdbe33d11fdfbb54	- Press Learn on an unlearned Skill
+@82d403bd22a66487	  so it can be equipped.
+@771be5dc912f1a13	For example, left-click this icon
+@688b1acb81cebbec	and the Skill's details show here.
+@e825d297b07dc4a6	For an unlearned Skill, the "Learn"
+@7b1c71e069472542	button is dark.
+@fac8f93fe0c57675	Pressing this button
+@5335469470cd7040	turns it into the "Learned" mark,
+@d354bfee0639eb4c	and the Skill can be equipped.
+@da06f2e2934cd482	Note well:
+@0e64d8f42d9adf00	to learn a Skill, "Class EXP"
+@c8f694b645ce0db3	must be paid.
+@0f5a00214648ae8c	If you don't have enough, you can't learn it,
+@df4eadb34000afa8	so do take care.
+@e2ab4e8368f838f8	To check whether another character
+@2e100315ef9d67bd	already has that Skill,
+@6cc2ae260346c9cb	left-click the icon you want to see,
+@42777af366f85ed3	then press the "Owned" button:
+@e1d13a6d569bdfc8	the face icons at the top light up.
+@9be778644558cc84	Press the "Owned" button again
+@3bd4cee79e20c6c6	to return to the normal view.
+@8e69a87435489a65	  Explain the status area.
+@0a4239ef9a462a78	Explain the status area.
+@4e3e848dcd8272c8	The status area, then.
+@61c6335f0e415147	"Equipping Items"
+@4be51db172984643	I will explain how to equip Items.
+@636c2de57108f94e	First, in the "Item Pool,"
+@d63143e2c087da34	left-click an icon to pick it up.
+@2dd0a41481ac3c71	Items marked "X" at this point
+@f3ec31e1d9bb20dd	can't be equipped,
+@95cd51dc5d4d9bd0	so do take care.
+@975d2cd77aee87f2	I will explain this later.
+@b8b944bbbc6d8aac	Next, carry it to any spot
+@a0fbfb71681fdcc8	in the "Equip Pocket"...
+@8b12939a7a0da3f6	- Put the Item in the Equip Pocket
+@208e8b9137c54615	Release the button and it is equipped.
+@cd0da5b07aa88656	Equipped Items
+@0e6a0b1b48040b52	are shown here as well.
+@ec369850c6eb84b6	That is how equipping Items
+@a8a66ae3a6cf4335	works.
+@09fc7ebd02e22e82	Now,
+@75c529200d41ae6c	the point to watch I mentioned earlier.
+@e6d3aa6f2234e207	- Items marked "X" can't be equipped
+@2d572906fc31c821	Items have equip permissions;
+@37e0345db318ae82	those marked "X" can't be equipped.
+@64ed6230577b2ed6	Weapons and armor are "limited by class,"
+@34ec18a485d46c79	so not every class may equip them.
+@8570474235569922	Many accessories can be
+@54ee3fe12887918b	equipped by anyone.
+@8a192659177e7703	Also,
+@e330b337f2a19474	how many can be equipped depends on class.
+@da65d3f7ad4613f0	That number is shown here.
+@d8eb7957488510d0	On the left, "the number equipped";
+@fdd490a079e7f9dd	on the right, "the number allowed."
+@32203743f53fa6d5	That covers the points to watch.
+@cb9b27df54a47978	Next, some extra notes.
+@2ccf9f11867e07c4	To see an Item's details,
+@dab7180935c5187e	left-click
+@ec86ab613f69bf92	its icon.
+@99c75457fd8f89c4	Its details are then
+@2eff52dc446099c9	written here.
+@4793fa0edee7c369	To find out who has
+@a661f53553fcb7bb	an Item equipped,
+@e9dc3ec5b3e0953d	left-click its icon
+@857232884cc1ff97	as before...
+@042e59f7b25da47e	then press "Owned," and the Students
+@8e5bbe1d02271d2e	holding that Item at the top
+@488e0b9b6249df32	light up.
+@9550a7cccf85eab4	Press the "Owned" button again
+@205e196de44bafa8	to return to the normal view.
+@f1e2f93298fe4288	That concludes the Item screen.
+@ef9ac31efeacf980	  Explain the status area.
+@ae6bc43687baabe6	"Changing Class"
+@a84cac3cf225bb1c	Here I will explain changing Class.
+@3226009e8f11ce97	First, in the "Class Pool," pick the class
+@a3db2ebb3c79fa4e	you want with a left-click.
+@0857e1be0822a6e8	Then press the "OK" button.
+@23b0b213f3bf6b19	The class change is now done.
+@2faa3f0566c90fbe	- Left-click the class you want
+@394ab851b3edc4f7	- Press "OK" to confirm.
+@d16fda4d42442727	The new class is also shown here.
+@66ca6495b6ccb436	That is the general flow.
+@aea9ad4a4705f412	Now, when changing Class:
+@2090469c6a5b5e02	changing Class changes how many
+@d2ecb4f4884946b8	Skills and Items can be equipped,
+@5e807d738f5ac0fc	and which ones, so
+@52e3f22dd12ede69	all Skills and Items are removed.
+@f96f7e240b31cf67	"More on Changing Class"
+@541a93156c8bf29e	That covers the points to watch.
+@7119975e645ed1dc	To see the details of each class,
+@9bf5b069a09926e5	left-click its "Class icon," and
+@7e1916b5b1e80b5b	its details show in the "Notes" on the right.
+@547fd0fb68e16204	The more "★" there are,
+@a8f1fd75fdc3a482	the stronger the class is in that area.
+@4365294d628265c1	The battle status after the change also shows.
+@6778641479fd1c9a	That concludes changing Class.
+@7ebd2f378fe26887	  Tell me about the status area.
+@22d31e79c7327164	  Tell me about equipping Skills.
+@517be54ab268635f	  Tell me about equipping Items.
+@f678d13528b94cd5	  Tell me about raising Stats.
+@6e84705205096a96	  Tell me about the Student list.
+@5a8291d3a6800d85	"Raising Stats"
+@c94aebceea880e3e	Here I will explain raising each unit's stats.
+@a3f4f69fad76283d	Doing this, the "Basic Status"
+@502cb9e6d21e8a33	goes up.
+@24466ba785709cb5	I will use "STR" as the example.
+@adb6483b393ceb6e	To raise "STR,"
+@8ff3bd4f7e79d631	use this area.
+@06eb680ee8f1e580	Press these "UP / DOWN" buttons
+@7b543e255cbae96a	to raise or lower the stat.
+@728e840faac42f05	- Raise the stats you like, then left-click OK.
+@7a727e409b4a59fa	Then press OK.
+@573effec64d22ebd	The stat has now been raised.
+@2d54daf347e7e084	"Points to Watch with Stats"
+@075208248674dd40	Now, when raising stats:
+@983d19f293cac577	raising a stat costs
+@23904895ab45b06c	"Class EXP."
+@b787ac523bc94d4a	If you don't have enough EXP,
+@808cc139e9315eca	you can't raise the stat, so
+@83ef75f3da6f2b61	check "Need EXP" and "Class EXP"
+@46450b8e570b69ec	before you share them out.
+@1fb830d54203adac	"More on Raising Stats"
+@b90243f1def5d3ab	To see a stat's details,
+@c01e594b72865bd6	left-click the stat.
+@0caa0b3c70fed80a	Its details then show
+@bf769e862886f34e	in the "Notes" here.
+@d937eb0c62c604ce	For what it improves, see here.
+@9536e690c4194f5c	This icon
+@4af0cf5ee1772615	affects the same things as this one.
+@45fbae7364c4ed20	Raised stats are also shown here.
+@80dca6092f455c04	While raising, the change in value and rank,
+@425d0a7815ef81e4	and in battle status, can be seen too.
+@b7e94629dd685eb8	Check these values to decide.
+@540c26540f32d1b2	  Tell me about changing Class.
+@93ee11fd788c45bd	"Changing the Selected Student"
+@0ad79c496d4cdb35	Here I will explain the "Student list."
+@305faa65ffc6b869	The Student list lets you check the
+@b91c0d8f1f2e45a8	Students in this box, and switch
+@452ececc366a6296	the screens to each one.
+@3e20302c8511acef	To switch to another Student,
+@4c3cc7f947df4a76	left-click the Student you want.
+@219939ecc0b98b5a	The top of the screen switches like this.
+@00ac1cfb94cbd582	Switching Students also works
+@f827120fe44684e6	in the "Skills," "Gear,"
+@b1d5b59f5a66139a	"Change Class" and "Stats Up" screens,
+@a2c9fa12c72a1068	with the "←" "→"
+@f67ab9231c243ae3	cursor keys.
+@afe116efb6cd3c37	  Explain changing Class.

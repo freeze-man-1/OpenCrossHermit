@@ -1,0 +1,52 @@
+# English: Japanese text<TAB>English. A line with no English stays Japanese.
+# Option screen
+フルスクリーン (F11)	Fullscreen (F11)
+ユニット時間無限 (シングル)	Infinite unit time (solo)
+Enterで即勝利 (シングル)	Instant win with Enter (solo)
+言語	Language
+章選択 (デバッグ)	Chapter select (debug)
+開く	Open
+# Save and Load screens, web build
+ダウンロード	Download
+アップロード	Upload
+追加しました	Added
+同じデータがすでにあります	Already have this save
+セーブデータが多すぎます（200個まで）	Too many saves (200 at most)
+セーブデータではありません（サイズが違います）	Not a save (wrong size)
+セーブデータではありません（形式が違います）	Not a save (wrong format)
+セーブデータが壊れています（チェックサム不一致）	Save is damaged (checksum mismatch)
+セーブデータの内容が正しくありません	Save contents are not valid
+# Battle pause menu: the PERFECT checklist (game/tactics/tactics_task.cpp drawGoals)
+パーフェクトへの条件	For a PERFECT result
+今の最高評価：{0}	Best result still possible: {0}
+{0}、{1}	{0}, {1}
+残り{0}	{0} left
+ステージの目的を果たす（Spaceキーで確認）	Complete the stage objective (Space shows it)
+敵を全滅させる	Defeat every enemy
+{0}を倒す	Defeat {0}
+{0}を味方のまま保つ	Keep {0} on your side
+{0}を確保する	Take {0}
+{0}を味方にする	Win over {0}
+{0}を倒されない	Don't let {0} fall
+{0}を倒さない	Don't defeat {0}
+{0}を破壊させない	Don't let {0} be destroyed
+{0}を回収する	Collect {0}
+目標のユニット	the target units
+仲間を一人も倒されない	Don't lose any of your characters
+建物を全て守る	Keep every building standing
+拠点を全て守る	Keep every base standing
+門を全て守る	Keep every gate standing
+建物を全て確保する	Take every building
+拠点を全て確保する	Take every base
+門を全て確保する	Take every gate
+敵の門を全て壊す	Destroy every enemy gate
+{0}以内に勝つ	Win within {0}
+制限時間内に勝つ	Win before time runs out
+{0}持ちこたえる	Hold out for {0}
+確保したまま{0}保つ	Keep it held for {0}
+目標地点を全て押さえる	Hold every target point
+敵に一体も突破されない	Don't let any enemy break through
+突破 {0}	{0} got through
+{0}を目的地へ連れて行く	Get {0} to the goal
+目的地にたどり着く	Reach the goal
+{0}経ってから目的地にたどり着く	Reach the goal after {0}

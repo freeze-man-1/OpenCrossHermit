@@ -1,0 +1,212 @@
+# names: keys are hashes of the Japanese (tools/export_text.py)
+@715e4d8225ced7cb	Sure hit
+@e5178147038a2de9	Magic
+@27294f0ebfc1d59f	Physical
+@2cea0e1bd67344be	Poison + Freeze
+@b9226259a3de2d43	Stun + Bind
+@77ae9b3b0043f85c	Amplify
+@4e9a90e7390ddcc9	Sanctuary
+@3ceaa638a89d6b7b	Sense Traps
+@a6fc621603da99d3	Disarm Traps
+@76ea839493fa943d	Power Up
+@6ab255081553fa71	Acrobatics
+@12152bd8952db87c	Haste
+@852ef6c7b2b00629	Magic Guard Up
+@14598849312b3fba	Armor Up
+@a8669aedb16d05a0	All Guard Up
+@03ff7d5f5fb16860	Fast Chant
+@530027a17c70d795	True Sight
+@e93e7ce29d8f00b4	Sight Up
+@b97b3a73c784f955	Magic Atk Up
+@42f0a97bd27f6ab6	Attack Up
+@53f49854817afaf7	Divine Shield
+@45beea5d4f0d7ee8	Rapid Fire
+@b4aeb62ab995e079	Body Up
+@13e9ed1ae811bee9	Summoned
+@a0791954386450a9	Perfect Being
+@c990c45e44f663c5	Stone
+@7fba227beea0f27e	Burning Bind
+@fa7c6aa92ce1964c	Freeze
+@69c4ed8de4139197	Bind
+@8ff18fe53f78c3aa	Magic Guard Down
+@746a4f1e91e0b251	Armor Down
+@325452c7cbb0a772	Slow
+@2ac32d28e62de0a4	Magic Atk Down
+@b0d23b843bd1c84b	Attack Down
+@a5d24b305721bd51	Curse
+@e6ed84fa209d9b6a	Deadly Poison
+@5858cdbe2cc006e8	No Revival
+@3338bf7d2171fe18	Frostbite
+@6b50d2cb22996f32	Mask
+@298db8f0759f4e65	Restraint
+@33fd181b75049eb0	Poison
+@7b8f09b04652b8a6	Stun
+@c40127bd078bee65	Fairy
+@d3338d39ca794d7a	None
+@a144d38c48946e1e	Head of the Four Books
+@67c86aaa78527b87	Head of Silence
+@e207d3ff8f30eac3	Wounded Swordsman
+@d4aa50b4c7ee7170	Wounded Hunter
+@2c9450a6e16c8958	Old Sage
+@584796615db7c676	Iconoclast E
+@d0e183152bd48e2e	Korpokkur Eye
+@60f5c075a9a8a680	Echo
+@67b7ae51e61ffeab	Wounded Warrior
+@5b244eb879cab252	Aide
+@ecc9f213d191b10f	Black Mage
+@e75efa7f336799e6	Black Priest
+@c1268be0d21f66b6	Black Hunter
+@971a4494d796730d	Black Swordsman
+@6c989d5a282fc951	Black Warrior
+@2e5b90b52dbe91ac	White Mage
+@172f172129788897	White Priest
+@ce6a7938c0dfbbd7	White Hunter
+@95df1277331d5f18	White Swordsman
+@dbae7a4dc76a85c2	White Warrior
+@af68afc32ecbecc4	Witch
+@12abda0125813787	Mage
+@c8c115a62f35ad7f	Sister
+@104dbded6374112e	Priest
+@83dc0f7de661bbb6	Scout
+@0cd2b27eb162638e	Hunter
+@67f4e2bfd383bb39	Fencer
+@ebb4624fc3078725	Swordsman
+@4b87e39f003cd574	Valkyrie
+@7462628807f83f39	Warrior
+@9f593539ad233d85	Invalid
+@dfd7d5a2b9198765	Zilmea
+@5c29ccce0932a97a	Lord Below
+@f83c98850a28668b	Sealing Catalyst
+@2aaa71c34f547074	Lamp Shield Guard
+@3f7f017b2b83726f	Watcher
+@dde73e340d251313	Elza the Birther
+@2a1b659d08909c86	Fald
+@f9519db04a58ee22	Farsen of Light
+@370dc7f73fe9e308	Venetera of Darkness
+@85364af75a83cdb7	Pillar Lucladis
+@f6dc2c4a1badfc2e	Twin Dragon Diploma
+@00b21c35adadb4c0	Boadra the Scorcher
+@abe9b082d5b7c7db	Frostag of Ice
+@7cb94d600f782671	Green Bulb Kedel
+@c17d21f418ff57f9	Blue Bulb Rabatu
+@670bb4b7a81df97f	Red Bulb Zekka
+@b9643a20f6e64231	Vistos of the Earth
+@1a6c481b66a72022	Shadow
+@1a54d093cf200699	Bull Statue
+@c978fb5e44e22f59	Stone Statue
+@f13707986fced18b	Goddess Statue
+@1726546831c908b9	Logic in the Water
+@2b20b00dec72422c	Light Wall Rubicle
+@be0cdfc3f1496202	Azon in Flight
+@cb7f3b46feb0a4bb	Treasure Chest
+@1bd8d1ae4f5ba097	Saint's Spring Diana
+@e1fb57330a936836	Guard Tower Partis
+@a9b34c5acdf33d68	Watcher Tartoma
+@24bb71a3c185c801	Cursed Ganesh
+@2bd1d3dd0bb8d04e	Heavy Knight Baroas
+@8cc7d84e8230129f	Lizard
+@be9ab03673a343d7	Iron Fist Lazperid
+@7fdbad28ac9c1264	Titan Zardos
+@3862afb928cb6f75	Mother the Birther
+@965026644e9b49b9	Lightning Wisp
+@2399b39766bd5171	Sky Blade Cuberio
+@785cb2b1f272c589	God Shield Banchinel
+@b7b5a2785f40568b	Evil Eye Scaris
+@3bcef7a5dc5f28dd	Swift Foot Hagrek
+@7b4b2241353bf75a	Drifter Flabas
+@aa1487c87a2b9570	Binder Gilik
+@9a2974a73623563d	Spirit Stone Cors
+@34da9d356dec12af	Bow Sprite Kumulo
+@c13ae758dd0c84c5	Kumulo the Piercer
+@fc8cf907b7d4fbf8	Kumulo the Archer
+@7a8da147edfe2f03	Kumulo the Slasher
+@e46f6be4aef6bd49	Ground Runner Hodges
+@b33cffe2f908ffd9	Headhunter Rodor
+@3866c18176048969	Chaos Drop Mol
+@7aacc3262f08e80f	Summon INT 5
+@7aacc2262f08e65c	Summon INT 4
+@7aacc1262f08e4a9	Summon INT 3
+@7aacc0262f08e2f6	Summon INT 2
+@7aacbf262f08e143	Summon INT 1
+@4b4c048190e2b3a3	Summon VIR 5
+@4b4c038190e2b1f0	Summon VIR 4
+@4b4c0a8190e2bdd5	Summon VIR 3
+@4b4c098190e2bc22	Summon VIR 2
+@4b4c088190e2ba6f	Summon VIR 1
+@75d5cc61265109e0	Summon SEN 5
+@75d5cd6126510b93	Summon SEN 4
+@75d5d26126511412	Summon SEN 3
+@75d5d361265115c5	Summon SEN 2
+@75d5d061265110ac	Summon SEN 1
+@6cd2d51527a52c61	Summon AGI 5
+@6cd2d41527a52aae	Summon AGI 4
+@6cd2d71527a52fc7	Summon AGI 3
+@6cd2d61527a52e14	Summon AGI 2
+@6cd2d91527a5332d	Summon AGI 1
+@c79861d120b935b5	Summon STR 5
+@c79860d120b93402	Summon STR 4
+@c7985bd120b92b83	Summon STR 3
+@c7985ad120b929d0	Summon STR 2
+@c7985dd120b92ee9	Summon STR 1
+@584797615db7c829	Iconoclast D
+@584798615db7c9dc	Iconoclast C
+@584799615db7cb8f	Iconoclast B
+@58479a615db7cd42	Iconoclast A
+@b3cece778b013073	Totem Gazer
+@c51b9e003f8db4fc	Ouroboros
+@fc1121781c95a449	Hermit
+@f73ebef5353d18aa	Robery
+@575526a55adf1b2e	Cheryl
+@ef41e6bfcda42594	Nazrek
+@85c47cbd48b1f0b5	Navilos
+@a74cd98896709e7b	Schneidra
+@1d028465e486b298	Fiorio
+@3c6b177ce76c8c3e	Papesh
+@a9af2281d0254e45	Reyvan
+@4b7db651b29065ea	Barbo
+@2a64d0093c5dc1c9	Baubes
+@4b57fb437b1f6037	Neph
+@c892ca47735b7bd8	Braki
+@6bff26efe3c422e3	Rubigore
+@537b8726a5665ccd	Ojion
+@4b7b333c7bd0c2a7	Barbara
+@22c07f6684f3dd1d	Story
+@8de7d0cc022f95bc	Denehere
+@d3b39b162d842056	Jacobin
+@aeead7f29ea403bf	Shelfa
+@4c9687eb38cc8215	Yelfan
+@794a13732415057f	Lilith
+@ea1128c1e2630690	Muller
+@acc97833cd8b8315	Marvela
+@055131f006f75624	Hazban
+@16dd005ce7b88224	Nafotka
+@98dff284c5134cc2	Kiefer
+@ddf1a52b9de08f5b	Iona
+@dca3ca46a74c6b7c	Ferdona
+@b2afecd821245506	Sheila
+@566348099b9211ee	Ele
+@d813396a4148bf91	Hudy
+@65892615273cb6f2	Pyros
+@41957bed002828aa	Cadmus
+@3e0d4fc56bc9c8e9	Flicka
+@c51635d8640c60a3	Bardi
+@1b58386cfc6159f3	Grave
+@c573e70672cdd3fd	Chris
+@dc37c41f22ee2e5d	Axel
+@fe2c6a404eb47b4d	Yuri
+@064ef614006af8ee	Ney
+@622d2b9e7fee9f40	Sirius
+@35a5a8b000d49309	Oskir
+@592d2d31382c0794	Illion
+@dd4971d998a327a9	Quest
+@fd2e9c5b3f4db046	Rossaria
+@ba0e223f47084bb0	Alsea
+@2ce694975f27fafa	Fanna
+@8e7afb4df0724dc1	Sesiris
+@43c45ea9e16caa49	Palmra
+@50e83a9b1a6a340c	Syalon
+@b876c1927eac2888	Callot
+@d71c59ffff524c9e	None
+@4ce056e1e01a7464	Cursed One in Black
+@46e4d259c2a61df6	Batra
+@a71d8d0767bf3523	???
