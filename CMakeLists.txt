@@ -200,6 +200,8 @@ else()
 
   add_executable(sys_box_test tests/sys_box_test.cpp)
   add_test(NAME sys_boxes COMMAND sys_box_test)
+  add_executable(touch_test tests/touch_test.cpp)
+  add_test(NAME touch COMMAND touch_test)
   add_executable(bank_format_test tests/bank_format_test.cpp game/bank_format.cpp)
   add_test(NAME bank_format COMMAND bank_format_test ${CH_TEST_DATA})
 

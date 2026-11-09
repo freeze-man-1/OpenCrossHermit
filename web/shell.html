@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Cross Hermit (port)</title>
 <link rel="icon" href="data:,">
 <style>
@@ -19,7 +19,15 @@
   #bar input { display: none; }
   #drop { outline: 3px dashed var(--accent); }
   canvas { display: block; flex: none; max-width: 100%; max-height: calc(100vh - 60px); aspect-ratio: 4 / 3;
-           background: #000; outline: none; }
+           background: #000; outline: none;
+           /* Touch goes to the game (engine/touch_gestures.hpp): no scrolling, zooming,
+              text selection, callout menu or tap flash on the canvas. */
+           touch-action: none; user-select: none; -webkit-user-select: none;
+           -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  html, body { overscroll-behavior: none; }
+  /* Once touched: the canvas may take the whole height but the import bar's
+     (--bar; the status line hides itself when empty). */
+  body.touch canvas { max-height: calc(100vh - var(--bar, 0px)); max-height: calc(100dvh - var(--bar, 0px)); }
   #status { color: var(--dim); padding: 8px 16px; }
 </style>
 </head>
@@ -57,7 +65,7 @@
     }],
     setStatus: function (t) { statusEl.textContent = t; statusEl.style.display = t ? '' : 'none'; },
     // Called by the game files screen.
-    chShowImport: function (on) { document.getElementById('bar').classList.toggle('on', on); },
+    chShowImport: function (on) { document.getElementById('bar').classList.toggle('on', on); fitBar(); },
     // Called by the save and load screens.
     chPickSave: function () { document.getElementById('pickSave').click(); },
     chDownload: function (bytes, name) {
@@ -71,6 +79,32 @@
     },
   };
   window.onerror = function (m) { Module.setStatus('Error: ' + m); };
+  function fitBar() { document.body.style.setProperty('--bar', document.getElementById('bar').offsetHeight + 'px'); }
+  window.addEventListener('resize', fitBar);
+
+  // Touch: SDL turns the canvas's touch events into fingers. Stop the browser's
+  // own handling too (scrolling, double-tap zoom, the mouse events it would
+  // simulate). The first touch asks for fullscreen and landscape, which a
+  // browser allows only in a touchend; one that refuses (iPhone Safari) is left as is.
+  (function () {
+    var canvas = document.getElementById('canvas'), asked = false;
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function (t) {
+      canvas.addEventListener(t, function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false });
+    });
+    canvas.addEventListener('touchend', function () {
+      document.body.classList.add('touch');
+      if (asked) return;
+      asked = true;
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!req || document.fullscreenElement || document.webkitFullscreenElement) return;
+      try {
+        Promise.resolve(req.call(el, { navigationUI: 'hide' })).then(function () {
+          if (screen.orientation && screen.orientation.lock) return screen.orientation.lock('landscape');
+        }).catch(function () {});
+      } catch (err) {}
+    });
+  })();
 
   async function addFiles(files) {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist();

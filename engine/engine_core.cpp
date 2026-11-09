@@ -68,12 +68,25 @@ void InputState::beginTick() noexcept {
     mousePrev_      = cur;
 }
 
+void InputState::applyTouch() {
+    while (touch_.hasMouseStep()) {
+        const touch::MouseStep s = touch_.popMouseStep();
+        onMouseMove(static_cast<int>(s.at.x), static_cast<int>(s.at.y));
+        if (s.button != touch::MouseStep::None)
+            onMouseButton(s.button == touch::MouseStep::Left ? SDL_BUTTON_LEFT : SDL_BUTTON_RIGHT, s.down);
+        if (s.endTick) break;
+    }
+}
+
 // ------------------------------------------------------------ Engine ------
 Engine::Engine(EngineConfig cfg) : cfg_(std::move(cfg)) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0)
         throw std::runtime_error(std::string("SDL_Init: ") + SDL_GetError());
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");  // nearest-neighbour: preserve pixel art
+    // Fingers work the mouse through touch::Recognizer (long-press is the right
+    // button), not SDL's left-button-only stand-in.
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
 #ifdef __EMSCRIPTEN__
     SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
 #endif
@@ -237,13 +250,27 @@ void Engine::frame() {
                 input_.onText(e.text.text);
                 break;
             case SDL_MOUSEMOTION:   // already remapped to logical coords by SDL_RenderSetLogicalSize
+                if (e.motion.which == SDL_TOUCH_MOUSEID) break;   // fingers come as SDL_FINGER*
                 input_.onMouseMove(e.motion.x, e.motion.y);
                 break;
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
+                if (e.button.which == SDL_TOUCH_MOUSEID) break;
                 input_.onMouseMove(e.button.x, e.button.y);
                 input_.onMouseButton(e.button.button, e.type == SDL_MOUSEBUTTONDOWN);
                 break;
+            case SDL_FINGERDOWN:
+            case SDL_FINGERMOTION:
+            case SDL_FINGERUP: {
+                // The renderer has normalized the finger to the logical viewport (letterbox included).
+                const touch::Point p{std::clamp(e.tfinger.x * float(cfg_.logicalW), 0.f, float(cfg_.logicalW - 1)),
+                                     std::clamp(e.tfinger.y * float(cfg_.logicalH), 0.f, float(cfg_.logicalH - 1))};
+                auto& t = input_.touch_;
+                if (e.type == SDL_FINGERDOWN)        t.down(e.tfinger.fingerId, p, e.tfinger.timestamp);
+                else if (e.type == SDL_FINGERMOTION) t.move(e.tfinger.fingerId, p, e.tfinger.timestamp);
+                else                                 t.up(e.tfinger.fingerId, p, e.tfinger.timestamp);
+                break;
+            }
             case SDL_WINDOWEVENT:
                 if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)    applyScaling();
                 else if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST) input_.releaseAll();
@@ -251,6 +278,8 @@ void Engine::frame() {
             default: break;
         }
     }
+
+    input_.touch_.update(SDL_GetTicks());   // a long-press fires while the finger stays still
 
     // 2. Fixed-timestep logic at the original tick rate
     const std::uint64_t now = SDL_GetPerformanceCounter();
@@ -275,7 +304,19 @@ void Engine::frame() {
         }
         for (const auto& [at, key] : keyScript_)
             if (at == tickCount_ || at + 2 == tickCount_) input_.onKey(key, at == tickCount_);
+        input_.applyTouch();
         input_.beginTick();
+        // Debug: CH_INPUT_LOG logs each tick's mouse button edges and touch gestures.
+        static const bool inputLog = SDL_getenv("CH_INPUT_LOG") != nullptr;
+        if (const auto& m = input_.mouse(); inputLog && (m.pressed || m.released))
+            SDL_Log("[input] tick %llu mouse %d,%d pressed %u released %u", static_cast<unsigned long long>(tickCount_),
+                    m.x, m.y, m.pressed, m.released);
+        if (const auto& g = input_.touch(); inputLog && (g.tap || g.longPress || g.dragBegan || g.dragEnded))
+            SDL_Log("[input] tick %llu touch%s%s%s%s at %.0f,%.0f", static_cast<unsigned long long>(tickCount_),
+                    g.tap ? " tap" : "", g.longPress ? " long-press" : "", g.dragBegan ? " drag-begin" : "",
+                    g.dragEnded ? " drag-end" : "",
+                    double(g.tap ? g.tapAt.x : g.longPress ? g.longPressAt.x : g.dragBegan ? g.dragStart.x : g.dragPos.x),
+                    double(g.tap ? g.tapAt.y : g.longPress ? g.longPressAt.y : g.dragBegan ? g.dragStart.y : g.dragPos.y));
         for (const auto& [at, text] : textScript_)
             if (at == tickCount_) input_.injectText(text);
         if (scene_) scene_->fixedUpdate(*this, dt);

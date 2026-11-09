@@ -32,6 +32,7 @@ struct PortOptions {
     bool infiniteUnitTime = false;   // single player: a unit's time on the field does not run out
     bool twTutorial = false;         // Traditional Chinese: the JP title's Tutorial item (ch.exe has none)
     bool instantWin = false;         // single player: Confirm (Enter / Z) wins a battle at once (rank 2)
+    bool modernUi = false;           // UI style: false = Classic (the original's), true = New (touch friendly)
 };
 [[nodiscard]] PortOptions& port();
 void loadPort();
@@ -50,3 +51,10 @@ struct Languages {
 [[nodiscard]] std::int32_t voiceVolume(int level, GameVersion v);
 
 } // namespace ch::options
+
+namespace ch::ui {
+// The UI style the player picked (Option screen): the new, touch-friendly one,
+// or the original's. Display only: input must still turn into the same game
+// commands either way, as network play is lockstep.
+[[nodiscard]] inline bool modern() { return options::port().modernUi; }
+} // namespace ch::ui

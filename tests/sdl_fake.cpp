@@ -26,6 +26,7 @@ int SDL_RenderSetScale(SDL_Renderer*, float, float) { return 0; }
 int SDL_RenderSetIntegerScale(SDL_Renderer*, SDL_bool) { return 0; }
 Uint64 SDL_GetPerformanceFrequency() { return 1000; }
 Uint64 SDL_GetPerformanceCounter() { return 0; }
+Uint32 SDL_GetTicks() { return 0; }
 int SDL_PollEvent(SDL_Event*) { return 0; }
 static Uint32 g_color = 0;
 int SDL_SetRenderDrawColor(SDL_Renderer*, Uint8 r, Uint8 g, Uint8 b, Uint8 a) { g_color = Uint32(a) << 24 | Uint32(r) << 16 | Uint32(g) << 8 | b; return 0; }

@@ -4,6 +4,8 @@
 #pragma once
 #include <SDL.h>
 
+#include "touch_gestures.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -142,6 +144,11 @@ public:
     [[nodiscard]] bool held(Action a)    const noexcept { return held_[idx(a)]; }
     [[nodiscard]] bool pressed(Action a) const noexcept { return latched_[idx(a)]; } // edge, survives until a logic tick consumes it
     [[nodiscard]] const MouseState& mouse() const noexcept { return mouse_; }
+    // Touch screen gestures this tick (engine/touch_gestures.hpp). By default one
+    // finger also works the mouse above: tap = left click, long-press = right
+    // click, drag = left drag. setTouchMouse(false) leaves the mouse alone.
+    [[nodiscard]] const touch::Gestures& touch() const noexcept { return touch_.gestures(); }
+    void setTouchMouse(bool on) { touch_.setEmulateMouse(on); }
     // Text entry (the original used the IME edit box, FUN_00425a10..): while
     // enabled, typed UTF-8 text and Backspace / Enter presses collect per tick.
     struct TextInput { std::string typed; int backspaces = 0; bool enter = false; bool selectAll = false; };   // selectAll: Ctrl+A
@@ -166,15 +173,17 @@ private:
     void onMouseMove(int x, int y) noexcept { mouse_.x = x; mouse_.y = y; }
     void onMouseButton(std::uint8_t sdlButton, bool down) noexcept;
     void beginTick() noexcept;
+    void applyTouch();   // the touch's next mouse steps, up to one tick's worth
     void injectClick() noexcept { mouseLatch_ |= kMouseLeft; }
-    void consumeTick() noexcept { latched_.fill(false); mouseLatch_ = 0; text_ = {}; }
-    void releaseAll()  noexcept { held_.fill(false); latched_.fill(false); mouseDown_ = mouseLatch_ = 0; }
+    void consumeTick() noexcept { latched_.fill(false); mouseLatch_ = 0; text_ = {}; touch_.endTick(); }
+    void releaseAll()  noexcept { held_.fill(false); latched_.fill(false); mouseDown_ = mouseLatch_ = 0; touch_.cancel(); }
     static constexpr std::size_t idx(Action a) noexcept { return static_cast<std::size_t>(a); }
     std::array<bool, static_cast<std::size_t>(Action::Count)> held_{}, latched_{};
     std::uint32_t mouseDown_ = 0, mouseLatch_ = 0, mousePrev_ = 0;
     MouseState    mouse_;
     TextInput     text_;
     bool          textOn_ = false;
+    touch::Recognizer touch_;
 };
 
 // ------------------------------------------------------------ Engine ------

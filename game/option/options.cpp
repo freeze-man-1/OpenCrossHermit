@@ -49,12 +49,14 @@ void loadPort() {
     port().infiniteUnitTime = s.find("infinite_unit_time=1") != std::string::npos;
     port().twTutorial = s.find("tw_tutorial=1") != std::string::npos;
     port().instantWin = s.find("instant_win=1") != std::string::npos;
+    port().modernUi = s.find("ui_style=new") != std::string::npos;
 }
 
 void savePort() {
     const std::string s = std::string("fullscreen=") + (port().fullscreen ? "1" : "0") + "\ninfinite_unit_time=" +
                           (port().infiniteUnitTime ? "1" : "0") + "\ntw_tutorial=" + (port().twTutorial ? "1" : "0") +
-                          "\ninstant_win=" + (port().instantWin ? "1" : "0") + "\n";
+                          "\ninstant_win=" + (port().instantWin ? "1" : "0") +
+                          "\nui_style=" + (port().modernUi ? "new" : "classic") + "\n";
     try {
         legacy::vfs::writeSave(kPortFile, std::span<const std::uint8_t>(reinterpret_cast<const std::uint8_t*>(s.data()), s.size()));
     } catch (const std::exception& ex) {
