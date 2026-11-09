@@ -29,21 +29,24 @@ public:
     [[nodiscard]] bool available() const noexcept { return !fontPath_.empty(); }
 
     struct Glyphs { SDL_Texture* tex = nullptr; int w = 0, h = 0; };
-    // White text with alpha, cached by (text, px, bold). Null texture on failure.
-    Glyphs render(const std::string& utf8, int px, bool bold);
+    // White text with alpha, cached by (text, px, bold, face). Null texture on failure.
+    // Face 1 is the serif (Noto Serif CJK, from fonts/ or the system), else the UI font.
+    Glyphs render(const std::string& utf8, int px, bool bold, int face = 0);
 
 private:
-    TTF_Font* font(int px, bool bold);
+    TTF_Font* font(int px, bool bold, int face);
 
     SDL_Renderer* renderer_;
     std::string   fontPath_;
     long          faceIndex_ = 0;
-    std::map<std::pair<int, bool>, TTF_Font*> fonts_;
+    std::string   serifPath_, serifBoldPath_;   // empty when there is no serif
+    std::map<std::tuple<int, bool, int>, TTF_Font*> fonts_;
 
-    using Key = std::tuple<std::string, int, bool>;
+    using Key = std::tuple<std::string, int, bool, int>;
     struct KeyHash {
         std::size_t operator()(const Key& k) const noexcept {
-            return std::hash<std::string>{}(std::get<0>(k)) ^ (std::size_t(std::get<1>(k)) << 1) ^ std::size_t(std::get<2>(k));
+            return std::hash<std::string>{}(std::get<0>(k)) ^ (std::size_t(std::get<1>(k)) << 1) ^ std::size_t(std::get<2>(k)) ^
+                   (std::size_t(std::get<3>(k)) << 2);
         }
     };
     struct Entry { legacy::TexturePtr tex; int w, h; std::list<Key>::iterator lru; };

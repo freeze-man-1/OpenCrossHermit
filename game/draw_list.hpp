@@ -80,7 +80,16 @@ struct TextCmd {
     std::string   text;
     std::uint16_t fontPx = 0;
     bool          bold = false;
+    std::uint8_t  face = 0;          // 1: the serif (TextRenderer::render)
     bool          centred = false;   // x, y is the centre (texture w/2, h/2 subtracted)
+};
+
+// Filled triangles (a port addition, for shapes the original had no call for):
+// `points` holds three per triangle, all in one colour.
+struct GeometryCmd {
+    std::vector<SDL_FPoint> points;
+    std::uint16_t priority = 0;
+    std::uint32_t argb = 0;
 };
 
 // Backend for bank-based sprites (BankSprites in sprite_bank.hpp).
@@ -93,6 +102,11 @@ public:
     [[nodiscard]] virtual std::pair<int, int> frameSize(std::uint16_t bank, std::uint16_t frame) = 0;
     virtual void drawSprite(SDL_Renderer* r, const SpriteCmd& c) = 0;
     virtual void drawText(SDL_Renderer* r, const TextCmd& c) = 0;
+    // Width in pixels of `utf8` as drawText would draw it at fontPx `px` (0 without a font).
+    [[nodiscard]] virtual int textWidth(const std::string& utf8, int px, bool bold, int face = 0) {
+        (void)utf8; (void)px; (void)bold; (void)face;
+        return 0;
+    }
 };
 
 class DrawList {
@@ -100,6 +114,7 @@ public:
     void sprite(const SpriteCmd& c) { cmds_.emplace_back(c); }
     void fill(const FillCmd& c)     { cmds_.emplace_back(c); }
     void text(TextCmd c)            { cmds_.emplace_back(std::move(c)); }
+    void geometry(GeometryCmd c)    { cmds_.emplace_back(std::move(c)); }
     void clear() noexcept           { cmds_.clear(); }
     [[nodiscard]] bool empty() const noexcept { return cmds_.empty(); }
     [[nodiscard]] std::size_t size() const noexcept { return cmds_.size(); }
@@ -110,7 +125,7 @@ public:
     void dump(std::FILE* f, int tag) const;
 
 private:
-    using Cmd = std::variant<SpriteCmd, FillCmd, TextCmd>;
+    using Cmd = std::variant<SpriteCmd, FillCmd, TextCmd, GeometryCmd>;
     [[nodiscard]] std::vector<std::size_t> renderOrder() const;
     std::vector<Cmd> cmds_;
 };

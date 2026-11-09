@@ -116,6 +116,7 @@ public:
 
     [[nodiscard]] int pos() const noexcept { return pos_; }              // +4
     [[nodiscard]] int count() const noexcept { return int(lines_.size()); }   // +10
+    [[nodiscard]] const std::vector<std::string>& lines() const noexcept { return lines_; }
     [[nodiscard]] int lineHeight() const noexcept { return px_ + 2; }
 
 private:

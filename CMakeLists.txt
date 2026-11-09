@@ -5,6 +5,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(CH_AUDIO "Build the SDL_mixer audio backend (MP3 BGM, WAV SE)" ON)
 
+# A language pack's images are painted on a thread of their own (game/lang/language_pack.cpp).
+if(NOT EMSCRIPTEN)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+  find_package(Threads REQUIRED)
+  link_libraries(Threads::Threads)
+endif()
+
 add_executable(game
   main.cpp
   engine/engine_core.cpp
@@ -41,6 +48,7 @@ add_executable(game
   game/workroom/workroom_task.cpp
   game/han/han_task.cpp
   game/kojin/kojin_task.cpp
+  game/kojin/kojin_blend.cpp
   game/preparation/preparation_task.cpp
   game/saveload/saveload_task.cpp
   game/allresult/allresult_task.cpp

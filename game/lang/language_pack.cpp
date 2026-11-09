@@ -13,13 +13,18 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <atomic>
 #include <set>
 #include <sstream>
+#ifndef __EMSCRIPTEN__
+#include <thread>
+#endif
 #include <tuple>
 #include <unordered_map>
 
@@ -325,7 +330,30 @@ const std::vector<SpritePart>* spriteParts(const std::string& bank, int frame, i
     return it != b->second.end() ? &it->second : nullptr;
 }
 
+// Painting a pack's banks takes a while (the story's 100-odd pictures most of it): done
+// on a thread while the game runs, so a screen that needs a bank first paints it itself.
+namespace {
+struct Painter {
+#ifndef __EMSCRIPTEN__
+    std::thread       thread;
+#endif
+    std::atomic<bool> stop{false};
+    ~Painter() { halt(); }
+    void halt() {
+        stop = true;
+#ifndef __EMSCRIPTEN__
+        if (thread.joinable()) thread.join();
+#endif
+        stop = false;
+    }
+};
+Painter& painter() { static Painter p; return p; }
+} // namespace
+
+void stopPainting() { painter().halt(); }
+
 void activate(const std::string& id) {
+    stopPainting();
     table().clear();
     layouts().clear();
     if (id.empty() || !validId(id)) {
@@ -348,12 +376,27 @@ void activate(const std::string& id) {
             loadLayout(f.path(), f.path().parent_path().lexically_relative(pack / "images").generic_string());
         if (f.path().extension() == ".png") banks.insert(f.path().parent_path());
     }
-    for (const fs::path& bank : banks) {
+    std::vector<std::string> todo;
+    for (const fs::path& bank : banks)
         // The opening's 96 MB of sheets are read once, behind its loading text.
-        if (bank.filename() == kOpeningSheets) continue;
-        try { legacy::vfs::readAsset(bank.lexically_relative(pack / "images").generic_string()); }
-        catch (const std::exception&) {}   // not imported yet: painted when first read
-    }
+        if (bank.filename() != kOpeningSheets) todo.push_back(bank.lexically_relative(pack / "images").generic_string());
+    // The menus' banks first: the story's are needed later.
+    std::stable_partition(todo.begin(), todo.end(), [](const std::string& rel) { return !rel.starts_with("data/adv/"); });
+    const auto paint = [todo = std::move(todo)](const std::atomic<bool>& stop) {
+        for (const std::string& rel : todo) {
+            if (stop) return;
+            try { (void)legacy::vfs::readAsset(rel); }
+            catch (const std::exception&) {}   // not imported yet: painted when first read
+        }
+    };
+#ifdef __EMSCRIPTEN__
+    paint(painter().stop);
+#else
+    // At exit it stops before the asset cache it fills goes (which exists by now).
+    static const bool stopsAtExit = std::atexit(stopPainting) == 0;
+    (void)stopsAtExit;
+    painter().thread = std::thread(paint, std::cref(painter().stop));
+#endif
     SDL_Log("[lang] %s: %zu strings", id.c_str(), table().size());
 }
 

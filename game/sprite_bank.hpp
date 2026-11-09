@@ -28,6 +28,7 @@ public:
     void unloadAll() noexcept { for (auto& b : banks_) b.clear(); }
     void drawSprite(SDL_Renderer* r, const SpriteCmd& c) override;
     void drawText(SDL_Renderer* r, const TextCmd& c) override;
+    [[nodiscard]] int textWidth(const std::string& utf8, int px, bool bold, int face = 0) override;
 
 private:
     struct Frame {

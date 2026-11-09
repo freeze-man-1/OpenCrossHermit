@@ -137,6 +137,7 @@ struct MouseState {
     std::uint32_t held     = 0;   // buttons down this tick
     std::uint32_t pressed  = 0;   // (prev ^ cur) & cur
     std::uint32_t released = 0;   // (prev ^ cur) & prev
+    std::int32_t  wheel    = 0;   // wheel notches this tick, positive = away from the user (a port addition)
 };
 
 class InputState {
@@ -172,6 +173,7 @@ private:
     void onKey(SDL_Scancode sc, bool down) noexcept;
     void onMouseMove(int x, int y) noexcept { mouse_.x = x; mouse_.y = y; }
     void onMouseButton(std::uint8_t sdlButton, bool down) noexcept;
+    void onWheel(int notches) noexcept { wheel_ += notches; }
     void beginTick() noexcept;
     void applyTouch();   // the touch's next mouse steps, up to one tick's worth
     void injectClick() noexcept { mouseLatch_ |= kMouseLeft; }
@@ -180,6 +182,7 @@ private:
     static constexpr std::size_t idx(Action a) noexcept { return static_cast<std::size_t>(a); }
     std::array<bool, static_cast<std::size_t>(Action::Count)> held_{}, latched_{};
     std::uint32_t mouseDown_ = 0, mouseLatch_ = 0, mousePrev_ = 0;
+    std::int32_t  wheel_ = 0;
     MouseState    mouse_;
     TextInput     text_;
     bool          textOn_ = false;

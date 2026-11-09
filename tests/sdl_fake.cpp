@@ -33,6 +33,7 @@ int SDL_SetRenderDrawColor(SDL_Renderer*, Uint8 r, Uint8 g, Uint8 b, Uint8 a) { 
 int SDL_RenderClear(SDL_Renderer*) { return 0; }
 void SDL_RenderPresent(SDL_Renderer*) {}
 int SDL_RenderFillRect(SDL_Renderer*, const SDL_Rect* r) { if (soft::enabled && r) soft::fillRect(r->x, r->y, r->w, r->h, g_color); return 0; }
+int SDL_RenderGeometry(SDL_Renderer*, SDL_Texture*, const SDL_Vertex*, int, const int*, int) { return 0; }
 int SDL_RenderDrawRect(SDL_Renderer*, const SDL_Rect*) { return 0; }
 int SDL_SetRenderDrawBlendMode(SDL_Renderer*, SDL_BlendMode) { return 0; }
 char* SDL_GetBasePath() {

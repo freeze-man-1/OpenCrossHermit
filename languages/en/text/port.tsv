@@ -53,3 +53,180 @@ UIスタイル	UI style
 {0}を目的地へ連れて行く	Get {0} to the goal
 目的地にたどり着く	Reach the goal
 {0}経ってから目的地にたどり着く	Reach the goal after {0}
+# Character screen, New style
+名簿	Roster
+共有XP	Shared XP
+戻る	Back
+生徒を切り替え	Change student
+クリック	Click
+選ぶ	Select
+エンゲージ	Engage
+分	min
+容量いっぱい	At capacity
+次	Next
+満	Full
+能力	Attributes
+戦闘	Combat
+耐性・速さ	Defence · Speed
+筋力	Strength
+敏捷	Agility
+感覚	Sense
+精神	Spirit
+知力	Intellect
+体力	Vitality
+霊力	Psyche
+合計	Total
+命中	Hit
+威力	Power
+効果	Effect
+射程	Range
+範囲	Area
+硬直	Recovery
+回避	Evade
+装甲	Armor
+結界	Barrier
+肉体	Body
+意志	Will
+視界	Sight
+移動	Move
+HP回復	HP regen
+MP回復	MP regen
+絶対	Absolute
+補正	Bonus
+必中	Sure hit
+上昇コスト	Raise cost
+決定	Apply
+クラスレベル	Class level
+装備一覧	Gear List
+技能一覧	Skill List
+クラス変更	Change Class
+装備	Gear
+装備する	Equip
+技能	Skills
+技能詳細	Skill
+このクラスは装備を持てない	This class carries no gear
+このクラスは技能枠がない	This class has no skill slots
+空き	Empty
+すべて	All
+大剣	Greatsword
+剣	Sword
+盾	Shield
+弓	Bow
+弩	Crossbow
+杖	Staff
+鎧	Armor
+革鎧	Leather
+装飾品	Accessory
+粗	Vulgar
+並	Common
+上	Superior
+稀	Rare
+神秘	Mystic
+聖	Holy
+神	Divine
+特	Special
+着用中	Worn by
+顔: その生徒が着用	Face: worn by that student
+は装備できない	 can't equip
+暗い: 未所持	Dark: not in storage
+重	Heavy
+迅	Swift
+前	Front
+後	Back
+闇	Dark
+虚	Void
+地	Earth
+風	Wind
+水	Water
+火	Fire
+深	Deep
+枠に装備中	In a slot
+薄い: 未修得	Faded: not learned
+明るい: 修得済み	Bright: learned
+薄く値段つき: 修得できる	Faded with a price: can learn
+?: まだ開いていない	?: not open yet
+は使えない	 can't use it
+鍵	Locked
+クラスを選ぶと能力を上に表示	Pick a class to see its stats above
+変更すると装備と技能は外れる	Changing takes off gear and skills
+キャンセル	Cancel
+変更	Change
+クラス	Class
+未解放のクラス	Locked class
+詳細	Details
+装備や技能を指すと説明を表示。枠をクリックで変更。	Point at gear or a skill to see it here. Click a slot to change it.
+可	Yes
+不可	No
+着用	Worn by
+まだ所持していない	Not owned yet
+外す	Take off
+装備枠がいっぱい: 左の枠を選んで入れ替える	Gear slots full: pick a slot on the left to swap
+は装備を持てない	 carries no gear
+パッシブ	Passive
+アクティブ	Active
+準備	Prep
+対象	Target
+狙い	Aim
+費用	Cost
+修得する？	Learn?
+修得	Learn
+はこの技能を使えない: 修得しても枠には入らない	 can't use this skill: learning it won't slot it
+容量がいっぱい	At capacity
+共有XPが足りない	Not enough shared XP
+技能枠がいっぱい: 左の枠を選んで入れ替える	Skill slots full: pick a slot on the left to swap
+は技能枠がない	 has no skill slots
+修得済みだが	Learned, but 
+まだ修得できない	Can't learn this yet
+他の生徒が着用中	Worn by other students
+この枠に入る物は倉庫にない	Nothing in storage fits this slot
+使える修得済みの技能がない	No learned skills this class can use
+共有XPで修得	Learn with shared XP
+現在	current
+未解放	Locked
+解放の条件	To unlock
+その日が来れば開く	Opens on its own on
+{m}月{w}週	month {m} week {w}
+今	now
+それより早く:	Sooner, with:
+能力合計	Attribute total
+クラスLv	class Lv
+条件を満たすと、週を進めたときに開く。	Once these are met, it opens at the next weekly check.
+生徒	Students
+ステータス	Status
+装備画面	Equipment
+# Full names, as the portrait name plates print them (the character screen, New style)
+{name}1	Callot Winfy
+{name}2	Syalon Flayspid
+{name}3	Palmra Ruverdracloa
+{name}4	Sesiris Finott
+{name}5	Fanna Hyverios
+{name}6	Alsea Bellthird
+{name}7	Rossaria Ordinar
+{name}8	Quest Shnonsaw
+{name}9	Illion Vinnat
+{name}10	Oskir Vainheart
+{name}11	Sirius Musie
+{name}12	Ney Prawdis
+{name}13	Yuri Winkvalley
+{name}14	Axel Enforge
+{name}15	Chris Parazin
+{name}16	Grave Temperancehill
+{name}17	Bardi Temperancehill
+{name}18	Flicka Laspalmeisen
+{name}19	Cadmus Praishua
+{name}20	Pyros Fictburn
+{name}21	Hudy Sutherland
+{name}22	Ele Moonselis
+{name}23	Sheila Efin
+{name}24	Ferdona Pylon
+{name}25	Iona Harel
+{name}26	Kiefer Starbreeze
+{name}27	Nafotka Corvette
+{name}28	Hazban Schooning
+{name}29	Marvela Tetra
+{name}30	Muller Aspenbirge
+{name}31	Lilith Seirenengram
+{name}32	Yelfan Shuvalus
+{name}33	Shelfa Lucifuge
+{name}34	Jacobin Abas
+{name}35	Denehere Ruverdracloa

@@ -47,6 +47,8 @@ void DrawList::dump(std::FILE* f, int tag) const {
                              c.src.x0, c.src.y0, c.src.x1, c.src.y1);
             } else if constexpr (std::is_same_v<T, FillCmd>) {
                 std::fprintf(f, "%d F %d %d %d %d %u %08x\n", tag, c.x, c.y, c.w, c.h, c.priority, c.argb);
+            } else if constexpr (std::is_same_v<T, GeometryCmd>) {
+                std::fprintf(f, "%d G %zu %u %08x\n", tag, c.points.size(), c.priority, c.argb);
             } else {
                 std::fprintf(f, "%d T %d %d %u %08x %s\n", tag, c.x, c.y, c.priority, c.argb, c.text.c_str());
             }
@@ -71,6 +73,12 @@ void DrawList::render(SDL_Renderer* r, ISpriteBanks& banks) const {
                 const SDL_Rect rc{c.x, c.y, c.w, c.h};
                 SDL_RenderFillRect(r, &rc);
                 if (c.blend != kBlendAlpha) SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+            } else if constexpr (std::is_same_v<T, GeometryCmd>) {
+                const SDL_Color col{std::uint8_t(c.argb >> 16), std::uint8_t(c.argb >> 8), std::uint8_t(c.argb),
+                                    std::uint8_t(c.argb >> 24)};
+                std::vector<SDL_Vertex> v(c.points.size());
+                for (std::size_t k = 0; k < v.size(); ++k) v[k] = {c.points[k], col, {0, 0}};
+                SDL_RenderGeometry(r, nullptr, v.data(), int(v.size()), nullptr, 0);
             } else {
                 banks.drawText(r, c);
             }

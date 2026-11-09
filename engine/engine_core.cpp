@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <mutex>
 #include <unordered_map>
 #include <chrono>
 #include <cstdlib>
@@ -66,6 +67,8 @@ void InputState::beginTick() noexcept {
     mouse_.pressed  = (mousePrev_ ^ cur) & cur;
     mouse_.released = (mousePrev_ ^ cur) & mousePrev_;
     mousePrev_      = cur;
+    mouse_.wheel    = wheel_;
+    wheel_          = 0;
 }
 
 void InputState::applyTouch() {
@@ -253,6 +256,10 @@ void Engine::frame() {
                 if (e.motion.which == SDL_TOUCH_MOUSEID) break;   // fingers come as SDL_FINGER*
                 input_.onMouseMove(e.motion.x, e.motion.y);
                 break;
+            case SDL_MOUSEWHEEL:
+                if (e.wheel.which == SDL_TOUCH_MOUSEID) break;
+                input_.onWheel(e.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -e.wheel.y : e.wheel.y);
+                break;
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
                 if (e.button.which == SDL_TOUCH_MOUSEID) break;
@@ -401,6 +408,8 @@ const std::string& resourceRootRef() {
 
 std::string& variantRef() { static std::string v = "jp"; return v; }
 std::string& overlayRef() { static std::string v; return v; }
+// readAsset's cache is shared with the thread that paints a language pack's images.
+std::mutex& assetCacheMutex() { static std::mutex m; return m; }
 std::unordered_map<std::string, std::vector<std::uint8_t>>& assetCacheRef() {
     static std::unordered_map<std::string, std::vector<std::uint8_t>> cache;
     return cache;
@@ -467,9 +476,13 @@ const std::string& variant() { return variantRef(); }
 void setOverlay(std::string_view dir) { overlayRef() = std::string(dir); }
 void setAssetFilter(std::function<void(const std::string&, std::vector<std::uint8_t>&)> filter) {
     assetFilterRef() = std::move(filter);
+    const std::lock_guard lock(assetCacheMutex());
     assetCacheRef().clear();
 }
-void cacheAsset(const std::string& rel, std::vector<std::uint8_t> bytes) { assetCacheRef()[rel] = std::move(bytes); }
+void cacheAsset(const std::string& rel, std::vector<std::uint8_t> bytes) {
+    const std::lock_guard lock(assetCacheMutex());
+    assetCacheRef()[rel] = std::move(bytes);
+}
 
 std::string assetPath(std::string_view legacyPath) {
     const std::string rel = normalize(legacyPath);
@@ -485,7 +498,10 @@ std::string assetPath(std::string_view legacyPath) {
 bool assetExists(std::string_view legacyPath) { return isFile(assetPath(legacyPath)); }
 
 std::vector<std::uint8_t> readAsset(std::string_view legacyPath) {
-    if (const auto it = assetCacheRef().find(normalize(legacyPath)); it != assetCacheRef().end()) return it->second;
+    {
+        const std::lock_guard lock(assetCacheMutex());
+        if (const auto it = assetCacheRef().find(normalize(legacyPath)); it != assetCacheRef().end()) return it->second;
+    }
     auto bytes = readFile(assetPath(legacyPath));
     if (assetFilterRef()) assetFilterRef()(normalize(legacyPath), bytes);
     return bytes;
