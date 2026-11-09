@@ -94,6 +94,7 @@ public:
     [[nodiscard]] Goals goals(int mapId) const;
 
 private:
+    friend class GoalBuilder;                  // goals()' entries (tactics_goals.cpp)
     using Unit = TacticsUnits::Unit;
     using List = std::initializer_list<int>;   // record numbers (DAT_005ff7xx, -1 ended)
 
@@ -163,7 +164,7 @@ private:
     [[nodiscard]] static bool gone(const Unit& u) { return u.used && at(u) >= 2 && at(u) <= 4; }       // FUN_00469220
     [[nodiscard]] static bool on(const Unit& u) { return u.used && at(u) == 1; }                       // FUN_00469480
     [[nodiscard]] static bool off(const Unit& u) { const int a = at(u); return a == 0 || (a >= 2 && a <= 5); }   // FUN_004695d0
-    [[nodiscard]] static bool named(const Unit& u) { const int id = u.data.u16(2); return id >= 1 && id <= 0x2d; }   // FUN_00468e10
+    [[nodiscard]] static bool named(const Unit& u) { const int id = u.kind(); return id >= 1 && id <= 0x2d; }   // FUN_00468e10
     [[nodiscard]] bool hostile(const Unit& u) const;                                                  // FUN_0046a550
     [[nodiscard]] bool ally(const Unit& u) const;                                                     // FUN_0046a5e0
     [[nodiscard]] int ownCount(List l) const;            // FUN_00431dd0

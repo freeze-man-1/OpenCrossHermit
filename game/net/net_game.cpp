@@ -16,7 +16,6 @@ namespace {
 constexpr std::uint32_t kMapTable = 0x5ffcb0;      // 128 x {u8 coop, u8, s16 stage, s16 text, u8, u8 maxUnits}
 constexpr std::uint32_t kMapTexts = 0x6001b0;      // 0x51 string pointers per text
 constexpr std::uint32_t kNetUnits = 0x605f18;      // the eight ready-made units, 0xb0 each
-constexpr std::uint32_t kParty = 0x7f4518, kPartyCount = 0x7f448d;
 } // namespace
 
 std::string exeText(std::uint32_t va, GameVersion v) { return va ? exe::text(v, va) : std::string(); }
@@ -78,9 +77,9 @@ std::vector<Record> saveRoster(const GameWork& w, GameVersion v) {
     std::vector<int> ids;
     for (std::uint32_t g = 0; g < 5; ++g)
         for (std::uint32_t k = 0; k < 4; ++k)
-            if (const int id = w.s16(0x7aaa22 + k * 2 + g * 0x1c); id != -1) ids.push_back(id);
-    for (int i = 0; i < w.s16(0x7a5260); ++i) {
-        const int id = w.s16(0x7a5210 + std::uint32_t(i) * 2);
+            if (const int id = w.s16(groups::kBase + groups::kMembers + k * 2 + g * groups::kStride); id != -1) ids.push_back(id);
+    for (int i = 0; i < w.s16(roster::kMemberCount); ++i) {
+        const int id = w.s16At(roster::kMembers, i);
         if (std::find(ids.begin(), ids.end(), id) == ids.end()) ids.push_back(id);
     }
     std::vector<Record> out;
@@ -141,7 +140,7 @@ bool writeBattleWork(GameContext& ctx, const net::Session& s) {
     // the unit slots, which the commands name, the same everywhere.)
     std::vector<net::Session::Member> members = s.room().members;
     std::sort(members.begin(), members.end(), [](const auto& a, const auto& b) { return a.slot < b.slot; });
-    w.fill(kParty, 0x3700, 0);
+    w.fill(stage::kParty, 0x3700, 0);
     int count = 0;
     std::array<std::uint8_t, 4> present{};
     for (const auto& m : members) {
@@ -153,15 +152,15 @@ bool writeBattleWork(GameContext& ctx, const net::Session& s) {
             if (count >= 0x50) break;
             r[0xa4] = std::uint8_t(m.slot);
             r[0xf] = 1;
-            for (std::size_t k = 0; k < kRecord; ++k) w.set8(kParty + std::uint32_t(count) * kRecord + std::uint32_t(k), r[k]);
+            for (std::size_t k = 0; k < kRecord; ++k) w.set8(stage::kParty + std::uint32_t(count) * kRecord + std::uint32_t(k), r[k]);
             ++count;
         }
     }
-    w.set8(kPartyCount, std::uint8_t(count));
-    w.set8(0x7f448c, 0);                                 // not chained on
-    w.set8(0x7f448f, 0);                                 // no sortie cards
-    w.set8(0x7f4490, std::uint8_t(s.room().you));        // our slot (FUN_0041ad60)
-    w.set8(0x7f4491, 1);                                 // network play
+    w.set8(stage::kPartyCount, std::uint8_t(count));
+    w.set8(stage::kChained, 0);                                 // not chained on
+    w.set8(stage::kSortie, 0);                                 // no sortie cards
+    w.set8(stage::kNetSlot, std::uint8_t(s.room().you));        // our slot (FUN_0041ad60)
+    w.set8(stage::kNetwork, 1);                                 // network play
     // DAT_007f44e4: the sides. A co-operative map puts everyone on side 0
     // (FUN_0044b950(1)); a random choice (4) is drawn from the relay's seed,
     // the same on every machine (FUN_0044baa0 drew it on the host).
@@ -177,14 +176,14 @@ bool writeBattleWork(GameContext& ctx, const net::Session& s) {
     for (int i = 0; i < 4; ++i) {
         int side = e.coop ? 0 : o.side[std::size_t(i)];
         if (side == 4) side = next() & 3;
-        w.set8(0x7f44e4 + std::uint32_t(i), std::uint8_t(side));
-        w.set8(0x7f44f4 + std::uint32_t(i), start[std::size_t(i)]);   // each slot's start cell
-        w.set8(0x7f44d4 + std::uint32_t(i), present[std::size_t(i)]);
+        w.set8(stage::kSlotSide + std::uint32_t(i), std::uint8_t(side));
+        w.set8(stage::kSlotStart + std::uint32_t(i), start[std::size_t(i)]);   // each slot's start cell
+        w.set8(stage::kSlotPresent + std::uint32_t(i), present[std::size_t(i)]);
     }
-    w.set8(0x7f4504, e.coop ? 1 : 0);
+    w.set8(stage::kRoundFlag, e.coop ? 1 : 0);
     // (Debug: CH_NET_FROMSAVE treats the roster as a save's, to test the results' path.)
-    w.set8(0x7f4505, s.rosterFromSave || SDL_getenv("CH_NET_FROMSAVE") ? 1 : 0);   // +0x1a99: we brought a save's units
-    w.set32(0x7f44d0, std::int32_t(s.seed));
+    w.set8(stage::kNetSaveUnits, s.rosterFromSave || SDL_getenv("CH_NET_FROMSAVE") ? 1 : 0);   // +0x1a99: we brought a save's units
+    w.set32(stage::kNetSeed, std::int32_t(s.seed));
     if (SDL_getenv("CH_NET_TRACE"))
         SDL_Log("[net] battle: map entry %d (stage %d, %s), %d units, we are slot %d", o.map, e.stage,
                 e.coop ? "co-operative" : "versus", count, s.room().you);

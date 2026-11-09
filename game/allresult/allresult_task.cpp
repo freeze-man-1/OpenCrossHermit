@@ -26,7 +26,7 @@ constexpr std::uint32_t kMvp = 0x7e1180, kMvpCount = 0x7e1182, kMvpExp = 0x7e118
                         kShownStat = 0x7e1196, kShowSkill = 0x7e1198, kShownPoints = 0x7e119c;
 constexpr std::uint32_t kPoints = 0x7a511c;
 constexpr std::uint32_t sortie(int g) { return 0x7a529a + std::uint32_t(g) * 0x70; }
-constexpr std::uint32_t group(int g) { return 0x7aaa12 + std::uint32_t(g) * 0x1c; }
+constexpr std::uint32_t group(int g) { return groups::at(g); }   // 0x7aaa12
 constexpr std::uint32_t kSkills = 0x6c2dc8, kLectures = 0x74bed0, kSkillNeeds = 0x74f686;
 // Skill category -> stat row of its "new skill" mark.
 constexpr std::array<int, 12> kCategoryRow{0, 1, 2, 2, 3, 3, 4, 4, 4, 4, 4, -1};
@@ -59,7 +59,7 @@ void AllResultTask::fx(int node, bool play, int clip, int x, int y) {
 Co<> AllResultTask::start(std::uint32_t) {
     GameWork& w = ctx_.work;
     mode_ = 0;
-    if (w.u8(0x7f4491) != 0) mode_ = 1;                          // the battle was abandoned
+    if (w.u8(stage::kNetwork) != 0) mode_ = 1;                          // the battle was abandoned
     else if (w.month() == 0xf && w.week() == 4) mode_ = 2;       // the last week
     init();
     int next = 0;
@@ -75,7 +75,7 @@ Co<> AllResultTask::start(std::uint32_t) {
         next = 0;
     } else if (mode_ == 1) {
         co_await yieldFrame(5);
-        next = w.u8(0x7f4505) == 0 ? 4 : 2;
+        next = w.u8(stage::kNetSaveUnits) == 0 ? 4 : 2;
     } else {
         writeHistory();
         co_await yieldFrame(5);
@@ -112,10 +112,10 @@ void AllResultTask::init() {
         skillGrid_[std::size_t((cat - 1) + (sub - 1) * 0xc) % skillGrid_.size()] = static_cast<std::int16_t>(s);
     }
     pointsGained_ = 0;
-    if (w.u8(0x7f4491) == 0) computeResults();
-    else if (w.u8(0x7f4505) != 0) {                                // FUN_004c0350: the first stage's units
+    if (w.u8(stage::kNetwork) == 0) computeResults();
+    else if (w.u8(stage::kNetSaveUnits) != 0) {                                // FUN_004c0350: the first stage's units
         const int n = std::clamp<int>(w.s16(0x7a52f8), 0, 0x14);
-        for (int i = 0; i < n; ++i) adventureResult(w.s16(0x7a52d0 + std::uint32_t(i) * 2));
+        for (int i = 0; i < n; ++i) adventureResult(w.s16At(0x7a52d0, i));
     }
     w.set32(kPoints, std::clamp<std::int64_t>(std::int64_t(w.s32(kPoints)) + pointsGained_, 0, 999999999));
     anmFile_.load(ctx_.readData("data\\AllResult\\AnmAllResult.bin"), kAnmBank, *ctx_.sprites);   // FUN_004bd7e0
@@ -133,9 +133,9 @@ void AllResultTask::computeResults() {
         if (kind == 2) { adventure = true; noAdventure_ = false; }
         else if (kind == 4) adventure = false;                    // other kinds keep the previous group's choice
         for (int k = 0; k < 4; ++k) {
-            const int slot = w.s16(0x7aaae0 + std::uint32_t(g) * 8 + std::uint32_t(k) * 2);
+            const int slot = w.s16(groups::kMemberSlots + std::uint32_t(g) * 8 + std::uint32_t(k) * 2);
             if (slot < 0) continue;
-            const int unit = w.s16(0x7a5210 + std::uint32_t(slot) * 2);
+            const int unit = w.s16At(roster::kMembers, slot);
             if (adventure) adventureResult(unit); else lectureResult(unit, g);
             const UnitResult& u = units_[std::size_t(unit) % units_.size()];
             const std::uint32_t rec = GameWork::unitRecord(unit);
@@ -296,7 +296,7 @@ Co<> AllResultTask::screen() {
         while (!done) { draw(); co_await yieldFrame(); }
         // 次へ / もう一度
         for (;;) {
-            if (ysub::hit(ctx_, 0x2e1, 0x2db, 0x10f, 0x1e).pressed & legacy::kMouseLeft) {
+            if (ysub::clicked(ctx_, 0x2e1, 0x2db, 0x10f, 0x1e)) {
                 ctx_.audio->sePlay(5);
                 for (int i = 0; i < 8; ++i) { drawRect(ctx_, rect(3), 0x57, 0x2d6, 0x2d8); draw(); co_await yieldFrame(); }
                 for (int i = 0xf; i >= 0; --i) {
@@ -309,7 +309,7 @@ Co<> AllResultTask::screen() {
                 ctx_.audio->bgmStop();
                 co_return;
             }
-            if (ysub::hit(ctx_, 0x1ba, 0x2db, 0x10e, 0x1e).pressed & legacy::kMouseLeft) {
+            if (ysub::clicked(ctx_, 0x1ba, 0x2db, 0x10e, 0x1e)) {
                 ctx_.audio->sePlay(5);
                 for (int i = 0; i < 8; ++i) { drawRect(ctx_, rect(2), 0x57, 0x1ae, 0x2d8); draw(); co_await yieldFrame(); }
                 break;                                             // the MVP script again
@@ -325,15 +325,15 @@ Co<> AllResultTask::screen() {
 void AllResultTask::draw() {
     GameWork& w = ctx_.work;
     for (int g = 0; g < 5; ++g) {
-        const int slot = w.s16(0x7aaaae + std::uint32_t(g) * 2);
+        const int slot = w.s16At(groups::kLeaderSlots, g);
         if (slot < 0) fill(ctx_, 1, g * 0x8a + 0x27, 0xc6, 0x86, 0x52, 0xa0010101u);
-        else drawLeader(g, w.s16(0x7a5262 + std::uint32_t(slot) * 2));
+        else drawLeader(g, w.s16At(roster::kGuests, slot));
     }
     for (int g = 0; g < 5; ++g)
         for (int k = 0; k < 4; ++k) {
-            const int slot = w.s16(0x7aaae0 + std::uint32_t(g) * 8 + std::uint32_t(k) * 2);
+            const int slot = w.s16(groups::kMemberSlots + std::uint32_t(g) * 8 + std::uint32_t(k) * 2);
             if (slot < 0) fill(ctx_, k * 0xc6 + 0xe7, g * 0x8a + 0x27, 0xc6, 0x86, 0x52, 0xa0010101u);
-            else drawMember(k, g, w.s16(0x7a5210 + std::uint32_t(slot) * 2));
+            else drawMember(k, g, w.s16At(roster::kMembers, slot));
         }
     drawCommaNumber(0x15e, 0x2e2, 9, 0x57, std::uint32_t(w.s32(kShownPoints)), 10, 1, 4, 0x10, 0x19);
     drawRect(ctx_, rect(1), 0x59, 0, 0);
@@ -479,8 +479,8 @@ void AllResultTask::writeHistory() {
     for (int g = 0; g < 5; ++g)
         for (std::uint32_t k = 0; k < 4; ++k)
             if (const int id = w.s16(group(g) + 0x10 + k * 2); id >= 0) assigned.push_back(id);
-    for (int i = 0; i < w.s16(0x7a5260); ++i) {
-        const int id = w.s16(0x7a5210 + std::uint32_t(i) * 2);
+    for (int i = 0; i < w.s16(roster::kMemberCount); ++i) {
+        const int id = w.s16At(roster::kMembers, i);
         const std::uint32_t at = GameWork::unitProgress(id) + 0xd7 + std::uint32_t(w.s16(GameWork::unitRecord(id) + 6));
         int lv = w.s8(at);
         if (lv != 100) lv = std::clamp(lv + 1, 0, 99);
@@ -513,8 +513,8 @@ void AllResultTask::adjustAffinities() {
     for (int g = 0; g < 5; ++g)
         for (std::uint32_t k = 0; k < 4; ++k)
             if (const int id = w.s16(group(g) + 0x10 + k * 2); id >= 0) assigned.push_back(id);
-    for (int i = 0; i < w.s16(0x7a5260); ++i) {
-        const int id = w.s16(0x7a5210 + std::uint32_t(i) * 2);
+    for (int i = 0; i < w.s16(roster::kMemberCount); ++i) {
+        const int id = w.s16At(roster::kMembers, i);
         if (std::find(assigned.begin(), assigned.end(), id) == assigned.end()) idle.push_back(id);
     }
     const auto cls = [&](int id) { return logic::sdU8(0x6b2d8a + std::uint32_t(w.s16(GameWork::unitRecord(id) + 6)) * 0x40, v); };

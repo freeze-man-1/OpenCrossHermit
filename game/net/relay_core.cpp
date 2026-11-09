@@ -85,7 +85,7 @@ void RelayRoom::remove(int peer) {
         // Into the next turn, for every client at the same frame: command
         // 0x43 "this slot has gone" (stamped with the slot that left).
         Raw gone{};
-        gone[0] = 0x43;
+        gone[0] = kCmdPlayerLeft;
         gone[2] = 0xff;
         gone[3] = 0xff;
         pending_[turn_][slot].push_back(gone);

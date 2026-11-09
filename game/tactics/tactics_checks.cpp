@@ -14,12 +14,12 @@ constexpr std::array<int, 17> kRank{6, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5,
 int rankOf(int chunk) { return chunk >= 0 && chunk < int(kRank.size()) ? kRank[std::size_t(chunk)] : 5; }
 
 bool human(const TacticsUnits::Unit& u) { return u.used && u.human(); }            // FUN_00468d80
-bool gate(const TacticsUnits::Unit& u) { const int k = u.data.u16(2); return k >= 0x19b && k <= 0x19e; }   // FUN_00469b90
+bool gate(const TacticsUnits::Unit& u) { const int k = u.kind(); return k >= 0x19b && k <= 0x19e; }   // FUN_00469b90
 bool buildingA(const TacticsUnits::Unit& u) {                                     // FUN_00469eb0
-    const int k = u.data.u16(2);
+    const int k = u.kind();
     return (k >= 0x183 && k <= 0x188) || (k >= 0x18f && k <= 0x194);
 }
-bool buildingB(const TacticsUnits::Unit& u) { const int k = u.data.u16(2); return k >= 0x189 && k <= 0x18e; }   // FUN_00469f90
+bool buildingB(const TacticsUnits::Unit& u) { const int k = u.kind(); return k >= 0x189 && k <= 0x18e; }   // FUN_00469f90
 }
 
 bool StageChecks::run(int mapId) {
@@ -32,7 +32,7 @@ bool StageChecks::run(int mapId) {
                 const Unit& u = rec(r);
                 if (!u.used) continue;
                 SDL_Log("[goals] map %d rec 0x%x slot %d kind %d team %d at %d hostile %d '%s'", mapId, r, u.slot,
-                        u.data.u16(2), u.team(), at(u), hostile(u), units_.name(u).c_str());
+                        u.kind(), u.team(), at(u), hostile(u), units_.name(u).c_str());
             }
         }
     }
@@ -45,7 +45,7 @@ bool StageChecks::run(int mapId) {
             if (!own(u) || !named(u)) continue;
             ++named_;
             offField += off(u);
-            SDL_Log("[checks]   slot %d id %d at %d", slot, u.data.u16(2), at(u));
+            SDL_Log("[checks]   slot %d id %d at %d", slot, u.kind(), at(u));
         }
         SDL_Log("[checks] map %d: rank %d at frame %d, time left %d, named %d off %d", mapId, rank_,
                 clock_.elapsed, clock_.left, named_, offField);
@@ -128,7 +128,7 @@ void StageChecks::versus() {
     std::array<int, 16> team{};
     for (int i = 0; i < 0xfa; ++i) {
         const Unit& u = units_.unit(i);
-        const int kind = u.data.u16(2);
+        const int kind = u.kind();
         if (u.used && u.onField() && kind >= 1 && kind <= 0x2d) ++team[std::size_t(u.team() & 0xf)];
     }
     const auto sideOf = [&](int t) {
@@ -166,7 +166,7 @@ void StageChecks::coop199() {
     for (int i = 0; i < 0xfa; ++i) {
         const Unit& u = units_.unit(i);
         if (!u.used || !u.onField()) continue;
-        const int kind = u.data.u16(2);
+        const int kind = u.kind();
         const bool fighter = kind >= 1 && kind <= 0x2d;
         if (u.team() == 5) {
             if (fighter) ++enemyFighters;
@@ -181,7 +181,7 @@ void StageChecks::coop199() {
     }
     bool gone = false;
     for (int s = 0; s < 4; ++s)
-        if (units_.work().u8(0x7f44d4 + std::uint32_t(s)) != 0 && mine[std::size_t(s)] == 0) gone = true;
+        if (units_.work().u8(stage::kSlotPresent + std::uint32_t(s)) != 0 && mine[std::size_t(s)] == 0) gone = true;
     if (gone || clock_.left == 0) endEvent(5);
 }
 
@@ -342,7 +342,7 @@ void StageChecks::map1() {
     if (s.value(3, 9) == 0) {
         for (const int r : kLeaders) {
             const Unit& u = rec(r);
-            if (on(u) && u.data.s16(0x16) < 200) {
+            if (on(u) && u.hp() < 200) {
                 s.setValue(1, 0, u.slot);
                 s.runIf(false, 0, 0x1d);
                 s.setValue(3, 9, 1);

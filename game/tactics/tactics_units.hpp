@@ -65,11 +65,24 @@ using Compact = stats::Bytes<0x30>;
 void deriveCompact(const Compact& c, stats::Derived& out, GameVersion v);
 // FUN_004da450: enemy record at `rec` (static data VA).
 void enemyData(std::uint32_t rec, stats::Derived& out, GameVersion v);
+// Debug: CH_UNITS set logs what the units do (read once).
+[[nodiscard]] bool traceUnits();
 } // namespace tactics
 
 class TacticsUnits {
 public:
     static constexpr int kSlots = 0xfa;
+
+    // FUN_00475700's states (Unit::state +0x290, Unit::next +0x292). State 5
+    // does nothing; 0x14 (FUN_0047a530) returns at once.
+    enum UnitState : std::uint8_t {
+        kNoState = 0,                             // as `next`: stay in the state
+        kAppear = 1, kStand = 2, kHold = 3, kMove = 4, kSkill = 6,
+        kStagger = 8, kKnock = 9, kGuardHit = 0xa, kOffField = 0xb, kCollapse = 0xc, kFall = 0xd,
+        kRetreat = 0xe, kChoose = 0xf, kRoute = 0x10, kCall = 0x11, kGuard = 0x13, kCapture = 0x15,
+        kAmbush = 0x16, kWander = 0x17, kSummon = 0x18, kAppear2 = 0x19, kRouteWait = 0x1a,
+        kWithdraw = 0x1b, kBuilding = 0x1c, kFlee = 0x1d,
+    };
 
     // A status condition (unit work +0x14 + slot * 0x10): slot 0 the
     // ailments, 1 the 0x15..0x18 group, 2 the blessings (table 0x6f4088 +2).
@@ -124,9 +137,9 @@ public:
         // +0x260: the party members a call (0x11) brings in.
         std::vector<std::int16_t> callList;
         std::array<Status, 3> status{};           // +0x14
-        std::int16_t      help = -1;
+        std::int16_t      help = -1;              // +0x4fc: the enemy a teammate called it to
         int               talkState = -1;         // +0x25c's record +0x80 (FUN_0049ab60)
-        std::int8_t       face = -1;              // +0x501: its place in the roster (FUN_0046d970)              // +0x4fc: the enemy a teammate called it to
+        std::int8_t       face = -1;              // +0x501: its place in the roster (FUN_0046d970)
         std::int8_t       route = 0;              // +0x2a9: the next point on its route
         bool              walkPause = false;      // FUN_00476680's step 10: standing between walks
         std::int16_t      routeWait = 0;          // +0x4e0: frames before the next search (FUN_00476680)
@@ -185,6 +198,17 @@ public:
         [[nodiscard]] int py() const noexcept { return y >> 16; }
         [[nodiscard]] int cx() const noexcept { return px() / TacticsMap::kCellW; }
         [[nodiscard]] int cy() const noexcept { return py() / TacticsMap::kCellH; }
+        // Fields of the data block, each at its own width.
+        [[nodiscard]] auto kind() const { return data.u16(2); }        // the unit's record id
+        [[nodiscard]] auto maxHp() const { return data.s16(0x14); }
+        [[nodiscard]] auto hp() const { return data.s16(0x16); }
+        void setHp(int v) { data.set16(0x16, v); }
+        [[nodiscard]] auto mp() const { return data.s16(0x1c); }
+        void setMp(int v) { data.set16(0x1c, v); }
+        [[nodiscard]] auto moveType() const { return data.u8(0x30); }   // the map's move-rate column (4: as 0)
+        [[nodiscard]] auto group() const { return data.u8(0x98); }      // the script's unit group
+        [[nodiscard]] auto stance() const { return data.u8(0x9f); }     // 1 keeps to its post
+        [[nodiscard]] auto order() const { return data.u8(0xa0); }
         [[nodiscard]] int team() const noexcept { return data.u8(0xa4); }
         [[nodiscard]] bool onField() const noexcept { return data.u8(0xf) == 1; }   // FUN_00469480
         [[nodiscard]] bool human() const noexcept { return team() < 4; }            // FUN_00468d80
@@ -416,12 +440,12 @@ public:
     void endNetTurn();
     // Debug (CH_NET_WIPE): every unit of the team on the field to 0 HP.
     void debugWipe(int team) {
-        for (Unit& u : units_) if (u.used && u.onField() && u.team() == team) u.data.set16(0x16, 0);
+        for (Unit& u : units_) if (u.used && u.onField() && u.team() == team) u.setHp(0);
         SDL_Log("[net] debug: team %d wiped", team);
     }                                 // after a turn's commands: a call still collecting its list
     // Debug (CH_HP): one unit's HP.
     void debugHp(int slot, int hp) {
-        if (slot >= 0 && slot < kSlots) units_[std::size_t(slot)].data.set16(0x16, std::uint16_t(hp));
+        if (slot >= 0 && slot < kSlots) units_[std::size_t(slot)].setHp(std::uint16_t(hp));
     }
     [[nodiscard]] std::uint8_t takeRefused() noexcept { return std::exchange(refusedMask_, std::uint8_t(0)); }
     // The battle's state in one word: every unit in use, its cell, state,

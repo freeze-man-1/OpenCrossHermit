@@ -85,6 +85,9 @@ struct Command {
     std::uint32_t reserved = 0;
 };
 inline constexpr std::size_t kCommandBytes = 16;
+// Command types the network layer sends itself (the others are unit orders).
+inline constexpr std::uint8_t kCmdEventDone  = 0x42;   // a player's dialog is over (extra: its serial)
+inline constexpr std::uint8_t kCmdPlayerLeft = 0x43;   // from the relay: this slot has gone
 
 // UTF-8 helpers for the chat and names: count characters, not bytes, and
 // never cut one in two.

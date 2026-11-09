@@ -17,7 +17,7 @@
          border-radius: 4px; padding: 6px 14px; font: inherit; cursor: pointer; }
   #bar .note { color: var(--dim); flex: 1; min-width: 200px; }
   #bar input { display: none; }
-  #drop { outline: 3px dashed var(--accent); }
+  body.dropping { outline: 3px dashed var(--accent); }
   canvas { display: block; flex: none; max-width: 100%; max-height: calc(100vh - 60px); aspect-ratio: 4 / 3;
            background: #000; outline: none;
            /* Touch goes to the game (engine/touch_gestures.hpp): no scrolling, zooming,
@@ -134,29 +134,33 @@
   document.getElementById('pick').addEventListener('change', function (e) {
     addFiles(Array.from(e.target.files)); e.target.value = '';
   });
-  document.addEventListener('dragover', function (e) { e.preventDefault(); document.body.id = 'drop'; });
-  document.addEventListener('dragleave', function () { document.body.id = ''; });
+  function isSave(f) { return /\.sav$/i.test(f.name); }
+  function setDropping(on) { document.body.classList.toggle('dropping', on); }
+  document.addEventListener('dragover', function (e) { e.preventDefault(); setDropping(true); });
+  document.addEventListener('dragleave', function () { setDropping(false); });
   document.addEventListener('drop', function (e) {
-    e.preventDefault(); document.body.id = '';
+    e.preventDefault(); setDropping(false);
     const files = Array.from(e.dataTransfer.files);
-    const saves = files.filter(function (f) { return /\.sav$/i.test(f.name); });
+    const saves = files.filter(isSave);
     if (saves.length && Module.chSaveScreen) addSaves(saves);
     else if (saves.length) {
       Module.setStatus('To add a save, open the Save or Load screen and drop it there.');
       setTimeout(function () { Module.setStatus(''); }, 6000);
     }
-    const others = files.filter(function (f) { return !/\.sav$/i.test(f.name); });
+    const others = files.filter(function (f) { return !isSave(f); });
     if (others.length) addFiles(others);
   });
+  // Empties directory p (p itself is kept).
+  function removeTree(p) {
+    for (const n of FS.readdir(p)) {
+      if (n === '.' || n === '..') continue;
+      const q = p + '/' + n;
+      if (FS.isDir(FS.stat(q).mode)) { removeTree(q); FS.rmdir(q); } else FS.unlink(q);
+    }
+  }
   document.getElementById('erase').addEventListener('click', function () {
     if (!confirm('Delete the imported game files from this browser? Saves are kept.')) return;
-    (function rm(p) {
-      for (const n of FS.readdir(p)) {
-        if (n === '.' || n === '..') continue;
-        const q = p + '/' + n;
-        if (FS.isDir(FS.stat(q).mode)) { rm(q); FS.rmdir(q); } else FS.unlink(q);
-      }
-    })('/gamedata');
+    removeTree('/gamedata');
     FS.syncfs(false, function () { location.reload(); });
   });
 </script>

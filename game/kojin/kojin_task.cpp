@@ -160,7 +160,7 @@ void KojinTask::open() {
     unitGroup_.fill(-1);
     unitCount_ = 0;
     for (int g = 0; g < 5; ++g) {
-        const std::uint32_t grp = 0x7aaa12 + std::uint32_t(g) * 0x1c;
+        const std::uint32_t grp = groups::kBase + std::uint32_t(g) * groups::kStride;
         if (w.s16(grp) == -1) continue;
         for (std::uint32_t k = 0; k < 4; ++k) {
             const int id = w.s16(grp + 0x10 + k * 2);
@@ -171,7 +171,7 @@ void KojinTask::open() {
         }
     }
     for (int i = 0; i < w.s16(0x7d57de) && unitCount_ < int(units_.size()); ++i) {
-        const int id = w.s16(0x7d57e2 + std::uint32_t(i) * 2);
+        const int id = w.s16At(0x7d57e2, i);
         if (id != -1) units_[std::size_t(unitCount_++)] = static_cast<std::int16_t>(id);
     }
     for (int i = 0; i < unitCount_; ++i)
@@ -400,7 +400,7 @@ void KojinTask::drawItemIcon(int x, int y, int index, int style, int prio) {
         case 2: which = kItemIconsAlt; break;
         case 3: case 4: {
             which = style == 3 ? kItemIcons : kItemIconsAlt;
-            const int owner = ctx_.work.u16(0x7aacac + std::uint32_t(index) * 2) >> 1 & 0x7f;
+            const int owner = ctx_.work.u16At(0x7aacac, index) >> 1 & 0x7f;
             if (owner == shownUnit()) { alpha = 0xc0; rgb = 0xb0; blend = kBlendAdd; }
             else alpha = 0x60;
             break;
@@ -513,7 +513,7 @@ void KojinTask::drawCard() {
                                         {7, 0x21a, 0xba, 0x10}, {8, 0x21a, 0x12e, 0x11}, {9, 0x21a, 0x12e, 0x12}}};
     for (const Tip& t : kTips)
         if (ysub::hitEntry(ctx_, t.hit).over) drawRect(ctx_, rect(kTooltips), 0, t.x, t.y, 0, t.label * 0xe);   // FUN_004b8930
-    if (ysub::hit(ctx_, 0x21, 0x38, 0xe8, 0x147).pressed & legacy::kMouseLeft) {   // the portrait speaks
+    if (ysub::clicked(ctx_, 0x21, 0x38, 0xe8, 0x147)) {   // the portrait speaks
         const int line = logic::unitVoiceLine(unit, 0, 0);
         if (line >= 0) ctx_.audio->voicePlay(logic::unitVoicePath(line, v));
     }
@@ -694,7 +694,7 @@ void KojinTask::drawPicker() {
                 }
             } else if (w.u8(kTab) == 1 && w.s16(0x7d6a52) >= 0 && w.s16(0x7d6a54) >= 0) {
                 const int item = w.u16(0x7d7c26);
-                const int st = w.u16(0x7aacac + std::uint32_t(item) * 2);
+                const int st = w.u16At(0x7aacac, item);
                 const int state = st >> 8 & 0xf;
                 if ((st & 1) && state > 2 && state < 5 && id == (st >> 1 & 0x7f)) alpha = 0xff;
             }
@@ -730,7 +730,7 @@ void KojinTask::tabStudents() {
         for (int col = 0; col < 10; ++col) {
             const int i = row * 10 + col;
             if (units_[std::size_t(i)] == -1) continue;
-            if (ysub::hit(ctx_, col * 0x4e + 0xea, row * 0x61 + 0x1d4, 0x44, 0x54).pressed & legacy::kMouseLeft) {
+            if (ysub::clicked(ctx_, col * 0x4e + 0xea, row * 0x61 + 0x1d4, 0x44, 0x54)) {
                 pick = i;
                 ctx_.audio->sePlay(kSe);
             }
@@ -772,7 +772,7 @@ void KojinTask::tabJobs() {
                 drawRect(ctx_, rect(0x27), 0x42, x, y);                       // locked
                 continue;
             }
-            if (ysub::hit(ctx_, x, y, 0x50, 0x50).pressed & legacy::kMouseLeft) {
+            if (ysub::clicked(ctx_, x, y, 0x50, 0x50)) {
                 ctx_.audio->sePlay(kSe);
                 jobCol_ = static_cast<std::int16_t>(col); jobRow_ = static_cast<std::int16_t>(row);
                 job_ = static_cast<std::int16_t>(job);
@@ -895,13 +895,13 @@ void KojinTask::tabStats() {
                             kNew = 0x7d721a, kPlace = 0x7d720a, kAll = 0x7d6f6a, kSel = 0x7d6f64,
                             kPhase = 0x7d6f66, kTotalCost = 0x7d7250, kTotalAdd = 0x7d722c,
                             kRankAfter = 0x7d72b4, kCopy = 0x7d7264;
-    const auto add = [&](int c) { return w.s16(kAdd + std::uint32_t(c) * 2); };
-    const auto cost = [&](int c) { return w.s32(kCost + std::uint32_t(c) * 4); };
+    const auto add = [&](int c) { return w.s16At(kAdd, c); };
+    const auto cost = [&](int c) { return w.s32At(kCost, c); };
     const auto clearAdds = [&](int n) {
         for (int c = 0; c < n; ++c) {
-            w.set16(kAdd + std::uint32_t(c) * 2, 0);
+            w.set16At(kAdd, c, 0);
             w.set32(kCost + std::uint32_t(c) * 4, 0);
-            w.set16(kState + std::uint32_t(c) * 2, 0);
+            w.set16At(kState, c, 0);
         }
     };
     const auto copyRecord = [&] {
@@ -913,15 +913,14 @@ void KojinTask::tabStats() {
     const auto grouped = [&](int x, int y, int srcOffY, int digits, int rectIndex, int pitch, std::uint32_t value) {
         drawGrouped(x, y, srcOffY, digits, 0x4a, rectIndex, value, pitch);
     };
-    const int diff = w.s16(0x7a528c);
-    const int cap = diff < 0 || diff > 1 ? 0x87 : 100;
+    const int cap = logic::levelCap(w);
     keyTabs_ = true;
     bool any = false;
     for (int c = 0; c < 7; ++c) any = any || add(c) != 0;
 
     // 元に戻す: drop all planned levels.
     if (!any) fill(ctx_, 0x392, 0x2d6, 0x5b, 0x1e, 0x37, 0x70010101u);
-    else if (ysub::hit(ctx_, 0x393, 0x2d7, 0x59, 0x1c).pressed & legacy::kMouseLeft) {
+    else if (ysub::clicked(ctx_, 0x393, 0x2d7, 0x59, 0x1c)) {
         ctx_.audio->sePlay(1);
         clearAdds(10);
         computeUnit(shownUnit(), -1, true, 2);
@@ -1012,7 +1011,7 @@ void KojinTask::tabStats() {
     const int pair = w.u8(rec + 0x72);
     capShown_ = w.s16(kSel);
     for (int c = 0; c < 7; ++c) {
-        if (ysub::hit(ctx_, 0xe2, c * 0x22 + 0x1e5, 0x1a9, 0x17).pressed & legacy::kMouseLeft) w.set16(kSel, c);
+        if (ysub::clicked(ctx_, 0xe2, c * 0x22 + 0x1e5, 0x1a9, 0x17)) w.set16(kSel, c);
         for (int k = 0; k < 5; ++k) {
             const int idx = (cls - 1) * 10 + (pair - 1) * 5 + k;
             if (idx < 0 || idx >= 0x35) continue;
@@ -1095,7 +1094,7 @@ void KojinTask::tabStats() {
     // 決定: apply the plan.
     if (!any) {
         fill(ctx_, 0x32b, 0x2d6, 0x5d, 0x1e, 0x37, 0x70010101u);
-    } else if (ysub::hit(ctx_, 0x32c, 0x2d7, 0x5a, 0x1c).pressed & legacy::kMouseLeft) {
+    } else if (ysub::clicked(ctx_, 0x32c, 0x2d7, 0x5a, 0x1c)) {
         ctx_.audio->sePlay(kSe);
         voice(unit, 7);
         if (baseline_.u8(0xe) < derived_.u8(0xe)) {
@@ -1436,7 +1435,7 @@ void KojinTask::tabSkills() {
     drawGrouped(0x3ec, 0x213, left < 0 ? 0x130 : 0x98, 9, 0x4a, kDigits, std::uint32_t(left < 0 ? -left : left));
 
     // The other button switches the left pane (FUN_004b4000).
-    if (ysub::hit(ctx_, 0x2b6, 0x1c3, 0x8a, 0x1c).pressed & legacy::kMouseLeft) {
+    if (ysub::clicked(ctx_, 0x2b6, 0x1c3, 0x8a, 0x1c)) {
         ctx_.audio->sePlay(kSe);
         w.set8(kLeftPane, w.u8(kLeftPane) == 0 ? 1 : 0);
     }
@@ -1719,7 +1718,7 @@ void KojinTask::tabItems() {
         case 2: itemText_.scroll(1); break;
         default: break;
     }
-    if (ysub::hit(ctx_, 0x2b6, 0x1c3, 0x8a, 0x1c).pressed & legacy::kMouseLeft) {
+    if (ysub::clicked(ctx_, 0x2b6, 0x1c3, 0x8a, 0x1c)) {
         ctx_.audio->sePlay(kSe);
         w.set8(kLeftPane, w.u8(kLeftPane) == 0 ? 1 : 0);
     }

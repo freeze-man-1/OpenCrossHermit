@@ -38,6 +38,7 @@ const PROTOCOL = 1;
 const MAX_PLAYERS = 4;
 const MAX_COMMANDS = 64;
 const MAX_MESSAGE = 4096;
+const CMD_PLAYER_LEFT = 0x43;   // a command "this slot has gone" (kCmdPlayerLeft in net_protocol.hpp)
 const CHECK_EVERY = 15;          // turns between CHECK reports (~0.5 s at 2 frames a turn)
 const MSG = {
   Hello: 1, ListRooms: 2, CreateRoom: 3, JoinRoom: 4, LeaveRoom: 5, Chat: 6, SetReady: 7,
@@ -47,7 +48,8 @@ const MSG = {
 };
 
 // ---------------------------------------------------------------- codec ---
-class W {
+// The messages, as net_protocol.hpp's Writer / Reader read and write them.
+class Writer {
   constructor(type) { this.b = [type]; }
   u8(v) { this.b.push(v & 0xff); return this; }
   u16(v) { return this.u8(v).u8(v >> 8); }
@@ -62,7 +64,7 @@ class W {
   raw(buf) { for (const c of buf) this.b.push(c); return this; }
   done() { return Buffer.from(this.b); }
 }
-class R {
+class Reader {
   constructor(buf) { this.b = buf; this.at = 0; this.ok = true; }
   need(n) { if (this.at + n > this.b.length) { this.ok = false; return false; } return true; }
   u8() { if (!this.need(1)) return 0; return this.b[this.at++]; }
@@ -76,6 +78,9 @@ class R {
 // ------------------------------------------------------------ websocket ---
 // RFC 6455, server side: unmasked frames out, masked frames in; binary
 // messages only, fragmented messages reassembled, ping answered.
+// WebSocket opcodes (RFC 6455, 5.2) and the FIN / MASK bits.
+const OP_TEXT = 1, OP_BINARY = 2, OP_CLOSE = 8, OP_PING = 9, OP_PONG = 10;
+const FIN = 0x80, MASK = 0x80;
 function wsAccept(req, socket) {
   const key = req.headers['sec-websocket-key'];
   if (!key || (req.headers.upgrade || '').toLowerCase() !== 'websocket') { socket.destroy(); return false; }
@@ -87,9 +92,9 @@ function wsAccept(req, socket) {
 }
 function wsFrame(opcode, payload) {
   const n = payload.length;
-  const head = n < 126 ? Buffer.from([0x80 | opcode, n])
-             : n < 65536 ? Buffer.from([0x80 | opcode, 126, n >> 8, n & 0xff])
-             : (() => { const h = Buffer.alloc(10); h[0] = 0x80 | opcode; h[1] = 127; h.writeBigUInt64BE(BigInt(n), 2); return h; })();
+  const head = n < 126 ? Buffer.from([FIN | opcode, n])
+             : n < 65536 ? Buffer.from([FIN | opcode, 126, n >> 8, n & 0xff])
+             : (() => { const h = Buffer.alloc(10); h[0] = FIN | opcode; h[1] = 127; h.writeBigUInt64BE(BigInt(n), 2); return h; })();
   return Buffer.concat([head, payload]);
 }
 class Conn {
@@ -104,7 +109,7 @@ class Conn {
     this.buf = Buffer.concat([this.buf, d]);
     for (;;) {
       if (this.buf.length < 2) return;
-      const fin = this.buf[0] & 0x80, op = this.buf[0] & 0x0f, masked = this.buf[1] & 0x80;
+      const fin = this.buf[0] & FIN, op = this.buf[0] & 0x0f, masked = this.buf[1] & MASK;
       let n = this.buf[1] & 0x7f, at = 2;
       if (n === 126) { if (this.buf.length < 4) return; n = this.buf.readUInt16BE(2); at = 4; }
       else if (n === 127) { if (this.buf.length < 10) return; n = Number(this.buf.readBigUInt64BE(2)); at = 10; }
@@ -114,18 +119,18 @@ class Conn {
       const data = Buffer.from(this.buf.subarray(at + 4, at + 4 + n));
       for (let i = 0; i < n; ++i) data[i] ^= mask[i & 3];
       this.buf = this.buf.subarray(at + 4 + n);
-      if (op === 8) { this.close(); return; }
-      if (op === 9) { this.socket.write(wsFrame(10, data)); continue; }
-      if (op === 10) continue;
+      if (op === OP_CLOSE) { this.close(); return; }
+      if (op === OP_PING) { this.socket.write(wsFrame(OP_PONG, data)); continue; }
+      if (op === OP_PONG) continue;
       this.parts.push(data);
       if (fin) { const m = Buffer.concat(this.parts); this.parts = []; this.onMessage(m); }
     }
   }
-  send(buf) { if (!this.closed) this.socket.write(wsFrame(2, buf)); }
+  send(buf) { if (!this.closed) this.socket.write(wsFrame(OP_BINARY, buf)); }
   close() {
     if (this.closed) return;
     this.closed = true;
-    try { this.socket.end(wsFrame(8, Buffer.alloc(0))); } catch { /* gone */ }
+    try { this.socket.end(wsFrame(OP_CLOSE, Buffer.alloc(0))); } catch { /* gone */ }
     this.socket.destroy();
     this.onClose();
   }
@@ -152,7 +157,7 @@ class Player {
     this.late = 0;
   }
   send(buf) { this.conn.send(buf); }
-  error(code, text) { this.send(new W(MSG.Error).u8(code).str(text).done()); }
+  error(code, text) { this.send(new Writer(MSG.Error).u8(code).str(text).done()); }
 }
 
 class Room {
@@ -180,18 +185,18 @@ class Room {
       // Into the next turn, for every client at the same frame: command
       // 0x43 "this slot has gone" (stamped with the slot that left).
       const gone = Buffer.alloc(16);
-      gone[0] = 0x43;
+      gone[0] = CMD_PLAYER_LEFT;
       gone.writeInt16LE(-1, 2);
       if (!this.pending.has(this.turn)) this.pending.set(this.turn, new Map());
       const per = this.pending.get(this.turn);
       per.set(slot, (per.get(slot) ?? []).concat([gone]));
-      for (const o of this.players()) o.send(new W(MSG.PlayerLeft).u8(slot).done());
+      for (const o of this.players()) o.send(new Writer(MSG.PlayerLeft).u8(slot).done());
       if (this.players().length < 2) this.stop();
     }
     this.broadcastState();
   }
   stateFor(p) {
-    const w = new W(MSG.RoomState).str(this.code).str(this.name).u8(this.host).u8(p.slot).bytes(this.options);
+    const w = new Writer(MSG.RoomState).str(this.code).str(this.name).u8(this.host).u8(p.slot).bytes(this.options);
     const list = this.players();
     w.u8(list.length);
     for (const o of list) w.u8(o.slot).str(o.name).u8(o.ready ? 1 : 0).u16(Math.min(Math.round(o.rtt), 65535)).bytes(o.data);
@@ -214,7 +219,7 @@ class Room {
     const list = this.players();
     for (const p of list) {
       p.late = 0;
-      p.send(new W(MSG.Started).u32(this.seed).u8(turnFrames).u8(this.delay).u8(CHECK_EVERY).u8(p.slot).u8(this.max).done());
+      p.send(new Writer(MSG.Started).u32(this.seed).u8(turnFrames).u8(this.delay).u8(CHECK_EVERY).u8(p.slot).u8(this.max).done());
     }
     log(`room ${this.code}: started, ${list.length} players, turn ${this.turnMs.toFixed(1)} ms, delay ${this.delay}`);
     // The clock waits until every player's battle is loaded (Loaded), or a
@@ -275,7 +280,7 @@ class Room {
       if (want > this.delay) this.delay = want;
       else if (want < this.delay) --this.delay;
     }
-    const w = new W(MSG.Turn).u32(t).u8(this.delay);
+    const w = new Writer(MSG.Turn).u32(t).u8(this.delay);
     const entries = [...per.entries()].filter(([, c]) => c.length);
     w.u8(entries.length);
     for (const [slot, cmds] of entries) { w.u8(slot).u8(cmds.length); for (const c of cmds) w.raw(c); }
@@ -299,7 +304,7 @@ class Room {
       if (refusedBy & (1 << s)) {
         const q = this.slots[s];
         log(`room ${this.code}: turn ${turn}: every client refused commands from slot ${s} (${q?.name})`);
-        this.broadcast(new W(MSG.Desync).u32(turn).u8(1 << s).str('illegal commands').done());
+        this.broadcast(new Writer(MSG.Desync).u32(turn).u8(1 << s).str('illegal commands').done());
       }
     }
     const groups = new Map();
@@ -313,7 +318,7 @@ class Room {
     const tie = [...groups.values()].filter(mask => popcount(mask) === best).length > 1;
     const suspects = tie ? 0 : (((1 << this.max) - 1) & ~bestMask);
     log(`room ${this.code}: DESYNC at turn ${turn}: ${[...groups.entries()].map(([k, v]) => `${k}=${v.toString(2)}`).join(' ')}`);
-    this.broadcast(new W(MSG.Desync).u32(turn).u8(suspects).str(tie ? 'the players disagree' : 'a player drifted').done());
+    this.broadcast(new Writer(MSG.Desync).u32(turn).u8(suspects).str(tie ? 'the players disagree' : 'a player drifted').done());
     if (tie) this.stop();
     else for (let s = 0; s < MAX_PLAYERS; ++s) if (suspects & (1 << s) && this.slots[s]) this.slots[s].conn.close();
   }
@@ -324,19 +329,19 @@ const popcount = m => { let n = 0; for (; m; m &= m - 1) ++n; return n; };
 function stats() {
   let online = 0;
   for (const p of players) if (p.hello) ++online;
-  return new W(MSG.Stats).u16(Math.min(online, 65535)).u16(Math.min(rooms.size, 65534)).done();
+  return new Writer(MSG.Stats).u16(Math.min(online, 65535)).u16(Math.min(rooms.size, 65534)).done();
 }
 
 function roomList() {
   const list = [...rooms.values()].filter(r => r.isPublic).slice(0, 50);
-  const w = new W(MSG.RoomList).u8(list.length);
+  const w = new Writer(MSG.RoomList).u8(list.length);
   for (const r of list) w.str(r.code).str(r.name).u8(r.players().length).u8(r.max).u8(r.inGame ? 1 : 0);
   return w.done();
 }
 
 // ------------------------------------------------------------- messages ---
 function handle(p, buf) {
-  const r = new R(buf);
+  const r = new Reader(buf);
   const type = r.u8();
   if (!p.hello && type !== MSG.Hello && type !== MSG.Ping && type !== MSG.Pong) { p.conn.close(); return; }
   const room = p.room;
@@ -345,8 +350,8 @@ function handle(p, buf) {
       const version = r.u16(); p.build = r.u32(); p.name = [...r.str().trim()].slice(0, 24).join('') || `Player ${p.id}`;
       if (!r.ok || version !== PROTOCOL) { p.error(1, `protocol ${version}, the relay speaks ${PROTOCOL}`); p.conn.close(); return; }
       p.hello = true;
-      p.send(new W(MSG.Welcome).u32(p.id).done());
-      p.send(new W(MSG.Ping).u32(Date.now() >>> 0).done());   // a first round trip at once
+      p.send(new Writer(MSG.Welcome).u32(p.id).done());
+      p.send(new Writer(MSG.Ping).u32(Date.now() >>> 0).done());   // a first round trip at once
       p.send(stats());
       debug(`player ${p.id} "${p.name}" build ${p.build.toString(16)}`);
       break;
@@ -377,7 +382,7 @@ function handle(p, buf) {
       if (!room) break;
       if (++p.rate.chats > 20) break;
       // (Characters, not UTF-16 units: [...s] keeps emoji and the like whole.)
-      room.broadcast(new W(MSG.ChatFrom).u8(p.slot).str([...r.str()].slice(0, 130).join('')).done());
+      room.broadcast(new Writer(MSG.ChatFrom).u8(p.slot).str([...r.str()].slice(0, 130).join('')).done());
       break;
     }
     case MSG.SetReady: if (room && !room.inGame) { p.ready = r.u8() !== 0; room.broadcastState(); } break;
@@ -417,7 +422,7 @@ function handle(p, buf) {
       if (room.players().every(o => room.over.has(o.slot))) { room.over = null; room.stop(); room.broadcastState(); }
       break;
     }
-    case MSG.Ping: p.send(new W(MSG.Pong).u32(r.u32()).done()); break;
+    case MSG.Ping: p.send(new Writer(MSG.Pong).u32(r.u32()).done()); break;
     case MSG.Pong: {
       // Our own ping coming back: the round trip, smoothed, and its jitter.
       const sample = ((Date.now() >>> 0) - r.u32()) >>> 0;
@@ -462,7 +467,7 @@ setInterval(() => {
     for (const p of players) if (p.hello && !p.room) p.send(s);
   }
   for (const p of players) {
-    p.send(new W(MSG.Ping).u32(now >>> 0).done());
+    p.send(new Writer(MSG.Ping).u32(now >>> 0).done());
     p.rate = { start: now, inputs: 0, chats: 0 };
   }
 }, 1000);

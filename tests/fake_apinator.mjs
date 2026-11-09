@@ -16,11 +16,14 @@ const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : dflt; };
 const PORT = Number(opt('--port', 8081)), KEY = opt('--key', 'app_test'), SECRET = opt('--secret', 's3cret');
 
+// WebSocket opcodes (RFC 6455, 5.2) and the FIN bit.
+const OP_TEXT = 1, OP_BINARY = 2, OP_CLOSE = 8, OP_PING = 9, OP_PONG = 10;
+const FIN = 0x80;
 function frame(op, payload) {
   const n = payload.length;
-  const head = n < 126 ? Buffer.from([0x80 | op, n])
-             : n < 65536 ? Buffer.from([0x80 | op, 126, n >> 8, n & 0xff])
-             : (() => { const h = Buffer.alloc(10); h[0] = 0x80 | op; h[1] = 127; h.writeBigUInt64BE(BigInt(n), 2); return h; })();
+  const head = n < 126 ? Buffer.from([FIN | op, n])
+             : n < 65536 ? Buffer.from([FIN | op, 126, n >> 8, n & 0xff])
+             : (() => { const h = Buffer.alloc(10); h[0] = FIN | op; h[1] = 127; h.writeBigUInt64BE(BigInt(n), 2); return h; })();
   return Buffer.concat([head, payload]);
 }
 
@@ -41,13 +44,13 @@ class Conn {
     if (this.closed) return;
     const m = { event, data: typeof data === 'string' ? data : JSON.stringify(data) };
     if (channel) m.channel = channel;
-    this.socket.write(frame(1, Buffer.from(JSON.stringify(m))));
+    this.socket.write(frame(OP_TEXT, Buffer.from(JSON.stringify(m))));
   }
   feed(d) {
     this.buf = Buffer.concat([this.buf, d]);
     for (;;) {
       if (this.buf.length < 2) return;
-      const fin = this.buf[0] & 0x80, op = this.buf[0] & 0x0f;
+      const fin = this.buf[0] & FIN, op = this.buf[0] & 0x0f;
       let n = this.buf[1] & 0x7f, at = 2;
       if (n === 126) { if (this.buf.length < 4) return; n = this.buf.readUInt16BE(2); at = 4; }
       else if (n === 127) { if (this.buf.length < 10) return; n = Number(this.buf.readBigUInt64BE(2)); at = 10; }
@@ -56,10 +59,10 @@ class Conn {
       const data = Buffer.from(this.buf.subarray(at + 4, at + 4 + n));
       for (let i = 0; i < n; ++i) data[i] ^= mask[i & 3];
       this.buf = this.buf.subarray(at + 4 + n);
-      if (op === 8) { this.close(); return; }
-      if (op === 9) { this.socket.write(frame(10, data)); continue; }
-      if (op === 10) continue;
-      if (op === 2) { this.close(); return; }   // text only
+      if (op === OP_CLOSE) { this.close(); return; }
+      if (op === OP_PING) { this.socket.write(frame(OP_PONG, data)); continue; }
+      if (op === OP_PONG) continue;
+      if (op === OP_BINARY) { this.close(); return; }   // text only
       this.parts.push(data);
       if (fin) { const m = Buffer.concat(this.parts).toString('utf8'); this.parts = []; this.message(m); }
     }

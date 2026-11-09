@@ -35,6 +35,7 @@ namespace ch {
 using namespace workroom;
 using ysub::drawRect;
 using ysub::fadeBlack;
+using ysub::clicked;
 using ysub::hit;
 
 namespace {
@@ -164,14 +165,14 @@ Co<int> WorkRoomTask::topScreen() {
     }
     int next = 1;
     for (;;) {
-        if (hit(ctx_, 0x28e, 0x2d6, 0x8d, 0x1e).pressed & legacy::kMouseLeft) {
+        if (clicked(ctx_, 0x28e, 0x2d6, 0x8d, 0x1e)) {
             next = 2;
             ctx_.audio->sePlay(kSe);
             const ysub::Rect& r = rectRow(ctx_.version, kTopButtonA);
             flashes_.add(r, 0x38, r.x, r.y, 8);
             break;
         }
-        if (hit(ctx_, 0x34f, 0x2d6, 0x8d, 0x1e).pressed & legacy::kMouseLeft) {
+        if (clicked(ctx_, 0x34f, 0x2d6, 0x8d, 0x1e)) {
             next = 4;
             ctx_.audio->sePlay(kSe);
             const ysub::Rect& r = rectRow(ctx_.version, kTopButtonB);
@@ -233,7 +234,7 @@ void WorkRoomTask::drawMap() {
         if (pickedNews_ == row + top) ysub::fill(ctx_, 0x3c, y, 0xb7, 0xd, 0x38, 0xa0c0a000u, kBlendAdd);
     }
     for (int i = 0; i < 4; ++i) {                        // news list scroll buttons
-        if (!(hit(ctx_, 0xf8, i * 0x91 + 0x4e, 0x14, 0x8d).pressed & legacy::kMouseLeft)) continue;
+        if (!clicked(ctx_, 0xf8, i * 0x91 + 0x4e, 0x14, 0x8d)) continue;
         ctx_.audio->sePlay(kSe);
         newsTitles_.scroll(kScrollCmd[std::size_t(i)]);
         flashes_.add(rectRow(ctx_.version, kNewsScrollFlash + std::size_t(i)), 0x3c, 0xf6, i * 0x91 + 0x4c, 8);
@@ -243,7 +244,7 @@ void WorkRoomTask::drawMap() {
     if (viewer_ == 0 || viewer_ == 1) {                  // text viewer and its scroll buttons
         ysub::TextList& text = viewer_ == 0 ? placeText_ : newsText_;
         for (int i = 0; i < 4; ++i) {
-            if (!(hit(ctx_, 0x3ab, i * 0x22 + 0x232, 0x14, 0x1e).pressed & legacy::kMouseLeft)) continue;
+            if (!clicked(ctx_, 0x3ab, i * 0x22 + 0x232, 0x14, 0x1e)) continue;
             ctx_.audio->sePlay(kSe);
             text.scroll(kScrollCmd[std::size_t(i)]);
             flashes_.add(rectRow(ctx_.version, kTextScrollFlash + std::size_t(i)), 0x3c, 0x3a9, i * 0x22 + 0x230, 8);
@@ -278,7 +279,7 @@ Co<int> WorkRoomTask::mapScreen() {
             anm_.update(anmRoot_);
             anm_.draw(anmRoot_, ctx_.draw, *ctx_.sprites, pin, pinX_, pinY_, 0x3b);
         }
-        if (hit(ctx_, 0x42, 0x299, 0xc2, 0x1c).pressed & legacy::kMouseLeft) break;   // back
+        if (clicked(ctx_, 0x42, 0x299, 0xc2, 0x1c)) break;   // back
         drawMap();
         co_await yieldFrame();
     }

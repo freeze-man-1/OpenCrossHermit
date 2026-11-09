@@ -2,6 +2,7 @@
 // net_transport.cpp — the WebSocket clients behind net::Transport
 // ============================================================================
 #include "net_transport.hpp"
+#include "net_crypto.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -234,47 +235,8 @@ public:
         tls_ = u.tls;
         host_ = u.host;
         path_ = u.path;
-        if (!sockStartup()) { fail("no network (WSAStartup failed)"); return; }
-        addrinfo hints{};
-        hints.ai_family = AF_UNSPEC;
-        hints.ai_socktype = SOCK_STREAM;
-        addrinfo* res = nullptr;
-        if (getaddrinfo(host_.c_str(), u.port.c_str(), &hints, &res) != 0 || !res) { fail("unknown host " + host_); return; }
-        fd_ = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-        if (fd_ != kNoSock) {
-            const int one = 1;
-            setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char*>(&one), sizeof one);   // no Nagle delay on small frames
-            sockNonBlocking(fd_);
-#ifdef SO_NOSIGPIPE
-            setsockopt(fd_, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof one);   // macOS: no MSG_NOSIGNAL on older SDKs
-#endif
-            if (::connect(fd_, res->ai_addr, static_cast<socklen_t>(res->ai_addrlen)) != 0) {
-                const int e = sockError();
-                if (!sockNotYet(e) && !sockWouldBlock(e)) fail("connect failed");
-            }
-        } else {
-            fail("no socket");
-        }
-        freeaddrinfo(res);
-        if (state_ == State::Closed) return;
-        // The handshake goes out as soon as the socket (and TLS) is up.
-        std::random_device rd;
-        unsigned char key[16];
-        for (auto& k : key) k = static_cast<unsigned char>(rd());
-        static const char* b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        std::string enc;
-        for (int i = 0; i < 16; i += 3) {
-            const unsigned v = unsigned(key[i]) << 16 | (i + 1 < 16 ? unsigned(key[i + 1]) << 8 : 0) | (i + 2 < 16 ? key[i + 2] : 0);
-            enc += b64[v >> 18 & 63];
-            enc += b64[v >> 12 & 63];
-            enc += i + 1 < 16 ? b64[v >> 6 & 63] : '=';
-            enc += i + 2 < 16 ? b64[v & 63] : '=';
-        }
-        const bool defaultPort = u.port == (u.tls ? "443" : "80");
-        const std::string req = "GET " + path_ + " HTTP/1.1\r\nHost: " + host_ + (defaultPort ? "" : ":" + u.port) +
-                                "\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: " + enc +
-                                "\r\nSec-WebSocket-Version: 13\r\n\r\n";
-        out_.insert(out_.end(), req.begin(), req.end());
+        if (!openSocket(u.port)) return;
+        queueHandshake(u);   // it goes out as soon as the socket (and TLS) is up
     }
     ~NativeSocket() override {
 #ifdef CH_HAVE_TLS
@@ -286,7 +248,7 @@ public:
     void send(std::vector<std::uint8_t> m) override {
         if (state_ == State::Closed) return;
         if (state_ == State::Connecting) { early_.push_back(std::move(m)); return; }
-        frame(text_ ? 1 : 2, m);
+        frame(dataOp(), m);
     }
     void poll(std::vector<std::vector<std::uint8_t>>& out) override {
         if (fd_ == kNoSock || state_ == State::Closed) return;
@@ -312,20 +274,62 @@ public:
                 return;
             }
             state_ = State::Open;
-            for (auto& m : early_) frame(text_ ? 1 : 2, m);
+            for (auto& m : early_) frame(dataOp(), m);
             early_.clear();
         }
         parse(out);
         flush();
     }
     void close() override {
-        if (state_ == State::Open) { frame(8, {}); flush(); }
+        if (state_ == State::Open) { frame(kOpClose, {}); flush(); }
         state_ = State::Closed;
     }
     std::string error() const override { return error_; }
 
 private:
+    // DNS, then a non-blocking connect; false (and failed) if it cannot start.
+    bool openSocket(const std::string& port) {
+        if (!sockStartup()) { fail("no network (WSAStartup failed)"); return false; }
+        addrinfo hints{};
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        addrinfo* res = nullptr;
+        if (getaddrinfo(host_.c_str(), port.c_str(), &hints, &res) != 0 || !res) { fail("unknown host " + host_); return false; }
+        fd_ = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+        if (fd_ != kNoSock) {
+            const int one = 1;
+            setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char*>(&one), sizeof one);   // no Nagle delay on small frames
+            sockNonBlocking(fd_);
+#ifdef SO_NOSIGPIPE
+            setsockopt(fd_, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof one);   // macOS: no MSG_NOSIGNAL on older SDKs
+#endif
+            if (::connect(fd_, res->ai_addr, static_cast<socklen_t>(res->ai_addrlen)) != 0) {
+                const int e = sockError();
+                if (!sockNotYet(e) && !sockWouldBlock(e)) fail("connect failed");
+            }
+        } else {
+            fail("no socket");
+        }
+        freeaddrinfo(res);
+        return state_ != State::Closed;
+    }
+    // The opening handshake's request, with a random 16-byte key.
+    void queueHandshake(const Url& u) {
+        std::random_device rd;
+        unsigned char key[16];
+        for (auto& k : key) k = static_cast<unsigned char>(rd());
+        const std::string enc = crypto::base64(key, sizeof key);
+        const bool defaultPort = u.port == (u.tls ? "443" : "80");
+        const std::string req = "GET " + path_ + " HTTP/1.1\r\nHost: " + host_ + (defaultPort ? "" : ":" + u.port) +
+                                "\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: " + enc +
+                                "\r\nSec-WebSocket-Version: 13\r\n\r\n";
+        out_.insert(out_.end(), req.begin(), req.end());
+    }
     static constexpr char kEnd[4] = {'\r', '\n', '\r', '\n'};
+    // RFC 6455, 5.2: the opcodes, and the FIN and MASK bits.
+    enum : int { kOpText = 1, kOpBinary = 2, kOpClose = 8, kOpPing = 9, kOpPong = 10 };
+    static constexpr std::uint8_t kFin = 0x80, kMasked = 0x80;
+    int dataOp() const { return text_ ? kOpText : kOpBinary; }
     void fail(std::string why) {
         if (error_.empty()) error_ = std::move(why);
         state_ = State::Closed;
@@ -402,16 +406,16 @@ private:
         }
     }
     void frame(int op, const std::vector<std::uint8_t>& p) {
-        out_.push_back(std::uint8_t(0x80 | op));
+        out_.push_back(std::uint8_t(kFin | op));
         const std::size_t n = p.size();
         if (n < 126) {
-            out_.push_back(std::uint8_t(0x80 | n));
+            out_.push_back(std::uint8_t(kMasked | n));
         } else if (n < 65536) {
-            out_.push_back(0x80 | 126);
+            out_.push_back(kMasked | 126);
             out_.push_back(std::uint8_t(n >> 8));
             out_.push_back(std::uint8_t(n));
         } else {
-            out_.push_back(0x80 | 127);
+            out_.push_back(kMasked | 127);
             for (int i = 7; i >= 0; --i) out_.push_back(std::uint8_t(std::uint64_t(n) >> (8 * i)));
         }
         const std::uint32_t mask = rng_();
@@ -431,7 +435,7 @@ private:
     void parse(std::vector<std::vector<std::uint8_t>>& out) {
         for (;;) {
             if (in_.size() < 2) return;
-            const bool fin = in_[0] & 0x80;
+            const bool fin = in_[0] & kFin;
             const int op = in_[0] & 0x0f;
             std::size_t n = in_[1] & 0x7f, at = 2;
             if (n == 126) {
@@ -447,13 +451,13 @@ private:
             if (in_.size() < at + n) return;
             std::vector<std::uint8_t> data(in_.begin() + std::ptrdiff_t(at), in_.begin() + std::ptrdiff_t(at + n));
             in_.erase(in_.begin(), in_.begin() + std::ptrdiff_t(at + n));
-            if (op == 8) {
+            if (op == kOpClose) {
                 const int code = data.size() >= 2 ? data[0] << 8 | data[1] : 0;
                 fail("the server closed the connection" + (code ? " (" + std::to_string(code) + ")" : std::string()));
                 return;
             }
-            if (op == 9) { frame(10, data); continue; }
-            if (op == 10) continue;
+            if (op == kOpPing) { frame(kOpPong, data); continue; }
+            if (op == kOpPong) continue;
             part_.insert(part_.end(), data.begin(), data.end());
             if (fin) {
                 out.push_back(std::move(part_));
