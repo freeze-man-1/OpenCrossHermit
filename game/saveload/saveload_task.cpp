@@ -152,7 +152,7 @@ SaveLoadTask::~SaveLoadTask() {
 ysub::Rect SaveLoadTask::rect(std::uint32_t va) const { return ysub::rectAt(va, ctx_.version); }
 
 bool SaveLoadTask::button(int x, int y, int w, int h) const {
-    return (ysub::hit(ctx_, x, y, w, h).pressed & legacy::kMouseLeft) != 0;
+    return ysub::clicked(ctx_, x, y, w, h);
 }
 
 // FUN_004d9d50
@@ -209,11 +209,8 @@ void SaveLoadTask::scan(int visible) {
         if (!endsWithSav(f.name) || entries_.size() == 200) continue;
         const auto bytes = legacy::vfs::readSaveFile(kFolder, f.name);
         if (!bytes || !logic::saveValid(*bytes)) continue;
-        const auto s16 = [&](std::uint32_t va) {
-            const std::size_t o = va - 0x7a50e8;
-            return int(std::int16_t((*bytes)[o] | (*bytes)[o + 1] << 8));
-        };
-        int month = s16(0x7a528e);
+        const auto s16 = [&](std::uint32_t va) { return logic::saveField16(*bytes, va); };
+        int month = s16(roster::kMonth);
         if (month > 12) month -= 12;
         const std::time_t t = static_cast<std::time_t>(f.mtime);
         std::tm lt{};
@@ -225,10 +222,10 @@ void SaveLoadTask::scan(int visible) {
         Entry e;
         e.file = f.name;
         e.name = f.name.substr(0, f.name.size() - 4);
-        const int year = s16(0x7a528c);
+        const int year = s16(roster::kYear);
         char date[48], when[48];
         std::snprintf(date, sizeof date, "%c%c年 %02d月 %d週", year / 10 ? char('0' + year / 10 % 10) : ' ',
-                      char('0' + year % 10), month % 100, s16(0x7a5290) % 10);
+                      char('0' + year % 10), month % 100, s16(roster::kWeek) % 10);
         std::snprintf(when, sizeof when, "%04d/%02d/%02d %02d:%02d", lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday,
                       lt.tm_hour, lt.tm_min);
         e.date = date;

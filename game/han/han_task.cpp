@@ -23,8 +23,6 @@ constexpr std::uint32_t kSeYes = 6, kSeNo = 1;
 // Work fields (ch.exe VAs) used by the class screen.
 constexpr std::uint32_t kKojinState  = 0x7a4e60;   // s16: 0 idle, 1 show KojinTask, 99 scene over
 constexpr std::uint32_t kPlanFixed   = 0x7a55fa;   // s16: groups cannot be changed (cleared at init)
-constexpr std::uint32_t kGroups      = 0x7aaa12;   // 5 x 0x1c: +0 leader, +3 lecture flag, +6.. choice, +0x10 members[4]
-constexpr std::uint32_t kGroupStride = 0x1c;
 constexpr std::uint32_t kEventSet    = 0x7aab0a;   // s16: an adventure is chosen
 constexpr std::uint32_t kEventId     = 0x7aab16;   // s16: chosen adventure (0x73bed0 row)
 constexpr std::uint32_t kSelGroup    = 0x7d57d8;   // s8: selected group, -1 none (FUN_004a8bc0 reads it)
@@ -84,7 +82,7 @@ void selectAdventure(GameWork& w, int cat, int i) {
     w.set16(0x7aab14, i);
 }
 
-constexpr std::uint32_t group(int g) { return kGroups + std::uint32_t(g) * kGroupStride; }
+constexpr std::uint32_t group(int g) { return groups::at(g); }   // 0x7aaa12, game_work.hpp
 
 // Rect-table rows (DAT_0061b208 + 16 i).
 enum : int {
@@ -233,11 +231,11 @@ void HanTask::selectGroup(int g) {
 // members (DAT_007aaaa4.. / 7aaaae.. / 7aaab8.. / 7aaae0..).
 HanTask::GroupStatus HanTask::groupStatus(GameWork& w, int g) {
     const std::uint32_t gi = std::uint32_t(g);
-    w.set16(0x7aaaae + gi * 2, -1);
-    w.set16(0x7aaaa4 + gi * 2, -1);
+    w.set16(groups::kLeaderSlots + gi * 2, -1);
+    w.set16(groups::kLeaderIds + gi * 2, -1);
     for (std::uint32_t k = 0; k < 4; ++k) {
-        w.set16(0x7aaae0 + gi * 8 + k * 2, -1);
-        w.set16(0x7aaab8 + gi * 8 + k * 2, -1);
+        w.set16(groups::kMemberSlots + gi * 8 + k * 2, -1);
+        w.set16(groups::kMemberIds + gi * 8 + k * 2, -1);
     }
     GroupStatus st;
     const int leader = w.s16(group(g));
@@ -245,15 +243,15 @@ HanTask::GroupStatus HanTask::groupStatus(GameWork& w, int g) {
 
     std::array<int, 5> ids{leader};
     int n = 1, members = 0;
-    w.set16(0x7aaaae + gi * 2, logic::rosterSlot(w, leader));
-    w.set16(0x7aaaa4 + gi * 2, leader);
+    w.set16(groups::kLeaderSlots + gi * 2, logic::rosterSlot(w, leader));
+    w.set16(groups::kLeaderIds + gi * 2, leader);
     for (std::uint32_t k = 0; k < 4; ++k) {
         const int id = w.s16(group(g) + 0x10 + k * 2);
         if (id == -1) continue;
         ids[std::size_t(n++)] = id;
         ++members;
-        w.set16(0x7aaae0 + gi * 8 + k * 2, logic::rosterSlot(w, id));
-        w.set16(0x7aaab8 + gi * 8 + k * 2, id);
+        w.set16(groups::kMemberSlots + gi * 8 + k * 2, logic::rosterSlot(w, id));
+        w.set16(groups::kMemberIds + gi * 8 + k * 2, id);
     }
     if (members == 0) { st.kind = 1; return st; }
 
@@ -468,13 +466,13 @@ Co<> HanTask::confirm(bool commit) {
     }
     constexpr int x = 0x179, y = 0x152;
     dialog_.draw(ctx_, x + 10, y + 10, 0x66);
-    if ((ysub::hit(ctx_, x + 0x1c, y + 0x34, 0x66, 0x1d).pressed & legacy::kMouseLeft)) {
+    if (ysub::clicked(ctx_, x + 0x1c, y + 0x34, 0x66, 0x1d)) {
         const ysub::Rect r = rect(kDialogYes);
         flashes_.add(r, 0x67, x + r.x, y + r.y, 2);
         if (commit) { state_ = 3; commitPending_ = true; ctx_.audio->sePlay(kSe); }
         else        { state_ = 0xf; ctx_.audio->sePlay(kSeYes); }
     }
-    if ((ysub::hit(ctx_, x + 0x8c, y + 0x34, 0x66, 0x1d).pressed & legacy::kMouseLeft)) {
+    if (ysub::clicked(ctx_, x + 0x8c, y + 0x34, 0x66, 0x1d)) {
         const ysub::Rect r = rect(kDialogNo);
         flashes_.add(r, 0x67, x + r.x, y + r.y, 2);
         ctx_.audio->sePlay(kSeNo);
@@ -644,15 +642,15 @@ void HanTask::voice(int unit, int category, int extra) {
 // FUN_004ab250 / FUN_004ab3e0: append if absent. FUN_004ab2e0 / FUN_004ab470: remove.
 static void listAdd(GameWork& w, std::uint32_t countVa, std::uint32_t listVa, int id) {
     const int n = w.s16(countVa);
-    for (int i = 0; i < n; ++i) if (w.s16(listVa + std::uint32_t(i) * 2) == id) return;
-    w.set16(listVa + std::uint32_t(n) * 2, id);
+    for (int i = 0; i < n; ++i) if (w.s16At(listVa, i) == id) return;
+    w.set16At(listVa, n, id);
     w.set16(countVa, n + 1);
 }
 static bool listRemove(GameWork& w, std::uint32_t countVa, std::uint32_t listVa, int id) {
     const int n = w.s16(countVa);
     for (int i = 0; i < n; ++i) {
-        if (w.s16(listVa + std::uint32_t(i) * 2) != id) continue;
-        for (int k = i; k < n; ++k) w.set16(listVa + std::uint32_t(k) * 2, w.s16(listVa + std::uint32_t(k + 1) * 2));
+        if (w.s16At(listVa, i) != id) continue;
+        for (int k = i; k < n; ++k) w.set16At(listVa, k, w.s16At(listVa, k + 1));
         w.set16(countVa, n - 1);
         return true;
     }
@@ -662,7 +660,7 @@ static bool listRemove(GameWork& w, std::uint32_t countVa, std::uint32_t listVa,
 static void listErase(GameWork& w, std::uint32_t countVa, std::uint32_t listVa, int index) {
     const int n = w.s16(countVa) - 1;
     w.set16(countVa, n);
-    for (int k = index; k < n; ++k) w.set16(listVa + std::uint32_t(k) * 2, w.s16(listVa + std::uint32_t(k + 1) * 2));
+    for (int k = index; k < n; ++k) w.set16At(listVa, k, w.s16At(listVa, k + 1));
 }
 
 // FUN_004a8bf0(mode, list): sort the member (list 0) or guest (list 1)
@@ -677,7 +675,7 @@ void HanTask::sortWaiting(GameWork& w, int mode, int list) {
     std::array<bool, 0x46> left{};
     for (int i = 0; i < n; ++i) {
         const std::size_t k = std::size_t(i);
-        id[k] = w.s16(listVa + std::uint32_t(i) * 2);
+        id[k] = w.s16At(listVa, i);
         const std::uint32_t rec = list == 0 ? GameWork::unitRecord(id[k]) : 0x6f5088 + std::uint32_t(id[k]) * 0x4a0;
         const auto byte = [&](std::uint32_t o) { return list == 0 ? w.u8(rec + o) : logic::sdU8(rec + o, ctx_.version); };
         const int job = list == 0 ? w.s16(rec + 6) : logic::sdS16(rec + 6, ctx_.version);
@@ -709,7 +707,7 @@ void HanTask::sortWaiting(GameWork& w, int mode, int list) {
         case 2: selectionSort(stats); break;
         default: return;
     }
-    for (int i = 0; i < n; ++i) w.set16(listVa + std::uint32_t(i) * 2, out[std::size_t(i)]);
+    for (int i = 0; i < n; ++i) w.set16At(listVa, i, out[std::size_t(i)]);
 }
 
 // FUN_004a5f40: rebuild both waiting lists from the roster, drop groups
@@ -727,13 +725,13 @@ void HanTask::buildWaitingLists() {
     w.set8(kWaitPage, 0);
     w.set8(kWaitSort, 0);
     w.set16(kWaitCount, 0);
-    w.set16(0x7d57e0, w.s16(0x7a5260));
-    for (int i = 0; i < w.s16(0x7a5260); ++i) listAdd(w, kWaitCount, kWaitList, w.s16(0x7a5210 + std::uint32_t(i) * 2));
+    w.set16(0x7d57e0, w.s16(roster::kMemberCount));
+    for (int i = 0; i < w.s16(roster::kMemberCount); ++i) listAdd(w, kWaitCount, kWaitList, w.s16At(roster::kMembers, i));
     w.set16(kGuestPage, 0);
     w.set16(kGuestSort, 0);
     w.set16(kGuestCount, 0);
-    w.set16(0x7d58b2, w.s16(0x7a528a));
-    for (int i = 0; i < w.s16(0x7a528a); ++i) listAdd(w, kGuestCount, kGuestList, w.s16(0x7a5262 + std::uint32_t(i) * 2));
+    w.set16(0x7d58b2, w.s16(roster::kGuestCount));
+    for (int i = 0; i < w.s16(roster::kGuestCount); ++i) listAdd(w, kGuestCount, kGuestList, w.s16At(roster::kGuests, i));
 
     bool first = true;
     for (int g = 0; g < 5; ++g) {
@@ -741,8 +739,8 @@ void HanTask::buildWaitingLists() {
         if (resetChoices != 0) w.set8(group(g) + 3, 1);
         const int leader = w.s16(group(g));
         if (!logic::inRoster(w, leader)) {
-            w.set16(0x7aaaae + gi * 2, -1);
-            w.set16(0x7aaaa4 + gi * 2, -1);
+            w.set16(groups::kLeaderSlots + gi * 2, -1);
+            w.set16(groups::kLeaderIds + gi * 2, -1);
             w.set8(group(g) + 3, 1);
             w.set16(group(g), -1);
         } else {
@@ -763,8 +761,8 @@ void HanTask::buildWaitingLists() {
                 w.set16(slot, static_cast<std::int8_t>(id));
                 w.set8(group(g) + 0xe, w.u8(group(g) + 0xe) + 1);
             } else {
-                w.set16(0x7aaae0 + gi * 8 + k * 2, -1);
-                w.set16(0x7aaab8 + gi * 8 + k * 2, -1);
+                w.set16(groups::kMemberSlots + gi * 8 + k * 2, -1);
+                w.set16(groups::kMemberIds + gi * 8 + k * 2, -1);
                 w.set16(slot, -1);
             }
         }
@@ -815,7 +813,7 @@ void HanTask::drawWaiting() {
     for (int i = 0; i < 5; ++i) {
         const int index = w.s8(kWaitPage) + i;
         if (index >= w.s16(kWaitCount)) break;
-        const int id = w.s16(kWaitList + std::uint32_t(index) * 2);
+        const int id = w.s16At(kWaitList, index);
         const int x = i * 0x4e;
         const ysub::Hit h = ysub::hit(ctx_, x + 0x79, 0x241, 0x44, 0x40);
         std::uint8_t alpha = 0xff;
@@ -845,7 +843,7 @@ void HanTask::drawWaiting() {
     for (int i = 0; i < 5; ++i) {
         const int index = w.s16(kGuestPage) + i;
         if (index >= w.s16(kGuestCount)) break;
-        const int id = w.s16(kGuestList + std::uint32_t(index) * 2);
+        const int id = w.s16At(kGuestList, index);
         const int x = i * 0x4e;
         const ysub::Hit h = ysub::hit(ctx_, x + 0x79, 0x2a2, 0x44, 0x40);
         std::uint8_t alpha = 0xff;
@@ -1072,10 +1070,10 @@ void HanTask::drag() {
 // stat level and in their total, for the info popup.
 void HanTask::statRanks() {
     GameWork& w = ctx_.work;
-    const int n = std::min<int>(w.s16(0x7a5260), int(statRank_.size()));
+    const int n = std::min<int>(w.s16(roster::kMemberCount), int(statRank_.size()));
     std::array<int, 0x28> total{};
     const auto level = [&](int i, int stat) {
-        const int id = w.s16(0x7a5210 + std::uint32_t(i) * 2);
+        const int id = w.s16At(roster::kMembers, i);
         return stat < 7 ? int(w.u8(GameWork::unitRecord(id) + 0xc + std::uint32_t(stat) * 8)) : total[std::size_t(i)];
     };
     for (int i = 0; i < n; ++i)
@@ -1140,7 +1138,7 @@ void HanTask::learnLectures() {
         for (int h = 0; h < 0x14; ++h) {
             if (logic::sdU8(lec + 0x3a + std::uint32_t(h), v) == 0) continue;
             const std::uint32_t base = kHermitLectures + std::uint32_t(h) * 1000;
-            const int n = w.s16(0x7aa9ea + std::uint32_t(h) * 2);
+            const int n = w.s16At(0x7aa9ea, h);
             for (int k = n; k > 0; --k) {
                 const std::uint32_t to = base + std::uint32_t(k) * 10, from = to - 10;
                 w.set8(to, w.u8(from)); w.set8(to + 1, w.u8(from + 1));
@@ -1151,7 +1149,7 @@ void HanTask::learnLectures() {
             w.set16(base + 2, id);
             w.set16(base + 4, logic::sdS16(lec + 4, v));
             w.set16(base + 6, 0);
-            w.set16(0x7aa9ea + std::uint32_t(h) * 2, n + 1);
+            w.set16At(0x7aa9ea, h, n + 1);
         }
         w.set8(kLectureSeen + std::uint32_t(id), 1);
     }
@@ -1168,8 +1166,8 @@ void HanTask::buildAdventureLists() {
         const std::uint32_t a = kAdvList + std::uint32_t(u) * 0x10;
         const int cat = w.u8(a + 5);
         if (w.u8(a + 6) != 0) continue;
-        const int n = w.s16(0x7d62fa + std::uint32_t(cat) * 2);
-        w.set16(0x7d62fa + std::uint32_t(cat) * 2, n + 1);
+        const int n = w.s16At(0x7d62fa, cat);
+        w.set16At(0x7d62fa, cat, n + 1);
         const std::uint32_t e = advEntry(cat, n);
         w.set16(e, w.u8(a + 3));
         w.set16(e + 2, w.u8(a + 4));
@@ -1205,8 +1203,8 @@ void HanTask::buildLectureList(int hermit) {
         const int id = w.s16(k + 2);
         const int lvl = logic::sdS16(kLectures + 6 + std::uint32_t(id) * 0x60, ctx_.version) - 1;
         if (lvl < 0 || lvl > 2) continue;
-        const int n = w.s16(0x7d6a14 + std::uint32_t(lvl) * 2);
-        w.set16(0x7d6a14 + std::uint32_t(lvl) * 2, n + 1);
+        const int n = w.s16At(0x7d6a14, lvl);
+        w.set16At(0x7d6a14, lvl, n + 1);
         const std::uint32_t e = lecEntry(lvl, n);
         w.set16(e, logic::sdS16(kLectures + 8 + std::uint32_t(id) * 0x60, ctx_.version) - 1);
         w.set16(e + 2, id);
@@ -1274,9 +1272,9 @@ void HanTask::drawAdventurePanel() {
     const bool active = w.u8(group(sel) + 3) == 0;        // the original reads it with sel = -1 too
     const int cat = w.s16(kPlanFixed) != 0 ? 0 : w.u8(0x7d5984) == 0 ? 2 : 1;
     w.set16(kEventShown, cat);
-    const int count = w.s16(0x7d62fa + std::uint32_t(cat) * 2);
+    const int count = w.s16At(0x7d62fa, cat);
     if (count != 0) {
-        const int page = w.s16(0x7d6300 + std::uint32_t(cat) * 2);
+        const int page = w.s16At(0x7d6300, cat);
         for (int i = 0; i < 8; ++i) {
             const int idx = i + page * 2;
             if (idx >= count) break;
@@ -1322,9 +1320,9 @@ void HanTask::drawLecturePanel() {
     const int sel = w.s8(kSelGroup);
     const bool active = w.u8(group(sel) + 3) != 0;
     const int lvl = w.u8(0x7d598a);
-    const int count = w.u16(0x7d6a14 + std::uint32_t(lvl) * 2);
+    const int count = w.u16At(0x7d6a14, lvl);
     if (count == 0) return;
-    const int page = w.s16(0x7d6a1a + std::uint32_t(lvl) * 2);
+    const int page = w.s16At(0x7d6a1a, lvl);
     for (int i = 0; i < 10; ++i) {
         const int idx = i + page * 2;
         if (i >= count) break;                             // the original compares the row, not idx
@@ -1596,7 +1594,7 @@ void HanTask::draw() {
         const int y = g * 0x61;
         if (w.s16(group(g)) == -1) {
             fill(ctx_, 6, y + 0x4d, 0x212, 0x5f, 0x70, 0x90010101u);
-        } else if (ysub::hit(ctx_, 10, y + 0x51, 0x20a, 0x57).pressed & legacy::kMouseLeft) {
+        } else if (ysub::clicked(ctx_, 10, y + 0x51, 0x20a, 0x57)) {
             selectGroup(g);
             ctx_.audio->sePlay(kSe);
         }

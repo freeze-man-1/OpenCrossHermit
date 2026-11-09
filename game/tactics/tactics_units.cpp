@@ -60,6 +60,14 @@ constexpr std::uint32_t kTemplates     = 0x6f5088;   // 0x4a0-byte unit records,
 constexpr std::uint32_t kEnemyTemplates = 0x72ed88;  // 0x30-byte summaries, id >= 200
 constexpr std::uint32_t kJobRows       = 0x6b2d88;   // 0x40 bytes per kind
 constexpr std::uint32_t kSkillRecords  = 0x6c2dc8;   // 0x48 bytes
+// A skill row's fields (offsets into the 0x48 bytes).
+constexpr std::uint32_t kSkillEffect = 2;           // s16: 5 heals
+constexpr std::uint32_t kSkillType = 5;             // u8: 2 a spell, 3 the job's skill instead
+constexpr std::uint32_t kSkillMpCost = 8;           // s16
+constexpr std::uint32_t kSkillAim = 0x18;           // u8: what it is aimed at (4 a cell)
+constexpr std::uint32_t kSkillAimRule = 0x19;       // u8
+constexpr std::uint32_t kSkillAdded = 0x1a;         // u8: the added effect
+constexpr std::uint32_t skillRow(int id) { return kSkillRecords + std::uint32_t(id) * 0x48; }
 constexpr std::uint32_t kRankTime      = 0x6e4528;
 constexpr std::uint32_t kMoveTypes     = 0x738c10;
 constexpr std::uint32_t kEnemyTables   = 0x6a7f6c;   // u32 per map
@@ -73,12 +81,10 @@ constexpr std::uint32_t kRelations     = 0x618568;   // s8 [viewer * 16 + team]
 constexpr std::uint32_t kJobSkill      = 0x6b2da0;   // s16 [kind * 0x20]: the job's own skill
 constexpr std::uint32_t kSkillAnims    = 0x611538;   // 0x10 bytes per skill: s8 cast, attack, after clips
 constexpr std::uint32_t kFallAnims     = 0x6149d0;   // 10 bytes per kind: s8 fall clip, ...
-constexpr std::uint32_t kPartyData = 0x7f4518, kPartyCount = 0x7f448d;
 constexpr std::uint32_t kRoutes        = 0x6acb88;   // u32 per map: {s32 count, u32 rows} per route
 constexpr std::uint32_t kStepOffsets   = 0x5ff95c;   // {s16 dx, dy} per numpad direction
 constexpr std::uint32_t kWanderTurns   = 0x618cc8;   // s8 [3][12]: straight on, turned one way, the other
 constexpr std::uint32_t kFleeTurns     = 0x618dc8;   // s8 [dir * 3 + 0..2]: away from the threat
-constexpr std::uint32_t kStartX = 0x7f4492, kStartY = 0x7f4494, kStartRange = 0x7f44a2;
 
 std::uint32_t sdU32(std::uint32_t va, GameVersion v) { return static_cast<std::uint32_t>(logic::sdS32(va, v)); }
 std::uint16_t sdU16(std::uint32_t va, GameVersion v) { return static_cast<std::uint16_t>(logic::sdS16(va, v)); }
@@ -155,6 +161,11 @@ void clampDerived(stats::Derived& d) {
 // ------------------------------------------------------------ records ---
 namespace tactics {
 
+bool traceUnits() {
+    static const bool on = SDL_getenv("CH_UNITS") != nullptr;
+    return on;
+}
+
 Compact compactRecord(int id, GameVersion v) {
     Compact c;
     if (id >= 200) {
@@ -174,7 +185,7 @@ Compact compactRecord(int id, GameVersion v) {
 
 void deriveCompact(const Compact& c, stats::Derived& o, GameVersion v) {
     const std::uint32_t job = kJobRows + std::uint32_t(c.s16(2)) * 0x40;
-    const std::uint32_t sk  = kSkillRecords + std::uint32_t(logic::sdS16(job + 0x18, v)) * 0x48;
+    const std::uint32_t sk  = skillRow(logic::sdS16(job + 0x18, v));
     const auto J  = [&](std::uint32_t off) { return int(logic::sdU8(job + off, v)); };
     const auto JS = [&](std::uint32_t off) { return int(logic::sdS16(job + off, v)); };
     const auto JU = [&](std::uint32_t off) { return int(sdU16(job + off, v)); };
@@ -290,7 +301,6 @@ void enemyData(std::uint32_t rec, stats::Derived& out, GameVersion v) {
 
 // -------------------------------------------------------------- units ---
 namespace {
-constexpr std::uint32_t kStartMax = 0x7f44a4;      // most units that may sortie (0x7f44a3 the fewest)
 constexpr std::uint32_t kDirByAngleA = 0x618da4;   // u8 [angle / 11]: numpad direction
 constexpr std::uint32_t kDirByAngleB = 0x618d80;   //   the diagonal-leaning table
 
@@ -361,7 +371,7 @@ void TacticsUnits::loadRelations() {
     if (!network_) return;
     for (std::uint32_t a = 0; a < 4; ++a)
         for (std::uint32_t b = 0; b < 4; ++b)
-            if (a != b && w.u8(0x7f44e4 + a) == w.u8(0x7f44e4 + b)) relations_[a * 0x10 + b] = 0;
+            if (a != b && w.u8(stage::kSlotSide + a) == w.u8(stage::kSlotSide + b)) relations_[a * 0x10 + b] = 0;
 }
 
 int TacticsUnits::relationCode(int from, int to) const {
@@ -415,7 +425,7 @@ void TacticsUnits::build(const TacticsMap& map, int mapId, bool fixedParty) {
     // FUN_00452040 / FUN_00452130 and the copy in FUN_00452fc0. Those off
     // the field (+0xf 0, state 0xb) wait for their appear orders or a call.
     // (Network play brings every player's units, up to 0x50: FUN_00448a30.)
-    party_ = std::min<int>(w.u8(kPartyCount), network_ ? 0x50 : 0x14);
+    party_ = std::min<int>(w.u8(stage::kPartyCount), network_ ? 0x50 : 0x14);
     // FUN_00452fc0 sets the party's +0xf in the work first. Without the
     // sortie (stage row +4, 0x7f448f): a stage whose 0x7f44b8 is set, when
     // not chained on from the last (0x7f448c), puts our members on the
@@ -423,12 +433,12 @@ void TacticsUnits::build(const TacticsMap& map, int mapId, bool fixedParty) {
     // fresh stage takes them all off (0); a chained one takes off those not
     // fallen (+0xf below 3, or 5) and gives those not out of action (4)
     // 0x2a30 of stamina (+0x24, at most +0x20).
-    const bool chained = w.u8(0x7f448c) != 0;
+    const bool chained = w.u8(stage::kChained) != 0;
     for (int i = 0; i < party_ && !network_; ++i) {   // (network play: net_game set them on the field)
-        const std::uint32_t r = kPartyData + std::uint32_t(i) * 0xb0;
+        const std::uint32_t r = stage::kParty + std::uint32_t(i) * 0xb0;
         if (w.u8(r + 0xa4) >= 4) continue;
-        if (w.u8(0x7f448f) == 0) {
-            if (w.u8(0x7f44b8) != 0 && !chained) w.set8(r + 0xf, 1);
+        if (w.u8(stage::kSortie) == 0) {
+            if (w.u8(stage::kPartyOut) != 0 && !chained) w.set8(r + 0xf, 1);
         } else if (!chained) {
             w.set8(r + 0xf, 0);
         } else {
@@ -439,7 +449,7 @@ void TacticsUnits::build(const TacticsMap& map, int mapId, bool fixedParty) {
     }
     for (int i = 0; i < party_; ++i) {
         stats::Derived d;
-        for (std::uint32_t k = 0; k < 0xb0; ++k) d.set8(k, w.u8(kPartyData + std::uint32_t(i) * 0xb0 + k));
+        for (std::uint32_t k = 0; k < 0xb0; ++k) d.set8(k, w.u8(stage::kParty + std::uint32_t(i) * 0xb0 + k));
         if (!fixedParty) {
             d.set8(0x9b, 0);
             d.set8(0x9c, 0);
@@ -460,9 +470,9 @@ void TacticsUnits::build(const TacticsMap& map, int mapId, bool fixedParty) {
         appearGiven_.clear();                      // FUN_0049a480's FUN_0043d4e0
         for (int i = 0; i < party_; ++i) {
             Unit& u = units_[std::size_t(i)];
-            const int kind = u.data.u16(2);
+            const int kind = u.kind();
             if (!map_ || u.team() != team || kind < 1 || kind > 0x2d || u.data.u8(0xf) != 1) continue;
-            const tactics::Cell c = appearCell(sx, sy, w.u8(kStartRange), u.data.u8(0x30));
+            const tactics::Cell c = appearCell(sx, sy, w.u8(stage::kStartRange), u.moveType());
             if (c.first < 0) continue;
             u.data.set8(0x9b, c.first);
             u.data.set8(0x9c, c.second);
@@ -470,12 +480,12 @@ void TacticsUnits::build(const TacticsMap& map, int mapId, bool fixedParty) {
         }
     };
     if (!network_) {
-        placeTeam(viewer_, w.s16(kStartX), w.s16(kStartY));
+        placeTeam(viewer_, w.s16(stage::kStartX), w.s16(stage::kStartY));
     } else {
         for (int s = 0; s < 4; ++s) {
-            if (w.u8(0x7f44d4 + std::uint32_t(s)) == 0) continue;
-            const std::uint32_t at = std::uint32_t(std::min<int>(w.u8(0x7f44f4 + std::uint32_t(s)), 3)) * 4;
-            placeTeam(s, w.s16(kStartX + at), w.s16(kStartY + at));
+            if (w.u8(stage::kSlotPresent + std::uint32_t(s)) == 0) continue;
+            const std::uint32_t at = std::uint32_t(std::min<int>(w.u8(stage::kSlotStart + std::uint32_t(s)), 3)) * 4;
+            placeTeam(s, w.s16(stage::kStartX + at), w.s16(stage::kStartY + at));
         }
     }
     // FUN_00453540
@@ -495,9 +505,9 @@ void TacticsUnits::build(const TacticsMap& map, int mapId, bool fixedParty) {
         // FUN_004da710: the record's AI part.
         Unit& u = units_[std::size_t(0xf9 - k)];
         for (std::uint32_t i = 0; i < 0x40; ++i) u.ai.set8(i, logic::sdU8(rec + 0x14 + i, v));
-        if (SDL_getenv("CH_UNITS"))
+        if (tactics::traceUnits())
             SDL_Log("[tactics] enemy %d: kind %d team %d group %d %s at %d,%d", u.slot, u.data.u16(0xc), u.team(),
-                    u.data.u8(0x98), u.onField() ? "on field" : "waiting", u.cx(), u.cy());
+                    u.group(), u.onField() ? "on field" : "waiting", u.cx(), u.cy());
     }
     SDL_Log("[tactics] %d party units, %d enemy records, %zu graphics sets", party_, enemies, sets_.size());
 }
@@ -533,15 +543,15 @@ void TacticsUnits::create(int slot, const stats::Derived& d) {
     // FUN_00475370: on the field the unit stands (2), off it waits (0xb).
     // (A unit with a named character and FUN_00468eb0 starts in 0x19, the
     // same appear steps; nothing starts on the field with one here.)
-    setState(u, u.onField() ? 2 : 0xb);
+    setState(u, u.onField() ? kStand : kOffField);
     // FUN_004680b0's tail: buildings hold their ground (+0x9f 2); gates and
     // bases stand in state 0x1c instead.
     if (structure(u)) {
         u.data.set8(0x9f, 2);
-    } else if (u.data.u16(2) >= 0x19b && u.data.u16(2) <= 0x19e) {
-        setState(u, 0x1c);
+    } else if (u.kind() >= 0x19b && u.kind() <= 0x19e) {
+        setState(u, kBuilding);
     } else if (base(u)) {
-        setState(u, 0x1c);
+        setState(u, kBuilding);
         u.data.set8(0x9f, 2);
     }
     // FUN_00467020
@@ -553,7 +563,7 @@ void TacticsUnits::create(int slot, const stats::Derived& d) {
     if (palKind == 1) {
         palette = static_cast<std::int8_t>(logic::sdU8(g + 7, ctx_.version));
     } else if (palKind == 2) {
-        const int ch = u.data.u16(2);
+        const int ch = u.kind();
         if (ch <= 0x22 && kind <= 0x27) {
             const int p = static_cast<std::int8_t>(logic::sdU8(kCharPalettes + std::uint32_t(ch + kind * 0x28), ctx_.version));
             if (p != 0) palette = p + 1;
@@ -565,10 +575,10 @@ void TacticsUnits::create(int slot, const stats::Derived& d) {
     // start: appearing 0x12, standing 1, holding 0x18, walking 3, state 5 2.
     if (u.node != AnmPlayer::kNone) {
         switch (u.state) {
-            case 1: case 0x19: playAnim(u, 0x12); break;
-            case 2: playAnim(u, 1); break;
-            case 3: playAnim(u, 0x18); break;
-            case 4: playAnim(u, 3); break;
+            case kAppear: case kAppear2: playAnim(u, 0x12); break;
+            case kStand: playAnim(u, 1); break;
+            case kHold: playAnim(u, 0x18); break;
+            case kMove: playAnim(u, 3); break;
             case 5: playAnim(u, 2); break;
             default: break;
         }
@@ -582,10 +592,10 @@ void TacticsUnits::create(int slot, const stats::Derived& d) {
     // here: those off it would hold 0xff / 0xff, and the party is placed
     // after this (FUN_0049a480).
     if (!u.human() && u.onField()) u.post = {u.cx(), u.cy()};
-    if (SDL_getenv("CH_UNITS"))
+    if (tactics::traceUnits())
         SDL_Log("[tactics] unit %3d id %3d kind %3d team %d field %d file %3d pal %2d set %2d at %d,%d HP %d speed %d",
                 slot, u.data.s16(0), kind, u.team(), u.data.u8(0xf), file, palette, u.set, u.cx(), u.cy(),
-                u.data.s16(0x14), u.data.u16(0x2e));
+                u.maxHp(), u.data.u16(0x2e));
 }
 
 void TacticsUnits::setPosition(Unit& u, int cx, int cy) {
@@ -634,8 +644,8 @@ void TacticsUnits::playAnim(Unit& u, int anim) {
     const std::uint32_t rows = sdU32(kClipRows + id * 4, v), clips = sdU32(kClips + id * 4, v);
     const std::uint32_t e = rows + (std::uint32_t(logic::sdU8(kDirColumn + u.dir, v)) + std::uint32_t(anim) * 8) * 2;
     const std::uint16_t clip = sdU16(clips + std::uint32_t(logic::sdU8(e, v)) * 2, v);
-    if (SDL_getenv("CH_UNITS") && (structure(u) || base(u) || u.data.u16(2) >= 0x19b))
-        SDL_Log("[tactics] tick %llu unit %d (kind %d) anim %d -> set %d clip %d", static_cast<unsigned long long>(ctx_.engine.tickCount()), u.slot, u.data.u16(2), anim, clip >> 8, clip & 0xff);
+    if (tactics::traceUnits() && (structure(u) || base(u) || u.kind() >= 0x19b))
+        SDL_Log("[tactics] tick %llu unit %d (kind %d) anim %d -> set %d clip %d", static_cast<unsigned long long>(ctx_.engine.tickCount()), u.slot, u.kind(), anim, clip >> 8, clip & 0xff);
     anm_.play(u.node, clip >> 8, clip & 0xff, logic::sdU8(e + 1, v) & 3);
 }
 
@@ -644,7 +654,7 @@ void TacticsUnits::playAnim(Unit& u, int anim) {
 // target, +0x4ee.)
 void TacticsUnits::setState(Unit& u, int state) {
     u.state = static_cast<std::uint8_t>(state);
-    u.next = 0;
+    u.next = kNoState;
     u.sub = 0;
 }
 
@@ -685,12 +695,12 @@ void TacticsUnits::update() {
             regenerate(u);
             if (!frozen_) checkCollapse(u);       // FUN_0046bc20, while the battle runs (+0x108b39)
             // FUN_00472770
-            if (u.data.s16(0x16) < 1 && u.state != 0xd && u.next != 0xd) u.next = 0xd;
+            if (u.hp() < 1 && u.state != kFall && u.next != kFall) u.next = kFall;
         }
         if (!frozen_) runOrders(u);               // FUN_0046b760 -> FUN_0048e2a0
-        if (!frozen_ || u.state == 1) {
+        if (!frozen_ || u.state == kAppear) {
             think(u);
-            const int kind = u.data.u16(2);
+            const int kind = u.kind();
             if (kind > 0x182 && kind < 0x197 && !frozen_) occupy(u);   // FUN_00475700's tail
         }
         u.animEnd = u.node == AnmPlayer::kNone || anm_.update(u.node);
@@ -716,10 +726,10 @@ void TacticsUnits::update() {
 
 // FUN_00475700 -> FUN_004751f0 (the pending state first), then the state.
 void TacticsUnits::think(Unit& u) {
-    if (u.next != 0) {
-        if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d: state %d -> %d at %d,%d", u.slot, u.state, u.next, u.cx(), u.cy());
+    if (u.next != kNoState) {
+        if (tactics::traceUnits()) SDL_Log("[tactics] unit %d: state %d -> %d at %d,%d", u.slot, u.state, u.next, u.cx(), u.cy());
         u.state = u.next;
-        u.next = 0;
+        u.next = kNoState;
         u.sub = 0;
         // FUN_004756a0: the cast effect (slot 1) stops and the unit's queued
         // search is dropped (FUN_00437d90; the port searches at once). Set
@@ -727,30 +737,30 @@ void TacticsUnits::think(Unit& u) {
         playEffect(u, 1, -1);
     }
     switch (u.state) {
-        case 1:    appearState(u); break;
-        case 2:    standState(u); break;
-        case 3:    holdState(u); break;
-        case 4:    moveState(u); break;
-        case 6:    skillState(u); break;
-        case 0xd:  fallState(u); break;
-        case 0xf:  chooseState(u); break;
-        case 0x10: routeState(u); break;
-        case 0x13: guardState(u); break;
-        case 0x15: captureState(u); break;
-        case 0x16: ambushState(u); break;
-        case 0x17: wanderState(u); break;
-        case 0x18: summonState(u); break;
-        case 0x1a: routeWaitState(u); break;
-        case 0xb:  offFieldState(u); break;
-        case 0x1b: withdrawState(u); break;
-        case 0x1c: buildingState(u); break;
-        case 0x1d: fleeState(u); break;
-        case 8:    staggerState(u); break;
-        case 9:    knockState(u); break;
-        case 0xa:  guardHitState(u); break;
-        case 0xc:  collapseState(u); break;
-        case 0xe:  retreatState(u); break;
-        case 0x11: callState(u); break;
+        case kAppear:    appearState(u); break;
+        case kStand:     standState(u); break;
+        case kHold:      holdState(u); break;
+        case kMove:      moveState(u); break;
+        case kSkill:     skillState(u); break;
+        case kFall:      fallState(u); break;
+        case kChoose:    chooseState(u); break;
+        case kRoute:     routeState(u); break;
+        case kGuard:     guardState(u); break;
+        case kCapture:   captureState(u); break;
+        case kAmbush:    ambushState(u); break;
+        case kWander:    wanderState(u); break;
+        case kSummon:    summonState(u); break;
+        case kRouteWait: routeWaitState(u); break;
+        case kOffField:  offFieldState(u); break;
+        case kWithdraw:  withdrawState(u); break;
+        case kBuilding:  buildingState(u); break;
+        case kFlee:      fleeState(u); break;
+        case kStagger:   staggerState(u); break;
+        case kKnock:     knockState(u); break;
+        case kGuardHit:  guardHitState(u); break;
+        case kCollapse:  collapseState(u); break;
+        case kRetreat:   retreatState(u); break;
+        case kCall:      callState(u); break;
         default:   break;                          // 5 does nothing; 0x14 (FUN_0047a530) returns at once
     }
 }
@@ -760,7 +770,7 @@ void TacticsUnits::think(Unit& u) {
 // (FUN_0046c290: ours and allies' 3, the enemies' 6 / 9, the others' 2),
 // and with it which clip they play.
 void TacticsUnits::face(Unit& u, int dir) const {
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     if ((kind >= 0x183 && kind <= 0x196) || (kind >= 0x19b && kind <= 0x19e)) {
         switch (relation(u.team())) {
             case 0: case 4: u.dir = 3; break;
@@ -799,7 +809,7 @@ int TacticsUnits::occupier(const Unit& b) const {
 // otherwise; at 0 the takeover starts (message 0xe).
 void TacticsUnits::occupy(Unit& u) {
     if (opening_) return;                          // +0x108b48
-    if (!u.onField() || u.holdOut == 0 || u.state == 0x15) return;
+    if (!u.onField() || u.holdOut == 0 || u.state == kCapture) return;
     const int team = occupier(u);
     const int full = u.human() ? 900 : 600;
     if (u.team() == 7) {
@@ -811,7 +821,7 @@ void TacticsUnits::occupy(Unit& u) {
     } else if (--u.holdOut != 0) {
         return;
     }
-    if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d (kind %d) taken by team %d", u.slot, u.data.u16(2), team);
+    if (tactics::traceUnits()) SDL_Log("[tactics] unit %d (kind %d) taken by team %d", u.slot, u.kind(), team);
     changeTeam(u, team);
 }
 
@@ -824,12 +834,12 @@ bool TacticsUnits::changeTeam(Unit& u, int team) {
     if (structure(u) || base(u)) {
         if (!base(u)) setFlags(u, true);
         u.captor = static_cast<std::uint8_t>(team);
-        u.next = 0x15;
+        u.next = kCapture;
         return true;
     }
     u.data.set8(0xa4, team);
     if (team == viewer_) {
-        if (u.human() && u.data.u16(2) < 0x40) addFace(u);   // FUN_0048ef60: FUN_00468eb0 -> FUN_0046d970
+        if (u.human() && u.kind() < 0x40) addFace(u);   // FUN_0048ef60: FUN_00468eb0 -> FUN_0046d970
         u.aiControlled = false;
         u.data.set8(0x9f, 2);
         u.data.set8(0xa0, 0);
@@ -857,7 +867,7 @@ void TacticsUnits::captureState(Unit& u) {
             break;
         }
         case 2: {
-            const int kind = u.data.u16(2);
+            const int kind = u.kind();
             const bool a = (kind >= 0x183 && kind <= 0x188) || (kind >= 0x18f && kind <= 0x194);
             const int wait = a ? 0x48 : kind >= 0x189 && kind <= 0x18e ? 0x25 : base(u) ? 0x3e : 0x3c;
             if (u.timer >= wait) ++u.sub;
@@ -882,7 +892,7 @@ std::pair<int, std::uint32_t> TacticsUnits::routeOf(Unit& u) const {
     const std::uint32_t table = sdU32(kRoutes + std::uint32_t(mapId_) * 4, v);
     if (table == 0) return {0, 0};
     if (u.data.u8(0xa2) == 0) {                    // the original asserts, then takes route 1
-        SDL_Log("[tactics] unit %d (kind %d) follows no route", u.slot, u.data.u16(2));
+        SDL_Log("[tactics] unit %d (kind %d) follows no route", u.slot, u.kind());
         u.data.set8(0xa2, 1);
     }
     const std::uint32_t e = table + std::uint32_t(u.data.u8(0xa2)) * 8;
@@ -930,7 +940,7 @@ void TacticsUnits::routeState(Unit& u) {
     const auto [count, rows] = routeOf(u);
     if (count <= 0 || rows == 0) {
         u.ai.set8(0, 0);
-        u.next = 0xf;
+        u.next = kChoose;
         return;
     }
     if (u.route < 0 || u.route >= count) u.route = 0;
@@ -938,12 +948,12 @@ void TacticsUnits::routeState(Unit& u) {
     const int px = logic::sdU8(row, v), py = logic::sdU8(row + 1, v);
     if (!map_->inRange(u.cx(), u.cy(), px, py, 3)) {
         setGoal(u, px, py);
-        u.next = 4;
+        u.next = kMove;
     } else if (const std::int32_t wait = logic::sdS32(row + 4, v); wait == 0) {
         u.next = nextPoint(u) ? 0xf : 4;
     } else {
         u.ai.set32(0x38, wait);
-        u.next = 0x1a;
+        u.next = kRouteWait;
     }
 }
 
@@ -968,7 +978,7 @@ void TacticsUnits::ambushState(Unit& u) {
         if (!u.human()) u.data.set8(0xa0, 0);
         return;
     }
-    if (u.data.u8(0xa0) != 4) u.next = 0xf;
+    if (u.order() != 4) u.next = kChoose;
 }
 
 bool TacticsUnits::straightGoal(Unit& u, int dir, int most) {
@@ -977,7 +987,7 @@ bool TacticsUnits::straightGoal(Unit& u, int dir, int most) {
     const int dx = logic::sdS16(kStepOffsets + std::uint32_t(dir) * 4, v);
     const int dy = logic::sdS16(kStepOffsets + std::uint32_t(dir) * 4 + 2, v);
     if (dx == 0 && dy == 0) return false;
-    const int type = u.data.u8(0x30);
+    const int type = u.moveType();
     const tactics::Cell from{u.cx(), u.cy()};
     // FUN_004388e0: every cell on the line open to the move type and free.
     const auto open = [&](int cx, int cy) {
@@ -1022,7 +1032,7 @@ void TacticsUnits::wanderState(Unit& u) {
     const GameVersion v = ctx_.version;
     if (u.sub == 0) {
         if (structure(u)) {
-            u.next = 0x13;
+            u.next = kGuard;
             return;
         }
         const int r = rand() % 3;
@@ -1052,12 +1062,12 @@ void TacticsUnits::fleeState(Unit& u) {
     const GameVersion v = ctx_.version;
     const auto done = [&] {
         u.target = u.skill = -1;
-        u.next = 0xf;
+        u.next = kChoose;
     };
     switch (u.sub) {
         case 0: {
             if (structure(u)) {
-                u.next = 0x13;
+                u.next = kGuard;
                 return;
             }
             if (u.target < 0 || u.target >= kSlots) return done();
@@ -1078,7 +1088,7 @@ void TacticsUnits::fleeState(Unit& u) {
             }
             if (!straightGoal(u, dir, most)) {
                 playAnim(u, 1);
-                (void)rand();
+                (void)rand();                      // +10 = rand % 0x78, then cleared
                 u.timer = 0;
                 u.sub = 1;
                 return;
@@ -1096,9 +1106,9 @@ void TacticsUnits::fleeState(Unit& u) {
                     const int act = u.ai.u8(0x12);
                     if (act == 2) {
                         u.target = static_cast<std::int16_t>(t->slot);
-                        u.next = 0x1d;
+                        u.next = kFlee;
                     } else if (act == 4) {
-                        u.next = 6;
+                        u.next = kSkill;
                         return;
                     }
                 }
@@ -1121,7 +1131,7 @@ void TacticsUnits::fleeState(Unit& u) {
 bool TacticsUnits::react(Unit& u, const Unit& t) {
     u.counter = -1;
     if (u.ai.u8(0x1e) == 0 && reaches(u, t, sight(u)) && aimAt(u, t)) {
-        u.next = 6;
+        u.next = kSkill;
         return true;
     }
     return false;
@@ -1156,7 +1166,7 @@ void TacticsUnits::callHelp(const Unit& u, const Unit& t) {
     const bool anyGroup = u.ai.u8(0x18) != 0;
     for (Unit& o : units_) {
         if (!o.used || !o.onField() || o.slot == u.slot || relationOf(u, o) != 0) continue;
-        if (!anyGroup && o.data.u8(0x98) != u.data.u8(0x98)) continue;
+        if (!anyGroup && o.group() != u.group()) continue;
         bool hears = true;
         switch (mode) {
             case 1: hears = map_->inRange(u.cx(), u.cy(), o.cx(), o.cy(), 0xf); break;
@@ -1178,9 +1188,9 @@ int TacticsUnits::summonRoom(const Unit& u) const {
     if (limit == 0) return 0;
     int waiting = 0, active = 0;
     for (const Unit& o : units_) {
-        if (!o.used || o.slot == u.slot || o.team() != u.team() || o.data.u8(0x98) != u.data.u8(0x98)) continue;
+        if (!o.used || o.slot == u.slot || o.team() != u.team() || o.group() != u.group()) continue;
         const int at = o.data.u8(0xf);
-        const int kind = o.data.u16(2);
+        const int kind = o.kind();
         // FUN_0046a120: off the field, not a building, base or gate.
         if ((at == 0 || at == 2) && !structure(o) && !base(o) && (kind < 0x19b || kind > 0x19e)) ++waiting;
         if (o.onField() && o.data.u8(0x96) == 3) ++active;   // FUN_00480540, over the field list
@@ -1207,10 +1217,10 @@ int TacticsUnits::summon(const Unit& u) {
     appearGiven_.clear();                          // FUN_0043d4e0
     for (Unit& o : units_) {
         if (n >= most) break;
-        if (!o.used || o.slot == u.slot || o.team() != u.team() || o.data.u8(0x98) != u.data.u8(0x98)) continue;
+        if (!o.used || o.slot == u.slot || o.team() != u.team() || o.group() != u.group()) continue;
         if (appearUnit(o.slot, u.cx(), u.cy(), sight(u), false)) ++n;
     }
-    if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d calls in %d of group %d", u.slot, n, u.data.u8(0x98));
+    if (tactics::traceUnits()) SDL_Log("[tactics] unit %d calls in %d of group %d", u.slot, n, u.group());
     return n;
 }
 
@@ -1250,7 +1260,7 @@ void TacticsUnits::summonState(Unit& u) {
             }
             break;
         case 4:
-            u.next = 2;
+            u.next = kStand;
             break;
         default: break;
     }
@@ -1264,13 +1274,13 @@ bool TacticsUnits::aiReact(Unit& u, bool summon) {
     if (const Unit* h = helpTarget(u)) {
         u.help = -1;
         if (aimAt(u, *h)) {
-            u.next = 6;
+            u.next = kSkill;
             return true;
         }
     }
     if (const Unit* t = counterTarget(u); t && react(u, *t)) return true;
     if (summon && summonDue(u)) {
-        u.next = 0x18;
+        u.next = kSummon;
         return true;
     }
     // The scan's find goes through the same switch whether it is an enemy
@@ -1283,17 +1293,17 @@ bool TacticsUnits::aiReact(Unit& u, bool summon) {
     switch (u.ai.u8(0x12)) {
         case 0:
             if (!aimAt(u, *t)) return false;
-            u.next = 6;
+            u.next = kSkill;
             return true;
         case 2:
             // No return here: FUN_00476dd0 / FUN_004771d0 still take this
             // frame's walk step, and a walk that ends then overrides the
             // flight with 0xf (FUN_00476dd0).
             u.target = static_cast<std::int16_t>(t->slot);
-            u.next = 0x1d;
+            u.next = kFlee;
             return false;
         case 4:
-            u.next = 6;
+            u.next = kSkill;
             return true;
         default:
             return false;
@@ -1326,7 +1336,7 @@ void TacticsUnits::leaveField(Unit& u) {
 void TacticsUnits::withdrawState(Unit& u) {
     if (u.sub != 0) return;
     setFlags(u, false);
-    setState(u, 0xb);
+    setState(u, kOffField);
     leaveField(u);
     u.data.set8(0xf, 0);
 }
@@ -1343,7 +1353,7 @@ void TacticsUnits::offFieldState(Unit& u) {
         ++u.sub;
     }
     if (u.sub != 1) return;
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     const bool member = u.human() && kind >= 1 && kind <= 0x2d;
     switch (u.data.u8(0xf)) {
         case 2:
@@ -1351,19 +1361,19 @@ void TacticsUnits::offFieldState(Unit& u) {
             break;
         case 3:
             if (member) {
-                if (u.data.s16(0x16) == 0) u.data.set16(0x16, 1);
+                if (u.hp() == 0) u.setHp(1);
                 regenerate(u);
-                if (u.data.s16(0x16) >= u.data.s16(0x14)) {
-                    u.data.set16(0x16, u.data.s16(0x14));
-                    u.data.set16(0x1c, u.data.s16(0x1a));
+                if (u.hp() >= u.maxHp()) {
+                    u.setHp(u.maxHp());
+                    u.setMp(u.data.s16(0x1a));
                     u.data.set8(0xf, 2);
                     voice(u, 0x96);
-                    if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d recovered and waits", u.slot);
+                    if (tactics::traceUnits()) SDL_Log("[tactics] unit %d recovered and waits", u.slot);
                 }
             } else if (!structure(u) && u.data.u8(0x96) == 3 && u.data.u8(0x97) != 0) {
                 if (u.data.u8(0x97) < 99) u.data.set8(0x97, u.data.u8(0x97) - 1);
-                u.data.set16(0x16, u.data.s16(0x14));
-                u.data.set16(0x1c, u.data.s16(0x1a));
+                u.setHp(u.maxHp());
+                u.setMp(u.data.s16(0x1a));
                 u.data.set32(0x24, u.data.s32(0x20));
                 u.data.set8(0xf, 2);
             } else {
@@ -1378,7 +1388,7 @@ bool TacticsUnits::withdraw(int slot) {
     if (slot < 0 || slot >= kSlots) return false;
     Unit& u = units_[std::size_t(slot)];
     if (!u.used || !u.onField()) return false;
-    u.next = 0x1b;
+    u.next = kWithdraw;
     return true;
 }
 
@@ -1451,8 +1461,8 @@ void TacticsUnits::appearState(Unit& u) {
             break;
         case 1:
             if (u.animEnd) {
-                if (u.state == 1) voice(u, 0x65);
-                if (u.state == 0x19) voice(u, 0x7d);
+                if (u.state == kAppear) voice(u, 0x65);
+                if (u.state == kAppear2) voice(u, 0x7d);
                 ++u.timer;
                 ++u.sub;
             }
@@ -1465,7 +1475,7 @@ void TacticsUnits::appearState(Unit& u) {
             break;
         case 3:
             if (u.timer > 0) {
-                u.next = 2;
+                u.next = kStand;
                 setFlags(u, false);                // FUN_0046b0b0 / FUN_0046b0f0(.., 0)
             }
             break;
@@ -1491,7 +1501,7 @@ void TacticsUnits::standState(Unit& u) {
         case 2: {
             const int wait = u.human() ? 0x3c : rand() % 10 * 0x14 + 0x1e;
             if (u.timer <= wait) break;
-            if (u.team() != 7) u.next = u.human() && u.data.u8(0x9f) == 3 ? 3 : 0xf;
+            if (u.team() != 7) u.next = u.human() && u.stance() == 3 ? 3 : 0xf;
             ++u.sub;
             break;
         }
@@ -1505,7 +1515,7 @@ void TacticsUnits::holdState(Unit& u) {
         playAnim(u, 0x18);
         ++u.sub;
     }
-    if (u.data.u8(0x9f) != 3) u.next = 0xf;
+    if (u.stance() != 3) u.next = kChoose;
 }
 
 // FUN_00476dd0: walk the route; once there the player's units stand, the
@@ -1526,8 +1536,8 @@ void TacticsUnits::moveState(Unit& u) {
 bool TacticsUnits::restingOn(int cx, int cy, const Unit* except) const {
     for (const Unit& o : units_) {
         if (!o.used || !o.onField() || &o == except) continue;
-        if (except && o.team() == except->team() && o.data.u16(2) >= 0x19b && o.data.u16(2) <= 0x19e) continue;
-        const bool moving = o.state == 4 || o.state == 0x17 || o.state == 0x1d;
+        if (except && o.team() == except->team() && o.kind() >= 0x19b && o.kind() <= 0x19e) continue;
+        const bool moving = o.state == kMove || o.state == kWander || o.state == kFlee;
         if (moving ? o.goal == tactics::Cell{cx, cy} : (o.cx() == cx && o.cy() == cy)) return true;
     }
     return false;
@@ -1580,7 +1590,7 @@ void TacticsUnits::planRoute(Unit& u) {
     u.routeCut = false;
     if (!map_) return;
     const tactics::Cell from{u.cx(), u.cy()};
-    const int type = u.data.u8(0x30);
+    const int type = u.moveType();
     const auto blocked = [&](int cx, int cy) { return restingOn(cx, cy, &u); };
     if (blocked(u.goal.first, u.goal.second)) {
         const tactics::Cell free = tactics::nearestFree(*map_, type, u.goal, from, 4, blocked);
@@ -1669,7 +1679,7 @@ TacticsUnits::Walk TacticsUnits::walk(Unit& u) {
         if (u.clip == 3) playAnim(u, 1);
         return Walk::On;
     }
-    if (u.aiControlled && u.ai.u8(0) != 1 && (u.data.u8(0x9f) == 2 || u.data.u8(0x9f) == 3)) return Walk::Arrived;
+    if (u.aiControlled && u.ai.u8(0) != 1 && (u.stance() == 2 || u.stance() == 3)) return Walk::Arrived;
     // FUN_00476680's step 10: a unit acting on its own stands between its
     // walks, FUN_0047e2b0 counting AI +0x30 up to the record's +8.
     if (u.walkPause) {
@@ -1682,7 +1692,7 @@ TacticsUnits::Walk TacticsUnits::walk(Unit& u) {
     const auto [tcx, tcy] = u.path[u.step];        // FUN_00438860 hands out the route's next point
     // FUN_0047da30: the route ends before a closed cell (the searches may
     // route through one when there is no other way, at a cost of 3600).
-    if (map_->moveRate(tcx, tcy, u.data.u8(0x30) == 4 ? 0 : u.data.u8(0x30)) == 0) {
+    if (map_->moveRate(tcx, tcy, u.moveType() == 4 ? 0 : u.moveType()) == 0) {
         u.path.clear();
         u.step = 0;
         u.routeCut = false;
@@ -1712,7 +1722,7 @@ TacticsUnits::Walk TacticsUnits::walk(Unit& u) {
         // does not count units; the port takes the nearest free cell.)
         if (restingOn(tcx, tcy, &u)) {
             const auto blocked = [&](int cx, int cy) { return restingOn(cx, cy, &u); };
-            u.goal = tactics::nearestFree(*map_, u.data.u8(0x30), {tcx, tcy}, {tcx, tcy}, 4, blocked);
+            u.goal = tactics::nearestFree(*map_, u.moveType(), {tcx, tcy}, {tcx, tcy}, 4, blocked);
             plan(u);
             if (u.path.empty()) u.routeCut = false;   // nowhere to step aside: stay
             return u.path.empty() ? Walk::Arrived : Walk::On;
@@ -1720,7 +1730,7 @@ TacticsUnits::Walk TacticsUnits::walk(Unit& u) {
         if (u.routeCut) return walk(u);            // the cut: wait, then search again
         return Walk::Arrived;
     }
-    const int type = u.data.u8(0x30);
+    const int type = u.moveType();
     const float s = float(speedRate(*map_, u.cx(), u.cy(), type)) * 0.01f * float(u.data.u16(0x2e)) * 0.01f * speedScale(u);
     // FUN_00470250: the angle a float from the CRT's double atan2, its cosine
     // and sine from the double cos / sin (FUN_0056d9d4 / FUN_0056d924), each
@@ -1762,7 +1772,7 @@ TacticsUnits::Walk TacticsUnits::walk(Unit& u) {
     // or it is already heading there (FUN_0047d0e0); else it heads for the
     // post (FUN_0047d190, 3), which FUN_00476680 searches for after 0x3c
     // frames (0x1e for the players' units).
-    if (u.aiControlled && u.data.u8(0x9f) == 1 && u.post.first >= 0 && u.goal != u.post &&
+    if (u.aiControlled && u.stance() == 1 && u.post.first >= 0 && u.goal != u.post &&
         !map_->inRange(u.cx(), u.cy(), u.post.first, u.post.second, sight(u))) {
         u.goal = u.post;
         u.path.clear();
@@ -1874,21 +1884,21 @@ tactics::Cell TacticsUnits::appearCell(int cx, int cy, int range, int moveType) 
 void TacticsUnits::deployParty(int count) {
     GameWork& w = ctx_.work;
     if (!map_) return;
-    const int sx = w.s16(kStartX), sy = w.s16(kStartY), range = std::min<int>(w.u8(kStartRange), 0x20);
-    const int most = w.u8(kStartMax);
+    const int sx = w.s16(stage::kStartX), sy = w.s16(stage::kStartY), range = std::min<int>(w.u8(stage::kStartRange), 0x20);
+    const int most = w.u8(stage::kMost);
     if (most > 0) count = std::min(count, most);
     count = std::min(count, party_);
     appearGiven_.clear();                          // FUN_0043d4e0
     for (int i = 0; i < count; ++i) {
         Unit& u = units_[std::size_t(i)];
-        const tactics::Cell c = appearCell(sx, sy, range, u.data.u8(0x30));
+        const tactics::Cell c = appearCell(sx, sy, range, u.moveType());
         if (c.first < 0) {
             SDL_Log("[tactics] no free cell for party unit %d", i);
             continue;
         }
         if (busyNow(u)) continue;                  // FUN_0048e790 refuses a busy unit
         placeAt(u, c);
-        if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] party unit %d appears at %d,%d", i, c.first, c.second);
+        if (tactics::traceUnits()) SDL_Log("[tactics] party unit %d appears at %d,%d", i, c.first, c.second);
     }
 }
 
@@ -1901,20 +1911,20 @@ bool TacticsUnits::appearUnit(int slot, int cx, int cy, int range, bool fresh) {
     const int at = u.data.u8(0xf);
     if (!u.used || (at != 0 && at != 2) || structure(u) || base(u)) return false;
     if (fresh) appearGiven_.clear();
-    const tactics::Cell c = appearCell(cx, cy, range, u.data.u8(0x30));
+    const tactics::Cell c = appearCell(cx, cy, range, u.moveType());
     if (c.first < 0) return false;
     setPosition(u, c.first, c.second);
     u.data.set8(0xf, 1);
-    u.next = 0;
-    setState(u, 1);
-    if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d appears at %d,%d", slot, c.first, c.second);
+    u.next = kNoState;
+    setState(u, kAppear);
+    if (tactics::traceUnits()) SDL_Log("[tactics] unit %d appears at %d,%d", slot, c.first, c.second);
     return true;
 }
 
 // FUN_00430980(group, 0): none of the group's enemies stands on the field.
 bool TacticsUnits::groupClear(int group) const {
     for (const Unit& u : units_)
-        if (u.used && u.onField() && u.data.u8(0x98) == group) {
+        if (u.used && u.onField() && u.group() == group) {
             const int r = relationTo(u);
             if (r >= 1 && r <= 2) return false;
         }
@@ -1925,12 +1935,12 @@ bool TacticsUnits::groupClear(int group) const {
 // wait to come in again (+0xf 2) with their HP and MP restored.
 void TacticsUnits::reviveGroup(int group) {
     for (Unit& u : units_) {
-        if (!u.used || u.team() < 4 || u.data.u8(0x98) != group) continue;
+        if (!u.used || u.team() < 4 || u.group() != group) continue;
         const int at = u.data.u8(0xf);
         if (at < 2 || at > 4) continue;
         u.data.set8(0xf, 2);
-        u.data.set16(0x16, u.data.s16(0x14));
-        u.data.set16(0x1c, u.data.s16(0x1a));
+        u.setHp(u.maxHp());
+        u.setMp(u.data.s16(0x1a));
     }
 }
 
@@ -1946,10 +1956,10 @@ int TacticsUnits::appearGroup(int group, int cx, int cy, int range) {
     appearGiven_.clear();                          // FUN_0047fc60's FUN_0043d4e0
     for (int team = 4; team < 0x10; ++team) {
         for (Unit& u : units_) {
-            if (!u.used || u.team() != team || u.data.u8(0x98) != group) continue;
+            if (!u.used || u.team() != team || u.group() != group) continue;
             const int at = u.data.u8(0xf);
             if ((at != 0 && at != 2) || u.onField() || structure(u) || base(u) || busyNow(u)) continue;
-            const tactics::Cell c = appearCell(cx, cy, range, u.data.u8(0x30));
+            const tactics::Cell c = appearCell(cx, cy, range, u.moveType());
             if (c.first < 0) continue;
             placeAt(u, c);
             ++n;
@@ -1961,7 +1971,7 @@ int TacticsUnits::appearGroup(int group, int cx, int cy, int range) {
 void TacticsUnits::setTeamGroupField(int team, int group, int field, int value) {
     const auto v8 = static_cast<std::uint8_t>(value);
     for (Unit& u : units_) {
-        if (!u.used || (team < 0 ? u.team() < 4 : u.team() != team) || u.data.u8(0x98) != group) continue;
+        if (!u.used || (team < 0 ? u.team() < 4 : u.team() != team) || u.group() != group) continue;
         switch (field) {
             case 0: u.data.set8(0x9f, v8); break;
             case 1: u.data.set8(0xa0, v8); break;
@@ -2012,7 +2022,7 @@ int TacticsUnits::count() const {
 bool TacticsUnits::selectable(const Unit& u) const {
     if (!u.used) return false;
     switch (u.state) {
-        case 1: case 0xc: case 0xd: case 0xe: case 0x19: return false;
+        case kAppear: case kCollapse: case kFall: case kRetreat: case kAppear2: return false;
         default: break;
     }
     const int f = u.data.u8(0xf);
@@ -2042,7 +2052,7 @@ void TacticsUnits::stampSight(TacticsMap& map) const {
 // FUN_0048d720's checks: the viewer's own units, not the bases and gates
 // (kinds 0x195, 0x196, 0x19b..0x19e), able to take an order.
 bool TacticsUnits::orderable(const Unit& u) const {
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     if (kind == 0x195 || kind == 0x196 || (kind >= 0x19b && kind <= 0x19e)) return false;
     return selectable(u) && u.team() == viewer_ && u.onField();
 }
@@ -2183,7 +2193,7 @@ bool TacticsUnits::selectLike(const Unit& like) {
 }
 
 bool TacticsUnits::inGroup(const Unit& u) const {
-    const int g = u.data.u8(0x98);
+    const int g = u.group();
     if (g >= 10) return false;
     const auto& list = groups_[std::size_t(g)];
     return std::find(list.begin(), list.end(), u.slot) != list.end();
@@ -2235,10 +2245,10 @@ void TacticsUnits::updateCursor(bool onMap, int cx, int cy, int hover) {
         if (armed & 0x8000) return;
         if (armed != 0) skill = armed;
     }
-    std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
+    std::uint32_t rec = skillRow(skill);
     if (skill != job) {
-        if (logic::sdU8(rec + 0x18, v) != 4 && !map_->visible(cx, cy)) return;
-        if (logic::sdU8(rec + 5, v) == 3) skill = job;
+        if (logic::sdU8(rec + kSkillAim, v) != 4 && !map_->visible(cx, cy)) return;
+        if (logic::sdU8(rec + kSkillType, v) == 3) skill = job;
     }
     if (skill == job) {                            // FUN_004912c0
         if (!map_->visible(cx, cy) || !h) return;
@@ -2246,15 +2256,15 @@ void TacticsUnits::updateCursor(bool onMap, int cx, int cy, int hover) {
         else cursorKind_ = enemy(*h) ? 1 : 0;
         return;
     }
-    switch (logic::sdU8(rec + 0x18, v)) {
+    switch (logic::sdU8(rec + kSkillAim, v)) {
         case 1: cursorKind_ = h ? 3 : 4; break;
         case 2: cursorKind_ = h && enemy(*h) ? 3 : 4; break;
         case 3: cursorKind_ = h && (own(*h) || ally(*h)) ? 5 : 6; break;
         case 4: cursorKind_ = 7; break;
-        case 6: cursorKind_ = h && h->data.u16(2) == u->data.u16(2) ? 9 : 10; break;
+        case 6: cursorKind_ = h && h->kind() == u->kind() ? 9 : 10; break;
         default: break;
     }
-    cursorShort_ = u->data.s16(0x1c) < logic::sdS16(rec + 8, v);
+    cursorShort_ = u->mp() < logic::sdS16(rec + kSkillMpCost, v);
 }
 
 // FUN_00491680 (not while an event runs, FUN_00454c40): common.bin frame
@@ -2294,7 +2304,7 @@ bool onButton(int i, int x, int y, GameVersion v) {
 // character (FUN_00468e10: kind 1..0x2d, so no tower, base or gate) with
 // more than a minute (+0x24 > 0xe10) left.
 bool TacticsUnits::canRetreat(const Unit& u) const {
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     return u.used && u.team() == viewer_ && u.data.u8(0xf) == 1 && kind != 0 && kind <= 0x2d &&
            (u.data.s32(0x24) > 0xe10 || !timeLimited());
 }
@@ -2303,7 +2313,7 @@ bool TacticsUnits::canRetreat(const Unit& u) const {
 // base or gate.
 bool TacticsUnits::callable(const Unit& u) const {
     const int f = u.data.u8(0xf);
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     return u.used && (f == 0 || f == 2) && !structure(u) && !base(u) && !(kind >= 0x19b && kind <= 0x19e);
 }
 
@@ -2386,7 +2396,7 @@ bool TacticsUnits::commandBar(const BarInput& in) {
                 for (int i = 0; i < 4; ++i) {
                     if (onButton(12 + i, in.x, in.y, v)) {
                         for (Unit& u : units_)
-                            if (u.used && u.selected && u.team() == viewer_ && !down(u) && u.data.u8(0x9f) != i)
+                            if (u.used && u.selected && u.team() == viewer_ && !down(u) && u.stance() != i)
                                 queueOrder(u, {0xd, i, 0, -1});   // FUN_0049bd90: command 0xd
                         ctx_.audio->sePlay(0);   // FUN_0049ad50(0)
                         return 1;
@@ -2515,7 +2525,7 @@ void TacticsUnits::drawBar(bool sortie) const {
             const BarPos b = barButton(0, v);
             sprite(logic::sdS16(0x61ae58, v), b.x, b.y);
         }
-        const int stance = lead->data.u8(0x9f);
+        const int stance = lead->stance();
         if (stance < 4) {
             const BarPos b = barButton(12 + stance, v);
             sprite(0xc3 + stance, b.x, b.y);
@@ -2527,13 +2537,13 @@ void TacticsUnits::drawBar(bool sortie) const {
             bool shortMp = false;
             if ((id & 0x7fff) != 0 && !(id & 0x8000)) {
                 frame = 0xeb + id;
-                const std::uint32_t rec = kSkillRecords + std::uint32_t(id) * 0x48;
-                shortMp = lead->data.s16(0x1c) < logic::sdS16(rec + 8, v);
-                if (logic::sdU8(rec + 5, v) == 3) {
+                const std::uint32_t rec = skillRow(id);
+                shortMp = lead->mp() < logic::sdS16(rec + kSkillMpCost, v);
+                if (logic::sdU8(rec + kSkillType, v) == 3) {
                     sprite(0x242, b.x + 3, b.y + 0x16);
                 } else {
                     char cost[8];
-                    std::snprintf(cost, sizeof cost, "%3d", int(logic::sdS16(rec + 8, v)));
+                    std::snprintf(cost, sizeof cost, "%3d", int(logic::sdS16(rec + kSkillMpCost, v)));
                     ctx_.draw.text({.x = b.x + 0x10, .y = b.y + 0x18, .priority = kPrio, .argb = 0xffffffffu,
                                     .text = cost, .fontPx = 10});
                 }
@@ -2565,7 +2575,7 @@ void TacticsUnits::drawHelp() const {
     if (!table || std::size_t(helpId_) * 4 >= table->count) return;
     const auto& lines = strings(ctx_.version, *table);
     static constexpr int kY[4] = {0x2b9, 0x2ce, 0x2dc, 0x2ea};
-    const bool network = ctx_.work.u8(0x7f4491) != 0;
+    const bool network = ctx_.work.u8(stage::kNetwork) != 0;
     for (int i = 0; i < 4; ++i) {
         const std::string& t = lines[std::size_t(helpId_) * 4 + std::size_t(i)];
         if (t.empty() || (i > 0 && network)) continue;
@@ -2615,7 +2625,7 @@ int TacticsUnits::updatePanel(int hover, bool sortie) {
             const std::uint32_t rows = sdU32(kClipRows + id * 4, v), clips = sdU32(kClips + id * 4, v);
             // FUN_0046c040(.., 2): kinds 0x183..0x196 and 0x19b..0x19e keep
             // their own facing (FUN_0046c290).
-            const int kind = u.data.u16(2);
+            const int kind = u.kind();
             const int dir = (kind >= 0x183 && kind <= 0x196) || (kind >= 0x19b && kind <= 0x19e) ? u.dir : 2;
             const std::uint32_t e = rows + (std::uint32_t(logic::sdU8(kDirColumn + std::uint32_t(dir), v)) + 1u * 8) * 2;
             const std::uint16_t clip = sdU16(clips + std::uint32_t(logic::sdU8(e, v)) * 2, v);
@@ -2638,7 +2648,7 @@ int TacticsUnits::updatePanel(int hover, bool sortie) {
 void TacticsUnits::voice(const Unit& u, int event) {
     const GameVersion v = ctx_.version;
     if (!u.used || !orderable(u)) return;
-    const int ch = u.data.u16(2);
+    const int ch = u.kind();
     if (ch == 0 || ch > 0xc || event < 0) return;
     int line = static_cast<std::int8_t>(logic::sdU8(event < 100 ? 0x61a394 + std::uint32_t(event) : 0x61a358 + std::uint32_t(event), v));
     if (line == -1) return;
@@ -2712,10 +2722,10 @@ void TacticsUnits::orderMark(Unit& u) {
 bool TacticsUnits::orderCall(int slot) {
     if (!callReady_ || slot < 0 || slot >= kSlots) return false;
     Unit& c = units_[std::size_t(slot)];
-    const int kind = c.data.u16(2);
+    const int kind = c.kind();
     if (!c.used || base(c) || (kind >= 0x19b && kind <= 0x19e) || down(c) || !c.onField() || c.team() != viewer_) return false;
     switch (c.state) {
-        case 1: case 0xc: case 0xd: case 0x19: return false;   // FUN_00469660
+        case kAppear: case kCollapse: case kFall: case kAppear2: return false;   // FUN_00469660
         default: break;
     }
     std::vector<std::int16_t> list;                  // FUN_00480f50 empties it first (+0x108f48)
@@ -2727,7 +2737,7 @@ bool TacticsUnits::orderCall(int slot) {
     c.callOrder = list;
     orderMark(c);
     queueOrder(c, {0xb, 0, 0, -1});
-    if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d calls %zu waiting unit(s) in", c.slot, list.size());
+    if (tactics::traceUnits()) SDL_Log("[tactics] unit %d calls %zu waiting unit(s) in", c.slot, list.size());
     return true;
 }
 
@@ -2814,7 +2824,7 @@ bool TacticsUnits::callFaceAt(int x, int y, int column) const {
 bool TacticsUnits::pointedAt(const Unit& u, int x, int y) const {
     if (!map_ || y <= 0x1d || y >= 600) return false;
     const GameVersion v = ctx_.version;
-    const std::uint32_t box = 0x615e5c + std::uint32_t(logic::sdU8(0x615eac + std::uint32_t(u.data.u16(2)) * 2, v)) * 4;
+    const std::uint32_t box = 0x615e5c + std::uint32_t(logic::sdU8(0x615eac + std::uint32_t(u.kind()) * 2, v)) * 4;
     const int sx = u.px() - map_->scrollX() + sdS8(box, v);
     const int sy = u.py() - map_->scrollY() + 0x1e + sdS8(box + 1, v);
     return std::abs(x - sx) <= sdS8(box + 2, v) && std::abs(y - sy) <= sdS8(box + 3, v);
@@ -3034,8 +3044,8 @@ void TacticsUnits::runOrders(Unit& u) {
             u.aiControlled = false;
             u.target = u.skill = -1;
             u.goal = {o.cx, o.cy};
-            setState(u, 4);                        // planned on its first step
-            if (u.data.u8(0x9f) == 1) u.post = {o.cx, o.cy};
+            setState(u, kMove);                        // planned on its first step
+            if (u.stance() == 1) u.post = {o.cx, o.cy};
             break;
         case 3: {
             if (busyNow(u)) { done = false; break; }
@@ -3051,7 +3061,7 @@ void TacticsUnits::runOrders(Unit& u) {
             }
             u.aiControlled = false;
             u.path.clear();
-            setState(u, 6);
+            setState(u, kSkill);
             voice(u, 0x6a);
             break;
         }
@@ -3092,19 +3102,20 @@ bool TacticsUnits::hostile(const Unit& a, const Unit& b) const {
 // FUN_0046ae20: not while appearing or falling, not the bases.
 bool TacticsUnits::attackable(const Unit& a, const Unit& b) const {
     switch (b.state) {
-        case 1: case 0xc: case 0xd: case 0x19: return false;
+        case kAppear: case kCollapse: case kFall: case kAppear2: return false;
         default: return !base(b) && hostile(a, b);
     }
 }
 
 bool TacticsUnits::down(const Unit& u) {
-    return u.state == 0xc || u.state == 0xd || !u.onField();
+    return u.state == kCollapse || u.state == kFall || !u.onField();
 }
 
 // FUN_004692e0 / FUN_004693b0: the flag, or a state no hit or order can
 // break into (appearing 1 / 0x19, 0xc, falling 0xd).
 static bool lockedState(int state) {
-    return state == 1 || state == 0xc || state == 0xd || state == 0x19;
+    return state == TacticsUnits::kAppear || state == TacticsUnits::kCollapse || state == TacticsUnits::kFall ||
+           state == TacticsUnits::kAppear2;
 }
 bool TacticsUnits::steadyNow(const Unit& u) { return u.steady || lockedState(u.state); }
 bool TacticsUnits::busyNow(const Unit& u) { return u.busy || lockedState(u.state); }
@@ -3112,13 +3123,13 @@ bool TacticsUnits::busyNow(const Unit& u) { return u.busy || lockedState(u.state
 // FUN_00469ad0: the structures (kinds 0x183..0x194), left alone unless the
 // AI record's +0x1c says otherwise.
 bool TacticsUnits::structure(const Unit& u) {
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     return kind >= 0x183 && kind <= 0x194;
 }
 
 // FUN_00469d30 (kind 0x195) / FUN_00469df0 (kind 0x196): the two bases.
 bool TacticsUnits::base(const Unit& u) {
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     return kind == 0x195 || kind == 0x196;
 }
 
@@ -3140,7 +3151,7 @@ int TacticsUnits::sight(const Unit& u) {
 // aimed at kind 6; the learnt skills (1..100) by their own rules: the area
 // radius FUN_004ddd50 for kind 6, the reach FUN_004ddf40 otherwise.
 int TacticsUnits::skillRange(const Unit& u, int skill) const {
-    const bool six = logic::sdU8(kSkillRecords + std::uint32_t(skill) * 0x48 + 0x18, ctx_.version) == 6;
+    const bool six = logic::sdU8(skillRow(skill) + kSkillAim, ctx_.version) == 6;
     if (skill > 0 && skill <= 100) return six ? skillArea(u, skill) : learntReach(u, skill);
     return std::clamp<int>(u.data.u8(six ? 0x44 : 0x37), 0, 0x20);
 }
@@ -3154,7 +3165,7 @@ std::uint32_t TacticsUnits::formulas(int skill) {
 // FUN_004ddf40: the reach, from +0x37 and record +0x12 / +0x13 by stat.
 int TacticsUnits::learntReach(const Unit& u, int skill) const {
     const GameVersion v = ctx_.version;
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
+    const std::uint32_t rec = skillRow(skill);
     const int add = logic::sdU8(rec + 0x12, v), pct = logic::sdU8(rec + 0x13, v);
     int r = u.data.u8(0x37);
     switch (logic::sdU8(formulas(skill), v)) {
@@ -3170,7 +3181,7 @@ int TacticsUnits::learntReach(const Unit& u, int skill) const {
 // FUN_004ddd50: the area's radius, from +0x44 and record +0x16 / +0x17.
 int TacticsUnits::skillArea(const Unit& u, int skill) const {
     const GameVersion v = ctx_.version;
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
+    const std::uint32_t rec = skillRow(skill);
     const int add = logic::sdU8(rec + 0x16, v), pct = logic::sdU8(rec + 0x17, v);
     int r = u.data.u8(0x44);
     switch (logic::sdU8(formulas(skill) + 2, v)) {
@@ -3228,7 +3239,7 @@ bool TacticsUnits::inSight(const Unit& u, int kind) const {
             if (reaches(u, *t, sight(u))) return true;
             return u.human() && friendSees(u, t->cx(), t->cy());
         case 4:                                    // to the aimed cell, +0x4f0 / +0x4f1
-            if (!u.human() && u.data.u8(0x9f) == 2)
+            if (!u.human() && u.stance() == 2)
                 return map_ && map_->inRange(u.cx(), u.cy(), u.aim.first, u.aim.second, skillRange(u, u.skill));
             return true;
         case 6:
@@ -3242,7 +3253,7 @@ bool TacticsUnits::inSight(const Unit& u, int kind) const {
 bool TacticsUnits::enemiesGone() const {
     for (const Unit& o : units_) {
         if (!o.used || structure(o) || base(o)) continue;
-        const int kind = o.data.u16(2);
+        const int kind = o.kind();
         if (kind >= 0x19b && kind <= 0x19e) continue;
         const int rel = relation(o.team());
         if (rel < 1 || rel > 2) continue;
@@ -3263,7 +3274,7 @@ bool TacticsUnits::baseOurs(int n) const {
 // 8 px higher for the buildings (kinds 0x183..0x188, 0x18f..0x194).
 void TacticsUnits::drawHold(const Unit& u, int x, int y) const {
     if (!structure(u) && !base(u)) return;
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     const bool tall = (kind >= 0x183 && kind <= 0x188) || (kind >= 0x18f && kind <= 0x194);
     const int off = tall ? -8 : 0x1e;
     const int w = u.holdOut * 100 / (u.human() ? 900 : 600) * 0x3c / 100;
@@ -3289,10 +3300,10 @@ int TacticsUnits::learntChoice(Unit& u, const Unit& t) {
         if (w & 0x8000) continue;
         const int skill = w & 0x7fff;
         if (skill == 0) return 0;
-        const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
-        if (roll < sum && u.data.s16(0x1c) >= logic::sdS16(rec + 8, v)) {
-            const bool heal = logic::sdS16(rec + 2, v) == 5;
-            const int pct = t.data.s16(0x16) * 100 / std::max<int>(t.data.s16(0x14), 1);
+        const std::uint32_t rec = skillRow(skill);
+        if (roll < sum && u.mp() >= logic::sdS16(rec + kSkillMpCost, v)) {
+            const bool heal = logic::sdS16(rec + kSkillEffect, v) == 5;
+            const int pct = t.hp() * 100 / std::max<int>(t.maxHp(), 1);
             if (!friendly(u, t) || pct > 0x31 || heal) return skill;
             return 0;
         }
@@ -3307,13 +3318,13 @@ bool TacticsUnits::aimAt(Unit& u, const Unit& t) {
     const int learnt = learntChoice(u, t);
     const int skill = learnt != 0 ? learnt : jobSkill(u);
     if (skill <= 0) return false;
-    if (SDL_getenv("CH_UNITS") && u.target != t.slot)
+    if (tactics::traceUnits() && u.target != t.slot)
         SDL_Log("[tactics] unit %d aims skill %d at unit %d (kind %d team %d) at %d,%d", u.slot, skill, t.slot,
-                t.data.u16(2), t.team(), t.cx(), t.cy());
+                t.kind(), t.team(), t.cx(), t.cy());
     // FUN_0047c8a0: skills for one's own side or the caster (+0x19 3..4)
     // and those aimed at kind 6 start at the caster.
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
-    const int rule = logic::sdU8(rec + 0x19, ctx_.version), kind = logic::sdU8(rec + 0x18, ctx_.version);
+    const std::uint32_t rec = skillRow(skill);
+    const int rule = logic::sdU8(rec + kSkillAimRule, ctx_.version), kind = logic::sdU8(rec + kSkillAim, ctx_.version);
     const bool self = learnt != 0 && ((rule > 2 && rule < 5) || kind == 6);
     u.target = static_cast<std::int16_t>(self ? u.slot : t.slot);
     u.skill = static_cast<std::int16_t>(skill);
@@ -3356,8 +3367,8 @@ const TacticsUnits::Unit* TacticsUnits::scan(Unit& u) {
         switch (rule) {
             case 1:  return best->data.u16(0x3a) < c.data.u16(0x3a);
             case 2:  return best->data.u16(0x3a) > c.data.u16(0x3a);
-            case 3: case 5: return best->data.s16(0x16) < c.data.s16(0x16);
-            case 4: case 6: return best->data.s16(0x16) > c.data.s16(0x16);
+            case 3: case 5: return best->hp() < c.hp();
+            case 4: case 6: return best->hp() > c.hp();
             case 7:  return best->data.s32(0x24) < c.data.s32(0x24);
             case 8:  return best->data.s32(0x24) > c.data.s32(0x24);
             case 9:  return dist(c) < dist(*best);
@@ -3383,14 +3394,14 @@ const TacticsUnits::Unit* TacticsUnits::healTarget(const Unit& u) const {
     const GameVersion v = ctx_.version;
     const int skill = jobSkill(u);
     if (skill <= 100) return nullptr;
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
-    if (logic::sdS16(rec + 2, v) != 5 || u.data.s16(0x1c) < logic::sdS16(rec + 8, v)) return nullptr;
+    const std::uint32_t rec = skillRow(skill);
+    if (logic::sdS16(rec + kSkillEffect, v) != 5 || u.mp() < logic::sdS16(rec + kSkillMpCost, v)) return nullptr;
     const int range = skillRange(u, skill);
     const Unit* best = nullptr;
     int lowest = 100;
     for (const Unit& o : units_) {
         if (!o.used || !o.onField() || !friendly(u, o)) continue;
-        const int pct = o.data.s16(0x16) * 100 / std::max<int>(o.data.s16(0x14), 1);
+        const int pct = o.hp() * 100 / std::max<int>(o.maxHp(), 1);
         if (pct < 0x5b && reaches(u, o, range) && pct < lowest) {
             lowest = pct;
             best = &o;
@@ -3407,7 +3418,7 @@ bool TacticsUnits::friendly(const Unit& a, const Unit& b) const {
 // FUN_0048aae0's first test: a heal (record +2 5) at a friendly unit.
 bool TacticsUnits::healing(const Unit& u, const Unit& t) const {
     return u.skill > 0 && friendly(u, t) &&
-           logic::sdS16(kSkillRecords + std::uint32_t(u.skill) * 0x48 + 2, ctx_.version) == 5;
+           logic::sdS16(skillRow(u.skill) + kSkillEffect, ctx_.version) == 5;
 }
 
 // FUN_00476470: the AI picks the unit's next state from the player's
@@ -3415,27 +3426,27 @@ bool TacticsUnits::healing(const Unit& u, const Unit& t) const {
 // (+0: 0 guard, 1 follow the route, 2 wander). Flyers (move type 4) guard.
 void TacticsUnits::chooseState(Unit& u) {
     u.aiControlled = true;
-    const int moveType = u.data.u8(0x30), stance = u.data.u8(0x9f), order = u.data.u8(0xa0), mode = u.ai.u8(0);
+    const int moveType = u.moveType(), stance = u.stance(), order = u.order(), mode = u.ai.u8(0);
     if (!u.human() && order == 0 && mode == 1) {
         u.next = moveType != 4 ? 0x10 : 0x13;
         return;
     }
     switch (stance) {
         case 0: case 1:
-            if (moveType == 4) { u.next = 0x13; return; }
+            if (moveType == 4) { u.next = kGuard; return; }
             break;
-        case 2: u.next = 0x13; return;
-        case 3: u.next = 2; return;
+        case 2: u.next = kGuard; return;
+        case 3: u.next = kStand; return;
         default: break;
     }
     switch (order) {
         case 0:
-            if (mode == 0) u.next = 0x13;
+            if (mode == 0) u.next = kGuard;
             else if (mode == 1) u.next = moveType != 4 ? 0x10 : 0x13;
             else if (mode == 2) u.next = moveType != 4 ? 0x17 : 0x13;
             break;
-        case 1: case 2: case 3: u.next = 0x13; break;
-        case 4: u.next = 0x16; break;
+        case 1: case 2: case 3: u.next = kGuard; break;
+        case 4: u.next = kAmbush; break;
         default: break;
     }
 }
@@ -3451,8 +3462,8 @@ void TacticsUnits::guardState(Unit& u) {
         ++u.sub;
     }
     if (u.sub == 0) return;
-    if (u.human() && u.data.u8(0x9f) == 3) {
-        u.next = 0xf;
+    if (u.human() && u.stance() == 3) {
+        u.next = kChoose;
         return;
     }
     aiReact(u, true);
@@ -3466,23 +3477,23 @@ void TacticsUnits::guardState(Unit& u) {
 void TacticsUnits::skillState(Unit& u) {
     const GameVersion v = ctx_.version;
     const auto giveUp = [&] {
-        if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d gives up skill %d at step %d", u.slot, u.skill, u.sub);
+        if (tactics::traceUnits()) SDL_Log("[tactics] unit %d gives up skill %d at step %d", u.slot, u.skill, u.sub);
         u.target = u.skill = -1;
         u.aim = {-1, -1};
-        u.next = 0xf;
+        u.next = kChoose;
     };
     if (u.skill < 0 || u.target < 0 || u.target >= kSlots) return giveUp();
-    if (u.data.u16(2) > 0xa9 && u.data.u16(2) < 200) return giveUp();   // these kinds never use skills
+    if (u.kind() > 0xa9 && u.kind() < 200) return giveUp();   // these kinds never use skills
     Unit& t = units_[std::size_t(u.target)];
     const std::uint32_t anims = kSkillAnims + std::uint32_t(u.skill) * 0x10;
     const bool jobs = u.skill == jobSkill(u);
-    const int kind = logic::sdU8(kSkillRecords + std::uint32_t(u.skill) * 0x48 + 0x18, v);
+    const int kind = logic::sdU8(skillRow(u.skill) + kSkillAim, v);
     // FUN_0047ba20: whether the target still serves: by the skill's kind
     // (+0x18), a heal (+2 5) at a friend always; else kind 2 wants one it
     // may strike, and kinds 1..3 one on the field and up; 4 and 6 always.
     const auto stillValid = [&] {
         if (!t.used) return false;
-        const bool heal = logic::sdS16(kSkillRecords + std::uint32_t(u.skill) * 0x48 + 2, v) == 5 && friendly(u, t);
+        const bool heal = logic::sdS16(skillRow(u.skill) + kSkillEffect, v) == 5 && friendly(u, t);
         switch (kind) {
             case 2: if (heal) return true; if (!attackable(u, t)) return false; [[fallthrough]];
             case 1: case 3: return heal || !down(t);
@@ -3497,7 +3508,7 @@ void TacticsUnits::skillState(Unit& u) {
     const auto inReach = [&](int range) { return map_ && map_->inRange(u.cx(), u.cy(), aimCell.first, aimCell.second, range); };
     if (u.sub > 0 && u.sub < 0x14 && !stillValid()) {
         u.path.clear();
-        u.next = 2;
+        u.next = kStand;
         return;
     }
     if (u.sub > 9 && u.sub < 0x14) {
@@ -3507,7 +3518,7 @@ void TacticsUnits::skillState(Unit& u) {
             // structure of another side unless its AI record's +0x1c says
             // so; it stands guard (0x13) instead. Else the cast starts on
             // the next frame.
-            if (structure(t) && !friendly(u, t) && u.aiControlled && u.ai.u8(0x1c) == 0) u.next = 0x13;
+            if (structure(t) && !friendly(u, t) && u.aiControlled && u.ai.u8(0x1c) == 0) u.next = kGuard;
             else u.sub = 0x14;
             return;
         }
@@ -3516,10 +3527,10 @@ void TacticsUnits::skillState(Unit& u) {
             // that may not chase (FUN_00469950: its order +0xa0 is 2 or 3, or
             // it never moves, move type 4) chooses again (0xf). The original
             // goes on with this frame (a counter below may still win).
-            const int order = u.data.u8(0xa0);
-            if ((order >= 2 && order <= 3) || u.data.u8(0x30) == 4) {
+            const int order = u.order();
+            if ((order >= 2 && order <= 3) || u.moveType() == 4) {
                 u.path.clear();
-                u.next = 0xf;
+                u.next = kChoose;
             }
         }
     }
@@ -3546,9 +3557,9 @@ void TacticsUnits::skillState(Unit& u) {
         if ((!u.aiControlled || u.ai.u8(0x14) == 1) && !inSight(u, kind)) {
             u.path.clear();
             switch (u.ai.u8(0x15)) {
-                case 0: u.next = 2; break;
-                case 1: u.next = 0xf; break;
-                case 2: u.next = 0x16; break;
+                case 0: u.next = kStand; break;
+                case 1: u.next = kChoose; break;
+                case 2: u.next = kAmbush; break;
                 default: break;
             }
             return;
@@ -3564,18 +3575,18 @@ void TacticsUnits::skillState(Unit& u) {
                 case 0:
                     if ((u.ai.u8(0x1c) != 0 || !structure(*f)) && aimAt(u, *f)) {
                         u.path.clear();
-                        u.next = 6;
+                        u.next = kSkill;
                         return;
                     }
                     break;
                 case 2:
                     u.target = static_cast<std::int16_t>(f->slot);
                     u.path.clear();
-                    u.next = 0x1d;
+                    u.next = kFlee;
                     break;
                 case 4:
                     u.path.clear();
-                    u.next = 6;
+                    u.next = kSkill;
                     return;
                 default: break;
             }
@@ -3589,7 +3600,7 @@ void TacticsUnits::skillState(Unit& u) {
             // target's cell taken again, +0x4f0, step 0 next frame), else
             // the unit chooses again.
             const auto paid = [&](int s) {
-                return s >= 0 && u.data.s16(0x1c) >= logic::sdS16(kSkillRecords + std::uint32_t(s) * 0x48 + 8, v);
+                return s >= 0 && u.mp() >= logic::sdS16(skillRow(s) + kSkillMpCost, v);
             };
             if (!paid(u.skill)) {
                 if (!paid(jobSkill(u))) return giveUp();
@@ -3601,7 +3612,7 @@ void TacticsUnits::skillState(Unit& u) {
             // A unit acting on its own on "fixed point" (+0x9f 2) does not
             // go after it: it waits (0x12) until the target comes in reach
             // (the test above runs in 0xa..0x13).
-            u.sub = u.aiControlled && u.data.u8(0x9f) == 2 ? 0x12 : 0xa;
+            u.sub = u.aiControlled && u.stance() == 2 ? 0x12 : 0xa;
             break;
         }
         case 0xa:                                  // FUN_00477980: the walk starts over
@@ -3612,8 +3623,8 @@ void TacticsUnits::skillState(Unit& u) {
             ++u.sub;
             break;
         case 0x12:                                 // the wait: the setting changed
-            if (u.data.u8(0x9f) < 2) u.sub = 0;
-            else if (u.data.u8(0x9f) == 3) return giveUp();
+            if (u.stance() < 2) u.sub = 0;
+            else if (u.stance() == 3) return giveUp();
             break;
         case 0xc: {                                // FUN_00476680(.., 1): the chase
             // The original searches once per chase and looks again only when
@@ -3645,14 +3656,14 @@ void TacticsUnits::skillState(Unit& u) {
         case 0x14: {
             u.busy = true;                         // FUN_0046b0f0(.., 1): no orders until the recovery ends
             if (aimCell != tactics::Cell{u.cx(), u.cy()}) face(u, facing(aimCell.first - u.cx(), aimCell.second - u.cy(), v));
-            const std::uint32_t rec = kSkillRecords + std::uint32_t(u.skill) * 0x48;
+            const std::uint32_t rec = skillRow(u.skill);
             u.castFull = jobs ? u.data.s16(0x32) : logic::sdS16(rec + 0xa, v);
             u.recoverFull = jobs ? u.data.s16(0x34) : logic::sdS16(rec + 0xe, v);
             // FUN_0048cae0 -> FUN_0048cb30: skills 10 and 0x10 take the job
             // skill's times, the recovery doubled (trebled from +5 75 on),
             // plus their own (+0xa / +0xe).
             if (u.skill == 10 || u.skill == 0x10) {
-                const std::uint32_t job = kSkillRecords + std::uint32_t(jobSkill(u)) * 0x48;
+                const std::uint32_t job = skillRow(jobSkill(u));
                 u.castFull = static_cast<std::int16_t>(logic::sdS16(job + 0xa, v) + logic::sdS16(rec + 0xa, v));
                 u.recoverFull = static_cast<std::int16_t>(logic::sdS16(job + 0xe, v) * (u.data.u8(5) < 0x4b ? 2 : 3) +
                                                           logic::sdS16(rec + 0xe, v));
@@ -3673,7 +3684,7 @@ void TacticsUnits::skillState(Unit& u) {
             // FUN_0046c990 pays the skill's MP (record +8).
             u.cast = 0;
             u.steady = true;                       // FUN_0046b0b0(.., 1): the strike is not interrupted
-            u.data.set16(0x1c, std::clamp<int>(u.data.s16(0x1c) - logic::sdS16(kSkillRecords + std::uint32_t(u.skill) * 0x48 + 8, v), 0,
+            u.data.set16(0x1c, std::clamp<int>(u.mp() - logic::sdS16(skillRow(u.skill) + kSkillMpCost, v), 0,
                                                u.data.s16(0x1a)));
             // FUN_00477980: a learnt skill (FUN_0046c9f0 false) is no longer
             // held once used; the unit goes back to its job's skill.
@@ -3713,15 +3724,15 @@ void TacticsUnits::skillState(Unit& u) {
             // The AI record's +0x1d 1 runs from the target after each use.
             if (u.ai.u8(0x1d) == 1 && u.target >= 0) {
                 u.skill = -1;
-                u.next = 0x1d;
+                u.next = kFlee;
                 break;
             }
             // A player's unit (not on "stand", +0x9f 3) goes again while the
             // target is in sight: always on order +0xa0 2, else with its job's
             // skill (FUN_0046c9f0); not at a friend while the AI drives it.
             // Everything else goes back to the AI's choice.
-            const bool again = (!friendly(u, t) || !u.aiControlled) && u.human() && u.data.u8(0x9f) != 3 &&
-                               (u.data.u8(0xa0) == 2 || u.skill > 100) && inSight(u, kind);
+            const bool again = (!friendly(u, t) || !u.aiControlled) && u.human() && u.stance() != 3 &&
+                               (u.order() == 2 || u.skill > 100) && inSight(u, kind);
             if (again) u.sub = 0;
             else giveUp();
             break;
@@ -3753,7 +3764,7 @@ int TacticsUnits::rollAmount(const Fighter& a) {
 // critical), 4 no damage.
 std::pair<int, int> TacticsUnits::weaponRoll(const Fighter& a, const Unit& to) {
     int evadeRate = 0, guardRate = 0;
-    if (map_) map_->combatRates(to.cx(), to.cy(), to.data.u8(0x30), evadeRate, guardRate);
+    if (map_) map_->combatRates(to.cx(), to.cy(), to.moveType(), evadeRate, guardRate);
     const Fighter d = fighter(to);
     const int evade = d.evade, guard = d.guard, tough = d.tough;
     int chance = a.acc - evade * evadeRate / 100;
@@ -3768,7 +3779,7 @@ std::pair<int, int> TacticsUnits::weaponRoll(const Fighter& a, const Unit& to) {
     const int scale = crit ? std::max(chance, 0x96) : 100;
     const int rolled = rollAmount(a);
     int damage = rolled * scale / 100 - guard * guardRate / 100;
-    if (SDL_getenv("CH_UNITS"))
+    if (tactics::traceUnits())
         SDL_Log("[tactics]   weapon on %d: roll %d chance %d (evade %d x %d%%) scale %d, amount %d - guard %d x %d%%, tough %d",
                 to.slot, roll, chance, evade, evadeRate, scale, rolled, guard, guardRate, tough);
     if (scale != 100) return {3, damage < 0 ? 1 : damage};   // a critical of 0 stays 0
@@ -3781,10 +3792,10 @@ std::pair<int, int> TacticsUnits::weaponRoll(const Fighter& a, const Unit& to) {
 std::pair<int, int> TacticsUnits::spellRoll(const Fighter& a, const Unit& to) {
     const Fighter d = fighter(to);
     const int resist = d.resist, mguard = d.mguard, tough = d.tough;
-    const int rate = map_ ? map_->magicGuardRate(to.cx(), to.cy(), to.data.u8(0x30)) : 0;
+    const int rate = map_ ? map_->magicGuardRate(to.cx(), to.cy(), to.moveType()) : 0;
     const int rolled = rollAmount(a);
     const int damage = std::max(rolled * (100 - resist) / 100 - mguard * rate / 100, 1);
-    if (SDL_getenv("CH_UNITS"))
+    if (tactics::traceUnits())
         SDL_Log("[tactics]   spell on %d: amount %d x (100 - resist %d) - magic guard %d x %d%%, tough %d", to.slot, rolled,
                 resist, mguard, rate, tough);
     return {damage > tough * 3 ? 3 : damage > tough ? 2 : 1, damage};
@@ -3861,29 +3872,29 @@ void TacticsUnits::hit(Unit& from, Unit& to) {
     // from the skill's record. (Only FUN_00483cf0 adds record +0x20..+0x26
     // by level, for skill 11, and nothing calls it.)
     const Fighter a = fighter(from);
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(from.skill) * 0x48;
+    const std::uint32_t rec = skillRow(from.skill);
     // (FUN_0048ac90, FUN_0048b080 and FUN_0048b1b0 each call FUN_00482d30,
     // which is empty.)
     if (healing(from, to)) {                       // FUN_0048b1b0 -> FUN_00482810
         // FUN_0048b1b0 raises only a negative amount to 1: a roll of 0 heals 0.
         const int heal = rollAmount(a);
-        if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d heals %d by %d", from.slot, to.slot, heal);
+        if (tactics::traceUnits()) SDL_Log("[tactics] unit %d heals %d by %d", from.slot, to.slot, heal);
         // FUN_0048b1b0 -> FUN_0046beb0(.., 0x7f2): the heal's own effect,
         // not the skill's hit.
         strike(from, to, 1, heal, from.skill, {to.cx(), to.cy()}, 0x7f2);
         return;
     }
     if (friendly(from, to)) return;                // FUN_0048aae0: nothing else for one's own side
-    switch (logic::sdU8(rec + 0x18, v)) {          // FUN_0048aae0 by the aim
+    switch (logic::sdU8(rec + kSkillAim, v)) {          // FUN_0048aae0 by the aim
         case 1: case 2: case 3: break;
         case 6: splash(from, a); return;
         default: return;                           // 0, 4, 5: the original asserts and does nothing
     }
-    const bool spell = logic::sdU8(rec + 5, v) == 2;   // FUN_0048b080, else FUN_0048ac90
+    const bool spell = logic::sdU8(rec + kSkillType, v) == 2;   // FUN_0048b080, else FUN_0048ac90
     const auto [result, damage] = spell ? spellRoll(a, to) : weaponRoll(a, to);
-    if (SDL_getenv("CH_UNITS"))
+    if (tactics::traceUnits())
         SDL_Log("[tactics] unit %d %s %d with skill %d: result %d, damage %d (HP %d; atk %d+%d acc %d)", from.slot,
-                spell ? "casts at" : "hits", to.slot, from.skill, result, damage, to.data.s16(0x16), a.atk, a.spread, a.acc);
+                spell ? "casts at" : "hits", to.slot, from.skill, result, damage, to.hp(), a.atk, a.spread, a.acc);
     const int amount = result == 4 ? 0 : -damage;
     // FUN_00483cf0 ff.: a steady target (FUN_004692e0) takes any hit as a plain one.
     strike(from, to, result != 0 && steadyNow(to) ? 1 : result, amount, from.skill, {to.cx(), to.cy()});
@@ -3913,7 +3924,7 @@ void TacticsUnits::splash(Unit& from, const Fighter& a) {
 // skill's accuracy, attack and spread by its formula row and record.
 TacticsUnits::Fighter TacticsUnits::learntFighter(const Unit& u, int skill) const {
     const GameVersion v = ctx_.version;
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48, row = formulas(skill);
+    const std::uint32_t rec = skillRow(skill), row = formulas(skill);
     Fighter f = fighter(u);
     switch (logic::sdU8(row + 1, v)) {
         case 2: f.acc += logic::sdU8(rec + 0x14, v) + u.data.u8(4) * logic::sdU8(rec + 0x15, v) / 100; break;
@@ -3939,15 +3950,15 @@ TacticsUnits::Fighter TacticsUnits::learntFighter(const Unit& u, int skill) cons
 void TacticsUnits::areaHit(Unit& from, Unit& primary) {
     const GameVersion v = ctx_.version;
     const int skill = from.skill;
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48, row = formulas(skill);
+    const std::uint32_t rec = skillRow(skill), row = formulas(skill);
     const std::uint32_t anim = kSkillAnims + std::uint32_t(skill) * 0x10;
     const int radius = skillArea(from, skill), mode = sdS8(anim + 0xe, v);
     // A ground skill (+0x18 4) at its cell, else around the target.
-    const bool atCell = logic::sdU8(rec + 0x18, v) == 4 && from.aim.first >= 0;
+    const bool atCell = logic::sdU8(rec + kSkillAim, v) == 4 && from.aim.first >= 0;
     const int cx = atCell ? from.aim.first : primary.cx(), cy = atCell ? from.aim.second : primary.cy();
     const auto touches = [&](const Unit& t) {                     // FUN_0048c950
         if (!t.used || !t.onField() || down(t)) return false;
-        switch (logic::sdU8(rec + 0x19, v)) {
+        switch (logic::sdU8(rec + kSkillAimRule, v)) {
             case 2: if (relationOf(from, t) != 1) return false; break;
             case 3: if (!friendly(from, t)) return false; break;
             case 4: if (t.slot != from.slot) return false; break;
@@ -3992,18 +4003,18 @@ void TacticsUnits::areaHit(Unit& from, Unit& primary) {
                 const int dj = std::abs(cx - hits[j]->cx()) + std::abs(cy - hits[j]->cy());
                 if (dj < di) std::swap(hits[i], hits[j]);
             }
-    if (SDL_getenv("CH_UNITS"))
+    if (tactics::traceUnits())
         SDL_Log("[tactics] unit %d skill %d at %d,%d: area %d, mode %d, %zu hit", from.slot, skill, cx, cy, radius, mode,
                 hits.size());
     const Fighter a = learntFighter(from, skill);
     const int effect = logic::sdU8(row + 6, v);
     const bool noAnim = logic::sdS16(anim + 0xc, v) == 0;
-    const int kind = logic::sdU8((noAnim ? kSkillRecords + std::uint32_t(jobSkill(from)) * 0x48 : rec) + 5, v);
+    const int kind = logic::sdU8((noAnim ? skillRow(jobSkill(from)) : rec) + kSkillType, v);
     // FUN_00491ef0 by the row's +6: 1 / 4 HP, 2 / 5 MP, 3 / 6 both, 0
     // nothing; a skill without its own hit (anim +0xc 0) goes by the job's
     // skill, always HP.
     const int pools = noAnim ? kPoolHp : effect == 0 ? 0 : (effect - 1) % 3 == 0 ? kPoolHp : (effect - 1) % 3 == 1 ? kPoolMp : kPoolHp | kPoolMp;
-    const int aimKind = logic::sdU8(rec + 0x18, v);
+    const int aimKind = logic::sdU8(rec + kSkillAim, v);
     const auto step = [&](int k) { return int(logic::sdS16(0x618ee8 + std::uint32_t(k) * 2, v)); };
     const int count = int(hits.size());
     for (int i = 0; i < count; ++i) {
@@ -4022,7 +4033,7 @@ void TacticsUnits::areaHit(Unit& from, Unit& primary) {
         if (result != 0 && steadyNow(*t)) result = 1;   // FUN_00488bc0: FUN_004692e0
         if (effect >= 1 && effect <= 3) amount = -amount;
         else if (effect == 0) amount = 0;
-        if (SDL_getenv("CH_UNITS"))
+        if (tactics::traceUnits())
             SDL_Log("[tactics] unit %d skill %d (area %d, mode %d) on %d: result %d, %+d", from.slot, skill, radius, mode,
                     t->slot, result, amount);
         // The wait: 1 nearest first, 2 farthest first, 3 by distance out,
@@ -4059,8 +4070,8 @@ void TacticsUnits::areaHit(Unit& from, Unit& primary) {
 // then the cure (0x1d) and the dispel of blessings (0xc, 0x2f) on any result.
 void TacticsUnits::learntTail(Unit& from, Unit& to, int skill, int result) {
     if (skill <= 0 || skill >= 100) return;
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
-    if (result != 4) inflict(logic::sdU8(rec + 0x1a, ctx_.version), skill, from, to);
+    const std::uint32_t rec = skillRow(skill);
+    if (result != 4) inflict(logic::sdU8(rec + kSkillAdded, ctx_.version), skill, from, to);
     if (skill == 0x1d) cure(from, to);
     // FUN_004924e0: the blessing (slot 2) goes when rand() % 100 < 100.
     else if ((skill == 0xc || skill == 0x2f) && to.status[2].type != 0) {
@@ -4116,7 +4127,7 @@ void TacticsUnits::clearStatus(Unit& u, int slot) {
 // of its stats (+4, 6, 7, 8, 5).
 int TacticsUnits::statusTime(int skill, const Unit& from) const {
     const GameVersion v = ctx_.version;
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
+    const std::uint32_t rec = skillRow(skill);
     const int base = logic::sdS16(rec + 0x1c, v) & 0xffff, pct = logic::sdS16(rec + 0x1e, v) & 0xffff;
     static constexpr std::array<std::uint32_t, 5> kStats{4, 6, 7, 8, 5};
     const int kind = logic::sdU8(formulas(skill) + 3, v);
@@ -4130,7 +4141,7 @@ int TacticsUnits::statusTime(int skill, const Unit& from) const {
 int TacticsUnits::statusPower(int skill, const Unit& from, int stat) const {
     const GameVersion v = ctx_.version;
     if (skill > 100) return from.data.s16(0x42);
-    const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
+    const std::uint32_t rec = skillRow(skill);
     return logic::sdS16(rec + 0x28, v) + from.data.u8(std::uint32_t(stat)) * logic::sdS16(rec + 0x2a, v) / 100;
 }
 
@@ -4154,7 +4165,7 @@ void TacticsUnits::inflict(int effect, int skill, Unit& from, Unit& to) {
     // FUN_0048bf00 / FUN_0048bff0 ...: only against fighters of the job
     // skill's kind (+5: 1 and 4 weapons, 2 spells).
     const auto targetKind = [&] {
-        return logic::sdU8(kSkillRecords + std::uint32_t(jobSkill(to)) * 0x48 + 5, v);
+        return logic::sdU8(skillRow(jobSkill(to)) + kSkillType, v);
     };
     switch (effect) {
         case 2: case 4: case 9: {                  // poison: the stronger past +6 75
@@ -4258,7 +4269,7 @@ void TacticsUnits::applyStatus(Unit& u, int slot, int type, const Status& s) {
     cur.type = static_cast<std::uint8_t>(type);
     cur.tick = 0;
     if (type != 0x15) playEffect(u, type >= 0x29 ? 4 : 2, logic::sdS16(kStatusEffects + std::uint32_t(type) * 2, v));
-    if (SDL_getenv("CH_UNITS"))
+    if (tactics::traceUnits())
         SDL_Log("[tactics] unit %d takes status %d (skill %d) for %d frames, power %d", u.slot, type, s.skill, s.time, s.power);
     showMessage(u, type >= 0x29 ? 0xe : 10);
 }
@@ -4324,7 +4335,7 @@ void TacticsUnits::statusStats(const Unit& u, Fighter& f) const {
     const GameVersion v = ctx_.version;
     struct Change { int Fighter::*field; std::uint32_t base; int hi; std::uint32_t mul = 0; };
     const auto apply = [&](const Status& s, int stat, std::initializer_list<Change> changes) {
-        const std::uint32_t rec = kSkillRecords + std::uint32_t(s.skill) * 0x48;
+        const std::uint32_t rec = skillRow(s.skill);
         for (const Change& c : changes) {
             const std::uint32_t mul = c.mul != 0 ? c.mul : c.base + 2;
             const int add = logic::sdS16(rec + c.base, v) + u.data.u8(std::uint32_t(stat)) * logic::sdS16(rec + mul, v) / 100;
@@ -4375,7 +4386,7 @@ void TacticsUnits::castScale(Unit& u, int skill) const {
     };
     const int a = u.status[0].type;
     if (skill <= 100) {
-        const int kind = logic::sdU8(kSkillRecords + std::uint32_t(skill) * 0x48 + 5, v);
+        const int kind = logic::sdU8(skillRow(skill) + kSkillType, v);
         if (a == 9) { if (kind == 1) scale(0x96); return; }
         if (a == 10) { if (kind == 2) scale(0x96); return; }
     } else if (a == 7) {
@@ -4383,7 +4394,7 @@ void TacticsUnits::castScale(Unit& u, int skill) const {
         return;
     }
     const auto byRecord = [&](const Status& s) {
-        const std::uint32_t rec = kSkillRecords + std::uint32_t(s.skill) * 0x48;
+        const std::uint32_t rec = skillRow(s.skill);
         scale(logic::sdS16(rec + 0x24, v) + u.data.u8(7) * logic::sdS16(rec + 0x26, v) / 100);
     };
     if (a == 13) byRecord(u.status[0]);
@@ -4391,7 +4402,7 @@ void TacticsUnits::castScale(Unit& u, int skill) const {
 }
 
 void TacticsUnits::addMp(Unit& u, int delta) {
-    u.data.set16(0x1c, std::clamp<int>(u.data.s16(0x1c) + delta, 0, u.data.s16(0x1a)));
+    u.setMp(std::clamp<int>(u.mp() + delta, 0, u.data.s16(0x1a)));
 }
 
 // ------------------------------------------------------------ effects ---
@@ -4446,7 +4457,7 @@ void TacticsUnits::updateEffects(Unit& u) {
 void TacticsUnits::flushLanding(Unit& u) {
     std::vector<Unit::Landing> pending;
     pending.swap(u.landing);
-    if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d: %zu hit(s) land", u.slot, pending.size());
+    if (tactics::traceUnits()) SDL_Log("[tactics] unit %d: %zu hit(s) land", u.slot, pending.size());
     for (const Unit::Landing& l : pending)
         if (l.from >= 0 && l.from < kSlots) land(units_[std::size_t(l.from)], u, l.result, l.amount, l.skill, l.at, l.pools, l.tail);
 }
@@ -4483,14 +4494,14 @@ void TacticsUnits::strike(Unit& from, Unit& to, int result, int amount, int skil
         return;
     }
     to.landing.push_back({from.slot, result, amount, skill, at, pools, tail});
-    if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d: hit effect %d on %d", from.slot, id, to.slot);
+    if (tactics::traceUnits()) SDL_Log("[tactics] unit %d: hit effect %d on %d", from.slot, id, to.slot);
 }
 
 void TacticsUnits::addHp(Unit& u, int delta) {
-    int hp = std::min(u.data.s16(0x16) + delta, 0x7fff);
+    int hp = std::min(u.hp() + delta, 0x7fff);
     const int guts = u.data.u16(0x54);
-    if (guts != 0 && hp < 1 && delta < 0 && guts <= u.data.s16(0x16) && guts <= -delta) hp = 1;
-    u.data.set16(0x16, std::clamp<int>(hp, 0, u.data.s16(0x14)));
+    if (guts != 0 && hp < 1 && delta < 0 && guts <= u.hp() && guts <= -delta) hp = 1;
+    u.setHp(std::clamp<int>(hp, 0, u.maxHp()));
 }
 
 // FUN_00469220: a unit off the field but still in the battle (+0xf 2 waiting
@@ -4506,9 +4517,9 @@ bool TacticsUnits::waiting(const Unit& u) {
 // field (FUN_00469220) HP comes back twice as fast and MP half as fast;
 // a negative interval counts as 1.
 void TacticsUnits::regenerate(Unit& u) {
-    const int hp = u.data.s16(0x16), mp = u.data.s16(0x1c);
+    const int hp = u.hp(), mp = u.mp();
     const bool off = waiting(u);
-    if (hp == 0 || hp >= u.data.s16(0x14)) {
+    if (hp == 0 || hp >= u.maxHp()) {
         u.regenHp = 0;
     } else {
         ++u.regenHp;
@@ -4561,9 +4572,9 @@ void TacticsUnits::fallState(Unit& u) {
                 }
             }
             // FUN_00430b20: a fighting member (FUN_00468e10) adds to its team's falls.
-            if (u.data.u16(2) >= 1 && u.data.u16(2) <= 0x2d && u.team() < 16) ++teamFalls_[std::size_t(u.team())];
+            if (u.kind() >= 1 && u.kind() <= 0x2d && u.team() < 16) ++teamFalls_[std::size_t(u.team())];
             setFlags(u, true);                     // FUN_0046b0b0 / FUN_0046b0f0(.., 1)
-            if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d falls (by %d)", u.slot, by);
+            if (tactics::traceUnits()) SDL_Log("[tactics] unit %d falls (by %d)", u.slot, by);
             playAnim(u, sdS8(kFallAnims + std::uint32_t(u.data.u16(0xc)) * 10, v));
             voice(u, 0x71);
             ++u.sub;
@@ -4585,7 +4596,7 @@ void TacticsUnits::fallState(Unit& u) {
                 // of its time, 75% with learnt skill 0x54 (TW 0x479d9b, JP
                 // 0x43f92c; the later build has dropped the store), at least
                 // 0. The multiplication wraps as the original's does.
-                const int kind = u.data.u16(2);
+                const int kind = u.kind();
                 if (u.human() && timeLimited()) {
                     if (kind >= 1 && kind <= 0x2d && u.data.s32(0x24) <= 0xe0f) {
                         u.data.set32(0x24, 0);
@@ -4596,7 +4607,7 @@ void TacticsUnits::fallState(Unit& u) {
                         u.data.set32(0x24, std::max(scaled / 100, 0));
                     }
                 }
-                setState(u, 0xb);
+                setState(u, kOffField);
             }
             break;
         default: break;
@@ -4684,7 +4695,7 @@ int TacticsUnits::damageStyle(const Unit& from, int skill) const {
     if (skill <= 0 || skill > 100 || logic::sdS16(kSkillAnims + std::uint32_t(skill) * 0x10 + 0xc, v) == 0)
         id = logic::sdS16(kJobSkill + std::uint32_t(from.data.u16(0xc)) * 0x40, v);
     if (id < 0) return 0;
-    return logic::sdU8(kSkillRecords + std::uint32_t(id) * 0x48 + 5, v) == 2 ? 1 : 0;
+    return logic::sdU8(skillRow(id) + kSkillType, v) == 2 ? 1 : 0;
 }
 
 // FUN_00495220 -> FUN_00495320 -> FUN_004954f0 / FUN_00495540 /
@@ -4757,7 +4768,7 @@ int TacticsUnits::orderSkill(const Unit& u) const {
         if (w != 0) {
             if (w & 0x8000) return -1;
             const int skill = w & 0x7fff;
-            if (logic::sdU8(kSkillRecords + std::uint32_t(skill) * 0x48 + 5, ctx_.version) != 3) return skill;
+            if (logic::sdU8(skillRow(skill) + kSkillType, ctx_.version) != 3) return skill;
         }
     }
     return jobSkill(u);
@@ -4803,17 +4814,17 @@ void TacticsUnits::orderAt(int cx, int cy, int slot) {
         if (!u.selected || !orderable(u)) continue;
         const int skill = orderSkill(u);
         if (skill < 0) continue;
-        const std::uint32_t rec = kSkillRecords + std::uint32_t(skill) * 0x48;
-        int act = skillAction(logic::sdU8(rec + 0x18, v), at, t && t->slot == u.slot);
+        const std::uint32_t rec = skillRow(skill);
+        int act = skillAction(logic::sdU8(rec + kSkillAim, v), at, t && t->slot == u.slot);
         if (t && (act == 2 || act == 4)) {
             if (!attackable(u, *t)) continue;
             if (!seen(*t)) act = 0x6e;
         }
-        if (SDL_getenv("CH_UNITS"))
+        if (tactics::traceUnits())
             SDL_Log("[tactics] order: unit %d skill %d (kind %d) at %d -> action %d%s", u.slot, skill,
-                    logic::sdU8(rec + 0x18, v), at, act, t && !seen(*t) ? " (target unseen)" : "");
+                    logic::sdU8(rec + kSkillAim, v), at, act, t && !seen(*t) ? " (target unseen)" : "");
         if (act == 100) {                          // the skill at the cell, the caster its own target
-            if (u.data.s16(0x1c) < logic::sdS16(rec + 8, v)) continue;   // FUN_0046c930
+            if (u.mp() < logic::sdS16(rec + kSkillMpCost, v)) continue;   // FUN_0046c930
             orderMark(u);
             queueOrder(u, {3, cx, cy, u.slot, skill});
             continue;
@@ -4825,7 +4836,7 @@ void TacticsUnits::orderAt(int cx, int cy, int slot) {
             continue;
         }
         if (act == 0 || !t) continue;
-        if (u.data.s16(0x1c) < logic::sdS16(rec + 8, v)) continue;   // FUN_0046c930
+        if (u.mp() < logic::sdS16(rec + kSkillMpCost, v)) continue;   // FUN_0046c930
         orderMark(u);
         queueOrder(u, {3, t->cx(), t->cy(), t->slot, skill});
     }
@@ -4833,7 +4844,7 @@ void TacticsUnits::orderAt(int cx, int cy, int slot) {
 
 bool TacticsUnits::anyOwnOnField() const {
     for (const Unit& u : units_) {
-        const int kind = u.data.u16(2);
+        const int kind = u.kind();
         if (u.used && u.onField() && !down(u) && u.team() == viewer_ && !base(u) && !(kind >= 0x19b && kind <= 0x19e)) return true;
     }
     return false;
@@ -4843,7 +4854,7 @@ int TacticsUnits::standing(bool own) const {
     int n = 0;
     for (const Unit& u : units_) {
         if (!u.used || !u.onField() || down(u) || u.team() == 7) continue;
-        const int kind = u.data.u16(2);
+        const int kind = u.kind();
         if (structure(u) || base(u) || (kind >= 0x19b && kind <= 0x19e)) continue;   // the buildings and gates
         const int r = relation(u.team());
         if (own ? r == 0 : (r == 1 || r == 2)) ++n;
@@ -4868,8 +4879,8 @@ void TacticsUnits::draw(int hover) const {
         // common.bin frame DAT_0061878c [size] (+0x503, DAT_00615ead [kind *
         // 2]; size 3 none), centred on the feet, grey at 0xc0, behind every
         // unit at 0x756.
-        if (u.state != 1 && u.state != 0x19 && (u.state < 0xc || u.state > 0xe)) {
-            const int size = logic::sdU8(0x615ead + std::uint32_t(u.data.u16(2) & 0x1ff) * 2, ctx_.version);
+        if (u.state != kAppear && u.state != kAppear2 && (u.state < kCollapse || u.state > kRetreat)) {
+            const int size = logic::sdU8(0x615ead + std::uint32_t(u.kind() & 0x1ff) * 2, ctx_.version);
             if (size < 3) {
                 const int frame = logic::sdS16(0x61878c + std::uint32_t(size) * 2, ctx_.version);
                 ctx_.draw.sprite(SpriteCmd{.bank = kHudBank, .frame = static_cast<std::uint16_t>(frame), .x = x, .y = y,
@@ -4940,8 +4951,8 @@ void TacticsUnits::drawDot(const Unit& u) const {
 
 // FUN_0046d340: the gauge under a unit, on a dark frame.
 void TacticsUnits::drawGauge(const Unit& u, int x, int y, int prio) const {
-    const int maxHp = std::max<int>(u.data.s16(0x14), 1);
-    const int hpW = u.data.s16(0x16) * 100 / maxHp * 0x28 / 100;
+    const int maxHp = std::max<int>(u.maxHp(), 1);
+    const int hpW = u.hp() * 100 / maxHp * 0x28 / 100;
     if (u.team() != viewer_) {                     // FUN_0046a430: not the player's
         static constexpr std::uint32_t kColours[] = {0xffff0000u, 0xffff4040u, 0xff8040ffu, 0xffffff80u, 0xff80ff40u};
         const int rel = relation(u.team());
@@ -4954,7 +4965,7 @@ void TacticsUnits::drawGauge(const Unit& u, int x, int y, int prio) const {
     // the recovery left (+0x10 of +0x12), else the cast done (+0xc of +0xe).
     const int maxMp = std::max<int>(u.data.s16(0x1a), 1);
     ysub::fill(ctx_, x - 0x14, y + 1, hpW, 2, prio, 0xffff0000u);
-    ysub::fill(ctx_, x - 0x14, y + 4, u.data.s16(0x1c) * 100 / maxMp * 0x28 / 100, 2, prio, 0xff00ff00u);
+    ysub::fill(ctx_, x - 0x14, y + 4, u.mp() * 100 / maxMp * 0x28 / 100, 2, prio, 0xff00ff00u);
     if (u.recover >= 1) {
         const int pct = u.recoverFull == 0 ? 0 : u.recover * 100 / u.recoverFull;
         ysub::fill(ctx_, x - 0x14, y + 7, pct * 0x28 / 100, 1, prio, 0xff00ffffu);
@@ -4980,7 +4991,7 @@ void TacticsUnits::addFace(Unit& u) {
 
 void TacticsUnits::drawFace(const Unit& u, int x, int y, int prio, std::uint8_t r, std::uint8_t g, std::uint8_t b,
                             std::uint8_t a) const {
-    SpriteCmd c{.bank = kHudBank, .frame = static_cast<std::uint16_t>(u.data.u16(2) + 0x1e), .x = x, .y = y,
+    SpriteCmd c{.bank = kHudBank, .frame = static_cast<std::uint16_t>(u.kind() + 0x1e), .x = x, .y = y,
                 .flags = kSprBank, .blend = kBlendAlpha, .color = {r, g, b, a},
                 .priority = static_cast<std::uint16_t>(prio)};
     ctx_.draw.sprite(c);
@@ -5027,7 +5038,7 @@ int TacticsUnits::rosterAt(int x, int y) const {
 // down() counts every unit off the field, which all the cards are: only
 // the collapse and fall states (0xc, 0xd) and the fallen (+0xf 3..) keep out.
 bool TacticsUnits::cardPickable(const Unit& u) const {
-    return u.used && u.team() == viewer_ && !u.onField() && u.state != 0xc && u.state != 0xd && u.data.u8(0xf) < 3;
+    return u.used && u.team() == viewer_ && !u.onField() && u.state != kCollapse && u.state != kFall && u.data.u8(0xf) < 3;
 }
 
 void TacticsUnits::selectCard(int slot, bool toggle) {
@@ -5075,11 +5086,11 @@ void TacticsUnits::deploySelected(int sx, int sy, int range) {
     appearGiven_.clear();                          // FUN_0049a310's FUN_0043d4e0
     for (Unit& u : units_) {
         if (!u.used || !u.selected || u.onField()) continue;
-        const tactics::Cell c = appearCell(sx, sy, range, u.data.u8(0x30));
+        const tactics::Cell c = appearCell(sx, sy, range, u.moveType());
         u.selected = false;
         if (c.first < 0 || busyNow(u)) continue;
         placeAt(u, c);
-        if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] unit %d sorties to %d,%d", u.slot, c.first, c.second);
+        if (tactics::traceUnits()) SDL_Log("[tactics] unit %d sorties to %d,%d", u.slot, c.first, c.second);
     }
 }
 
@@ -5162,13 +5173,13 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
             const int w = std::clamp(value * 100 / full * 0x30 / 100, 0, 0x30);
             if (w > 0) ysub::fill(ctx_, x + 1, gy + dy, w, h, 0x1f0, argb);
         };
-        bar(u.data.s16(0x16), u.data.s16(0x14), 1, 2, 0xffff0000u);
-        bar(u.data.s16(0x1c), u.data.s16(0x1a), 4, 2, 0xff00ff00u);
+        bar(u.hp(), u.maxHp(), 1, 2, 0xffff0000u);
+        bar(u.mp(), u.data.s16(0x1a), 4, 2, 0xff00ff00u);
         if (u.recover > 0) bar(u.recover, u.recoverFull, 7, 1, 0xff00ffffu);
         else if (u.cast > 0 && u.castFull > 0) bar(u.castFull - u.cast, u.castFull, 7, 1, 0xff00ffffu);
         // FUN_004944a0: a unit in its number group shows the number
         // (FUN_00472b90, the larger digits).
-        if (inGroup(u)) drawNumber(x + 0x28, gy - 0x10, 0x1f1, u.data.u8(0x98), 1, 0xffffffffu, 1);
+        if (inGroup(u)) drawNumber(x + 0x28, gy - 0x10, 0x1f1, u.group(), 1, 0xffffffffu, 1);
         // FUN_0046db20 -> FUN_0046e3d0 (not during the sortie): a counted
         // time left (+0x24) in minutes and seconds beside the face, right of
         // it in the left column, left of it in the right one (FUN_0046e4c0).
@@ -5188,15 +5199,15 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
     if (u->team() == viewer_) drawFace(*u, 0xd, 0x272, kPrio, 0x80, 0x80, 0x80);
     // FUN_0046a390: all but kinds 0x1b9..0x1bf, 0x1c1, 0x1c2 show the
     // panel's model (FUN_0040a330 at (0x24, 0x2e0)).
-    if (const int kind = u->data.u16(2);
+    if (const int kind = u->kind();
         panelNode_ != AnmPlayer::kNone && u->slot == panelShown_ && !((kind >= 0x1b9 && kind <= 0x1bf) || kind == 0x1c1 || kind == 0x1c2)) {
         static const AnmPlayer::SpriteTemplate kSprite{.color = {0x80, 0x80, 0x80, 0xFF}};
         anm_.draw(panelNode_, ctx_.draw, *ctx_.sprites, kSprite, 0x24, 0x2e0, kPrio);
     }
     drawGauge(*u, 0x24, 0x2e0, kPrio);
-    drawNumber(99, 0x28b, kNum, u->data.s16(0x16), 3, kWhite);
-    drawNumber(0x82, 0x28b, kNum, u->data.s16(0x14), 3, kWhite);
-    drawNumber(99, 0x29e, kNum, u->data.s16(0x1c), 3, kWhite);
+    drawNumber(99, 0x28b, kNum, u->hp(), 3, kWhite);
+    drawNumber(0x82, 0x28b, kNum, u->maxHp(), 3, kWhite);
+    drawNumber(99, 0x29e, kNum, u->mp(), 3, kWhite);
     drawNumber(0x82, 0x29e, kNum, u->data.s16(0x1a), 3, kWhite);
     // The text sprites (FUN_00408f10, white, 12 px). FUN_00467eb0 renders
     // the four tables once with the 12 px font (+0xdb80c): FUN_004671f0
@@ -5215,7 +5226,7 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
     const auto& jobNames = spriteTexts(ctx_.version, kJobNames);
     const auto& conditionNames = spriteTexts(ctx_.version, kConditionNames);
     const auto& attackKinds = spriteTexts(ctx_.version, kAttackKinds);
-    label(unitNames[u->data.u16(2) & 0x1ff], 0x4f, 0x26f, true);
+    label(unitNames[u->kind() & 0x1ff], 0x4f, 0x26f, true);
     // The conditions: the ailment (slot 0) and the blessing (slot 2) by
     // name, with the minutes and seconds left in red and green.
     const auto condition = [&](const Status& s, int y, std::uint32_t argb) {
@@ -5227,14 +5238,14 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
     condition(u->status[2], 0x2dd, 0xff18ff00u);
     label(jobNames[u->data.u16(0xc) & 0x1ff], 0xc4, 0x26f);
     // FUN_0046a4c0 (one of our fighters): its time left, by the clock icon.
-    if (const int k = u->data.u16(2); u->team() == viewer_ && k >= 1 && k <= 0x2d && u->data.s32(0x24) != 0x7fffffff)
+    if (const int k = u->kind(); u->team() == viewer_ && k >= 1 && k <= 0x2d && u->data.s32(0x24) != 0x7fffffff)
         drawTimeDigits(0x157, 0x271, kNum, u->data.s32(0x24) / 0x3c, 1, 0, kWhite);
-    if (u->data.u16(2) < 0x40) drawNumber(0x11a, 0x271, kNum, u->data.u8(0xe), 2, kWhite);   // the level
+    if (u->kind() < 0x40) drawNumber(0x11a, 0x271, kNum, u->data.u8(0xe), 2, kWhite);   // the level
     else ctx_.draw.text({.x = 0x11d, .y = 0x26d, .priority = kNum - 1, .argb = kWhite, .text = "-", .fontPx = 12});   // FUN_0040ec50 DAT_005a05a4
     // The attack kind by the job skill's record +5: 2 (magic) always hits
     // (必中 for the accuracy) and shows 魔法, 1 and 4 show 物理.
     const int job = jobSkill(*u);
-    const int kind = logic::sdU8(kSkillRecords + std::uint32_t(job) * 0x48 + 5, v);
+    const int kind = logic::sdU8(skillRow(job) + kSkillType, v);
     if (kind == 2) label(attackKinds[2], 0xd1, 0x28a);
     else drawNumber(0xd3, 0x28b, kNum, f.acc, 3, kWhite);
     if (kind == 1 || kind == 4) label(attackKinds[0], 0x10e, 0x289);
@@ -5307,7 +5318,7 @@ void TacticsUnits::saveState(Unit& u) {
 // with a target; else the AI chooses (0xf).
 void TacticsUnits::resumeState(Unit& u) {
     if (!u.saved) {                                // the original asserts here
-        u.next = 0xf;
+        u.next = kChoose;
         return;
     }
     u.saved = false;
@@ -5329,7 +5340,7 @@ void TacticsUnits::react(Unit& from, Unit& to, int result, int skill, tactics::C
     const GameVersion v = ctx_.version;
     if (result != 2 && result != 3) return;
     if (down(from) || down(to)) return;
-    const int kind = to.data.u16(2);
+    const int kind = to.kind();
     if ((kind >= 0x19b && kind <= 0x19e) || base(to)) return;
     if (result == 3 && (mapId_ == 7 || mapId_ == 0x4c) && kind == 6 && to.team() == 4) return;
     if (steadyNow(to)) return;
@@ -5339,7 +5350,7 @@ void TacticsUnits::react(Unit& from, Unit& to, int result, int skill, tactics::C
         if (logic::sdU8(0x6b2da9 + std::uint32_t(to.data.u16(0xc)) * 0x40, v) == 100) {
             to.knockMode = -1;
         } else if (skill > 0 && skill <= 100) {     // FUN_0046c9f0: a learnt skill
-            switch (logic::sdU8(kSkillRecords + std::uint32_t(skill) * 0x48 + 0x18, v)) {
+            switch (logic::sdU8(skillRow(skill) + kSkillAim, v)) {
                 case 1: case 2: case 3: case 6: to.knockMode = 1; break;
                 case 4: to.knockMode = 0; to.knockFrom = at; break;
                 default: to.knockMode = -1; break;
@@ -5425,7 +5436,7 @@ void TacticsUnits::knockState(Unit& u) {
                     const int sx = static_cast<int>(float(dx) / len * float(speed << 16));
                     const int sy = static_cast<int>(float(dy) / len * float(speed / 2 << 16));
                     const int ncx = ((u.x + sx) >> 16) / TacticsMap::kCellW, ncy = ((u.y + sy) >> 16) / TacticsMap::kCellH;
-                    if (ncx > 0 && ncy > 0 && map_->moveRate(ncx, ncy, u.data.u8(0x30)) != 0 && !othersOn(ncx, ncy, u)) {
+                    if (ncx > 0 && ncy > 0 && map_->moveRate(ncx, ncy, u.moveType()) != 0 && !othersOn(ncx, ncy, u)) {
                         u.x += sx;
                         u.y += sy;
                     }
@@ -5469,7 +5480,7 @@ void TacticsUnits::guardHitState(Unit& u) {
             break;
         case 2:
             u.aiControlled = false;
-            u.next = 0xf;
+            u.next = kChoose;
             break;
         default: break;
     }
@@ -5496,7 +5507,7 @@ void TacticsUnits::collapseState(Unit& u) {
         case 2:
             if (u.timer > 0x46) {
                 setFlags(u, false);
-                setState(u, 0xb);
+                setState(u, kOffField);
                 leaveField(u);
                 u.data.set8(0xf, 4);
             }
@@ -5523,13 +5534,13 @@ bool TacticsUnits::hasLearnt(const Unit& u, int skill) {
 // builds count (TW 0x46bc7b, JP 0x435f5c); the later build the decompile comes
 // from has dropped the decrement.
 void TacticsUnits::checkCollapse(Unit& u) {
-    const int kind = u.data.u16(2);
+    const int kind = u.kind();
     if (!u.human() || kind < 1 || kind > 0x2d) return;
     if (u.data.s32(0x20) == 0x7fffffff || u.data.s32(0x24) < 0) return;
     if (!timeLimited() && u.data.s32(0x24) > 0) return;
     if (u.data.s32(0x24) > 0) u.data.set32(0x24, u.data.s32(0x24) - 1);
-    if (u.data.s32(0x24) != 0 || u.state == 0xc || u.state == 0xd) return;
-    setState(u, 0xc);
+    if (u.data.s32(0x24) != 0 || u.state == kCollapse || u.state == kFall) return;
+    setState(u, kCollapse);
 }
 
 // FUN_00479410, state 0xe: the retreat. A player's unit with no other
@@ -5542,12 +5553,12 @@ void TacticsUnits::retreatState(Unit& u) {
     if (u.human()) {
         int others = 0;
         for (const Unit& o : units_) {
-            const int k = o.data.u16(2);
+            const int k = o.kind();
             if (o.used && o.team() == u.team() && k >= 1 && k <= 0x2d && !down(o) && o.slot != u.slot) ++others;
         }
         if (others == 0) {
             playEffect(u, 1, -1);
-            u.next = 2;
+            u.next = kStand;
             setFlags(u, false);
             u.cast = u.recover = 0;
             return;
@@ -5585,7 +5596,7 @@ void TacticsUnits::retreatState(Unit& u) {
             if (u.timer > 0x46) {
                 setFlags(u, false);
                 if (u.data.s32(0x24) > 0xe10 || !timeLimited()) {
-                    setState(u, 0xb);
+                    setState(u, kOffField);
                     leaveField(u);
                     u.data.set8(0xf, 2);
                     // The disc builds' cost of a retreat (TW 0x4797bd, JP 0x43f55a):
@@ -5594,7 +5605,7 @@ void TacticsUnits::retreatState(Unit& u) {
                         u.data.set32(0x24, std::max(u.data.s32(0x24) - 0xe10, 0));
                     return;
                 }
-                u.next = 0xf;
+                u.next = kChoose;
                 u.cast = u.recover = 0;
             }
             break;
@@ -5648,7 +5659,7 @@ void TacticsUnits::callState(Unit& u) {
             }
             break;
         case 4:
-            u.next = 2;
+            u.next = kStand;
             break;
         default: break;
     }
@@ -5665,7 +5676,7 @@ void TacticsUnits::callIn(Unit& u) {
         Unit& o = units_[std::size_t(slot)];
         if (!o.human() || !callable(o) || busyNow(o)) continue;   // FUN_00468d80, FUN_0046a120
         // FUN_0043d660 with the caller's sight and move type.
-        const tactics::Cell c = appearCell(u.cx(), u.cy(), u.data.u8(0x2c), u.data.u8(0x30));
+        const tactics::Cell c = appearCell(u.cx(), u.cy(), u.data.u8(0x2c), u.moveType());
         if (c.first >= 0) placeAt(o, c);
     }
 }
@@ -5674,7 +5685,7 @@ void TacticsUnits::callIn(Unit& u) {
 void TacticsUnits::placeAt(Unit& u, tactics::Cell c) {
     setFlags(u, true);                             // until the appear clip is over
     setPosition(u, c.first, c.second);
-    setState(u, 1);
+    setState(u, kAppear);
     u.data.set8(0xf, 1);
 }
 
@@ -5683,7 +5694,7 @@ bool TacticsUnits::retreat(int slot) {
     if (slot < 0 || slot >= kSlots || !units_[std::size_t(slot)].used) return false;
     Unit& u = units_[std::size_t(slot)];
     if (busyNow(u)) return false;
-    setState(u, 0xe);
+    setState(u, kRetreat);
     return true;
 }
 
@@ -5703,12 +5714,12 @@ bool TacticsUnits::callParty(int slot, const std::vector<std::int16_t>& list) {
     Unit& u = units_[std::size_t(slot)];
     if (busyNow(u)) return false;
     u.callList.assign(list.begin(), list.begin() + std::min<std::size_t>(list.size(), 0x14));
-    setState(u, 0x11);
+    setState(u, kCall);
     return true;
 }
 
 std::string TacticsUnits::name(const Unit& u) const {
-    return spriteTexts(ctx_.version, kUnitNames)[u.data.u16(2) & 0x1ff];
+    return spriteTexts(ctx_.version, kUnitNames)[u.kind() & 0x1ff];
 }
 
 } // namespace ch

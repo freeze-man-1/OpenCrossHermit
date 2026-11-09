@@ -42,13 +42,13 @@ jobs:
             cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
           fi
       # On a failure, the error lines (and the failed tests' output) also go
-      # out as annotations, which can be read without signing in.
+      # out as annotations (.github/annotate.sh).
       - name: Build
         shell: bash
         run: |
           set -o pipefail
           if ! cmake --build build --config Release -j 4 2>&1 | tee build.log; then
-            grep -E "error|Error" build.log | grep -v "^ *[0-9]* *Error" | sort -u | head -20 | while IFS= read -r l; do echo "::error title=build::$l"; done
+            bash .github/annotate.sh build build.log
             exit 1
           fi
       - name: Test
@@ -56,8 +56,7 @@ jobs:
         run: |
           set -o pipefail
           if ! ctest --test-dir build -C Release --output-on-failure 2>&1 | tee test.log; then
-            grep -E "\*\*\*|Failed|FAILED" test.log | head -10 | while IFS= read -r l; do echo "::error title=test::$l"; done
-            echo "::error title=test output::$(tail -60 test.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            bash .github/annotate.sh test test.log
             exit 1
           fi
       - name: Package

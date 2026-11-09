@@ -54,10 +54,11 @@ public:
     ~NetTask() override;                         // FUN_004442f0
     Co<> start(std::uint32_t param) override;    // FUN_00444330
 
+    struct Rect { int x, y, w, h; };             // the screens' tables (net_task.cpp)
+
 private:
     static constexpr std::uint16_t kBank = 0x5a, kFaces = 0x5b;
     static constexpr std::uint8_t kMesBank = 2;   // data\Tactics\MesBox.bin (FUN_00441470)
-    struct Rect { int x, y, w, h; };
 
     Co<> fade(bool in);                          // FUN_00444820 / FUN_00444960
     Co<int> nameScreen();                        // FUN_00444a90: 6 on, 2 back

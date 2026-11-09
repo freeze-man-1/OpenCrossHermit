@@ -98,6 +98,23 @@ private:
     std::string netChatLine_;
     ChatBox netLog_{4, true};                    // FUN_00451170: 4 lines, newest first
     std::uint64_t netSeen_ = 0;                  // the next chat line to show
+    // FUN_00499da0's steps (Sortie::phase), run once a frame until the battle.
+    enum SortiePhase : int {
+        kSortieCamera = 0,          // the camera on the start, the lit area grows
+        kSortieCards = 1,           // the cards and the Sortie button
+        kSortieChosen = 2,          // a short wait after the button
+        kSortieDeploy = 3,          // the chosen units go out (FUN_0049a310)
+        kSortieFree = 4,            // the units act for three seconds
+        kSortieFreeWait = 5,
+        kSortieOpening = 6,         // the opening event
+        kSortieOpeningScript = 7,   // until its script is done
+        kSortieBanner1 = 8,         // the start banner, if the stage has one
+        kSortieBanner1Wait = 9,
+        kSortieOpeningEnd = 0xa,    // the event's undim and end
+        kSortieBanner2 = 0xb,       // the second banner
+        kSortieBanner2Wait = 0xc,
+        kSortieDone = 0xd,          // the battle runs
+    };
     // FUN_00499c90's record (+0x108b3e): the sortie.
     struct Sortie {
         bool on = false;                         // +0: the player chooses who goes

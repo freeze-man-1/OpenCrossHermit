@@ -14,7 +14,8 @@
 //   0x7a5120  u8[0xf0]   in roster, by unit id           (FUN_004d4730 / 4770)
 //   0x7a5210  s16[0x28]  members (id < 0x65), count 0x7a5260
 //   0x7a5262  s16[0x14]  guests  (id >= 0x65), count 0x7a528a
-//   0x7a528c  s16  difficulty (0/1 normal, else hard)
+//   0x7a528c  s16  school year: 1 at New Game, + 1 (to 99) each new year (FUN_0049ee30);
+//                  past 1 the stat level cap is 0x87 and joining members lose their preset skills
 //   0x7a528e  s16  month    0x7a5290 s16 week    0x7a5292 s16 day (background)
 //   0x7a54ca  u8[300]    script flags (start at 5)
 //   0x7a55f6  s16  area BGM (opcode 0x97)
@@ -64,6 +65,12 @@ public:
     }
     [[nodiscard]] std::int32_t  s32(std::uint32_t va) const { return static_cast<std::int32_t>(u32(va)); }
 
+    // Element i of an array at va (the original's base + i * size).
+    template <class I> [[nodiscard]] std::uint16_t u16At(std::uint32_t va, I i) const { return u16(va + std::uint32_t(i) * 2); }
+    template <class I> [[nodiscard]] std::int16_t  s16At(std::uint32_t va, I i) const { return s16(va + std::uint32_t(i) * 2); }
+    template <class I> [[nodiscard]] std::int32_t  s32At(std::uint32_t va, I i) const { return s32(va + std::uint32_t(i) * 4); }
+    template <class I> void set16At(std::uint32_t va, I i, int v) { set16(va + std::uint32_t(i) * 2, v); }
+
     void set8(std::uint32_t va, int v)  { mem_[at(va, 1)] = static_cast<std::uint8_t>(v); }
     void set16(std::uint32_t va, int v) {
         const std::size_t i = at(va, 2);
@@ -104,5 +111,73 @@ private:
     }
     std::vector<std::uint8_t> mem_;
 };
+
+// Named addresses in the image, for code in more than one file (ch.exe VAs).
+namespace roster {
+inline constexpr std::uint32_t kInRoster   = 0x7a5120;   // u8[0xf0], by unit id
+inline constexpr std::uint32_t kMembers    = 0x7a5210;   // s16[0x28]: ids below 0x65
+inline constexpr std::uint32_t kMemberCount = 0x7a5260;  // s16
+inline constexpr std::uint32_t kGuests     = 0x7a5262;   // s16[0x14]: ids from 0x65
+inline constexpr std::uint32_t kGuestCount = 0x7a528a;   // s16
+inline constexpr std::uint32_t kYear       = 0x7a528c;   // s16, see the layout above
+inline constexpr std::uint32_t kMonth      = 0x7a528e;   // s16, past 12 in a later year
+inline constexpr std::uint32_t kWeek       = 0x7a5290;   // s16
+} // namespace roster
+
+// The five groups of the team screen (HanTask): 0x1c bytes each from
+// 0x7aaa12 (+0 s16 leader, a guest id; +3 lecture flag; +6.. choice;
+// +0x10 s16[4] member ids), and each group's roster slots and ids.
+namespace groups {
+inline constexpr std::uint32_t kBase = 0x7aaa12, kStride = 0x1c;
+inline constexpr std::uint32_t kLeader = 0, kMembers = 0x10;   // offsets in a group
+inline constexpr std::uint32_t kLeaderSlots = 0x7aaaae;   // s16[5]: the leader's guest slot
+inline constexpr std::uint32_t kLeaderIds   = 0x7aaaa4;   // s16[5]
+inline constexpr std::uint32_t kMemberSlots = 0x7aaae0;   // s16[5][4]: member slots
+inline constexpr std::uint32_t kMemberIds   = 0x7aaab8;   // s16[5][4]
+constexpr std::uint32_t at(int g) { return kBase + std::uint32_t(g) * kStride; }
+} // namespace groups
+
+// The current stage's battle settings: 0x8c bytes at 0x7f4488, filled from
+// the stage row (0x6ad1d0 + 0x2a map) by PreparationTask::loadStage
+// (FUN_004da8e0), then the battle's results; the battle's units follow at
+// 0x7f4518 (0xb0 bytes each, FUN_004b9340).
+namespace stage {
+inline constexpr std::uint32_t kBase = 0x7f4488, kSize = 0x8c;
+inline constexpr std::uint32_t kMap        = 0x7f4488;   // s16
+inline constexpr std::uint32_t kNextMap    = 0x7f448a;   // s16: the chain's next stage (row +2)
+inline constexpr std::uint32_t kChained    = 0x7f448c;   // u8: chained on from the last stage
+inline constexpr std::uint32_t kPartyCount = 0x7f448d;   // u8
+inline constexpr std::uint32_t kSortie     = 0x7f448f;   // u8: the player picks who goes (row +4)
+inline constexpr std::uint32_t kNetSlot    = 0x7f4490;   // u8: our player slot
+inline constexpr std::uint32_t kNetwork    = 0x7f4491;   // u8: network play
+inline constexpr std::uint32_t kStartX     = 0x7f4492;   // s16 x, then s16 y, 4 bytes a slot
+inline constexpr std::uint32_t kStartY     = 0x7f4494;
+inline constexpr std::uint32_t kStartRange = 0x7f44a2;   // u8 (row +0xf)
+inline constexpr std::uint32_t kFewest     = 0x7f44a3;   // u8: fewest units who may go (row +5)
+inline constexpr std::uint32_t kMost       = 0x7f44a4;   // u8: most (row +6)
+inline constexpr std::uint32_t kTimeLimit  = 0x7f44a8;   // s32 frames
+inline constexpr std::uint32_t kTimeMark1  = 0x7f44ac;   // s32 frames: the time grades
+inline constexpr std::uint32_t kTimeMark2  = 0x7f44b0;
+inline constexpr std::uint32_t kTimeMark3  = 0x7f44b4;
+inline constexpr std::uint32_t kFlags      = 0x7f44b8;   // u8[6] (row +0x14..):
+inline constexpr std::uint32_t kPartyOut   = 0x7f44b8;   //   the party starts on the field
+inline constexpr std::uint32_t kBanner1    = 0x7f44b9;   //   the start banner
+inline constexpr std::uint32_t kBanner2    = 0x7f44ba;   //   the second banner
+inline constexpr std::uint32_t kBgm        = 0x7f44bb;   //   u8[3] battle tracks
+inline constexpr std::uint32_t kPrizes     = 0x7f44be;   // u8[0x10]: enemy record numbers whose capture
+                                                         // pays (chests, bases); after the battle 1 if ours
+inline constexpr std::uint32_t kNetSeed    = 0x7f44d0;   // s32
+inline constexpr std::uint32_t kSlotPresent = 0x7f44d4;  // u8 per player slot
+inline constexpr std::uint32_t kSlotSide   = 0x7f44e4;   // u8 per player slot
+inline constexpr std::uint32_t kSlotStart  = 0x7f44f4;   // u8 per player slot: its start cell
+inline constexpr std::uint32_t kRoundFlag  = 0x7f4504;   // chained rounds / co-op (FUN_004daae0)
+inline constexpr std::uint32_t kNetSaveUnits = 0x7f4505; // u8: we brought a save's units (+0x1a99)
+inline constexpr std::uint32_t kRank       = 0x7f450c;   // s16: 1 PERFECT .. 5
+inline constexpr std::uint32_t kTimeGrade  = 0x7f450e;   // s16: 0 none, 1..3 by the time marks
+inline constexpr std::uint32_t kEnemiesGone = 0x7f4510;  // s16: 2 all enemies gone, else 1
+inline constexpr std::uint32_t kWorth      = 0x7f4512;   // s16: the kills' worth
+inline constexpr std::uint32_t kParty      = 0x7f4518;   // 0xb0 bytes per unit
+inline constexpr std::uint32_t kPartyStride = 0xb0;
+} // namespace stage
 
 } // namespace ch

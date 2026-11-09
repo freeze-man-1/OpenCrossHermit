@@ -26,7 +26,10 @@ constexpr std::uint32_t kBannerNames = 0x60c2b8;    // char* per map
 constexpr std::uint32_t kBannerTiming = 0x60cabc;   // s16: -, in step, hold, out step, x, y, wait for a click
 constexpr std::uint32_t kBannerFrames = 0x60cb04;   // {s16 bank, frame}
 
-bool trace() { return SDL_getenv("CH_SCRIPT") != nullptr; }
+bool trace() {                     // debug: CH_SCRIPT logs the script (read once)
+    static const bool on = SDL_getenv("CH_SCRIPT") != nullptr;
+    return on;
+}
 
 std::uint32_t le32(const std::vector<std::uint8_t>& b, std::size_t o) {
     if (o + 4 > b.size()) return 0;
@@ -604,7 +607,7 @@ void StageScript::exec(YbcVm& vm, std::uint16_t op, std::uint32_t rec) {
                     vm.store(rec, 4, free);
                     break;
                 }
-                case 8: vm.store(rec, 4, ctx_.work.s16(0x7f4488)); break;   // FUN_004970a0: the map
+                case 8: vm.store(rec, 4, ctx_.work.s16(stage::kMap)); break;   // FUN_004970a0: the map
                 default:
                     if (unported_.insert(std::uint16_t(0x9200 | (ev(8) & 0xff))).second)
                         SDL_Log("[script] opcode 0x92 query %d not ported yet", ev(8));

@@ -15,7 +15,7 @@ namespace ch {
 using legacy::kMouseLeft;
 
 namespace {
-using R = std::array<int, 4>;
+using R = NetTask::Rect;
 // The screens' tables (x, y, w, h): the buttons and their pressed images.
 constexpr R kNameButtons[2] = {{407, 401, 96, 25}, {520, 401, 95, 25}};                    // DAT_00605a48
 constexpr R kNameBox = {0, 0, 270, 107}, kNameOk = {0, 108, 136, 30}, kNameCancel = {136, 108, 134, 30};   // 0x605a58..
@@ -290,7 +290,7 @@ Co<int> NetTask::nameScreen() {
     ctx_.engine.input().setTextInput(true);
     for (;;) {
         typing(name, 15);
-        const int h = hit(reinterpret_cast<const Rect*>(kNameButtons), 2);
+        const int h = hit(kNameButtons, 2);
         const bool click = ctx_.mouse().pressed & kMouseLeft;
         const bool enter = ctx_.engine.input().text().enter;
         if ((click && h == 0) || enter) {
@@ -307,9 +307,9 @@ Co<int> NetTask::nameScreen() {
             co_return 2;
         }
         // FUN_00444d40: the box at (0x179, 0x14b), the pressed button over it.
-        sub(1, {kNameBox[0], kNameBox[1], kNameBox[2], kNameBox[3]}, 0x179, 0x14b, 0x5a);
-        if ((ctx_.mouse().held & kMouseLeft) && h == 0) sub(1, {kNameOk[0], kNameOk[1], kNameOk[2], kNameOk[3]}, 0x179, 0x14b + 0x45, 0x55);
-        if ((ctx_.mouse().held & kMouseLeft) && h == 1) sub(1, {kNameCancel[0], kNameCancel[1], kNameCancel[2], kNameCancel[3]}, 0x179 + 0x88, 0x14b + 0x45, 0x55);
+        sub(1, kNameBox, 0x179, 0x14b, 0x5a);
+        if ((ctx_.mouse().held & kMouseLeft) && h == 0) sub(1, kNameOk, 0x179, 0x14b + 0x45, 0x55);
+        if ((ctx_.mouse().held & kMouseLeft) && h == 1) sub(1, kNameCancel, 0x179 + 0x88, 0x14b + 0x45, 0x55);
         text(0x1bd, 0x171, name + ((SDL_GetTicks() / 400) % 2 ? "_" : ""), 0x54, 0xffffffff, 16);   // FUN_00426820
         backdrop();
         co_await yieldFrame();
@@ -320,7 +320,7 @@ Co<int> NetTask::nameScreen() {
 // original's two connection kinds), 2 back to the title.
 Co<int> NetTask::menuScreen() {
     net::Session& s = ctx_.net;
-    const int x = 0x200 - kMenuBox[2] / 2, y = 0x180 - kMenuBox[3] / 2;
+    const int x = 0x200 - kMenuBox.w / 2, y = 0x180 - kMenuBox.h / 2;
     std::string custom = builtIn(serverUrl(s)) ? std::string(kDefaultRelay) : serverUrl(s);
     bool editing = false;
     // Connected already here, for the server's live counts (the room list
@@ -335,7 +335,7 @@ Co<int> NetTask::menuScreen() {
         saveServer(s, custom);
     };
     for (;;) {
-        const int h = hit(reinterpret_cast<const Rect*>(kMenuButtons), 3);
+        const int h = hit(kMenuButtons, 3);
         const bool click = ctx_.mouse().pressed & kMouseLeft;
         if (h != -1 && click) {
             stopEditing();
@@ -350,7 +350,7 @@ Co<int> NetTask::menuScreen() {
         // The server: a click steps through the regions and "Custom"; the
         // custom URL is typed in its own box (Enter or a click elsewhere ends).
         const bool isCustom = !builtIn(serverUrl(s));
-        const int onRow = hit(reinterpret_cast<const Rect*>(&kServerRow), 1), onUrl = hit(reinterpret_cast<const Rect*>(&kServerUrl), 1);
+        const int onRow = hit(&kServerRow, 1), onUrl = hit(&kServerUrl, 1);
         if (editing) {
             if (ctx_.engine.input().text().selectAll) custom.clear();   // Ctrl+A: type over it
             typing(custom, 200);
@@ -367,13 +367,13 @@ Co<int> NetTask::menuScreen() {
             if (custom == kDefaultRelay) custom.clear();   // left empty, it comes back
             ctx_.engine.input().setTextInput(true);
         }
-        ctx_.draw.fill({.x = kServerRow[0], .y = kServerRow[1], .w = kServerRow[2], .h = kServerRow[3], .priority = 0x5a,
+        ctx_.draw.fill({.x = kServerRow.x, .y = kServerRow.y, .w = kServerRow.w, .h = kServerRow.h, .priority = 0x5a,
                         .argb = onRow == 0 ? 0xc0303850u : 0xc0000000u});
-        text(kServerRow[0] + 8, kServerRow[1] + 4, "Server:", 0x54, 0xffa0a0a0u);
-        text(kServerRow[0] + 80, kServerRow[1] + 4, serverLabel(serverUrl(s)) + "   >", 0x54);
-        if (!editing) text(kServerRow[0] + 190, kServerRow[1] + 5, serverCounts(s), 0x54, 0xffa0d0a0u, 12);
+        text(kServerRow.x + 8, kServerRow.y + 4, "Server:", 0x54, 0xffa0a0a0u);
+        text(kServerRow.x + 80, kServerRow.y + 4, serverLabel(serverUrl(s)) + "   >", 0x54);
+        if (!editing) text(kServerRow.x + 190, kServerRow.y + 5, serverCounts(s), 0x54, 0xffa0d0a0u, 12);
         if (!builtIn(serverUrl(s)) || editing) {
-            ctx_.draw.fill({.x = kServerUrl[0], .y = kServerUrl[1], .w = kServerUrl[2], .h = kServerUrl[3], .priority = 0x5a,
+            ctx_.draw.fill({.x = kServerUrl.x, .y = kServerUrl.y, .w = kServerUrl.w, .h = kServerUrl.h, .priority = 0x5a,
                             .argb = editing ? 0xe0202030u : 0xc0000000u});
             // The end of a long URL is what is being typed.
             std::string shown = editing ? custom + ((SDL_GetTicks() / 400) % 2 ? "_" : "") : custom;
@@ -382,11 +382,11 @@ Co<int> NetTask::menuScreen() {
                 while (n < shown.size() && (std::uint8_t(shown[n]) & 0xc0) == 0x80) ++n;
                 shown.erase(0, n);
             }
-            text(kServerUrl[0] + 8, kServerUrl[1] + 4, shown, 0x54, editing ? 0xffffffffu : 0xffc0c0c0u, 12);
+            text(kServerUrl.x + 8, kServerUrl.y + 4, shown, 0x54, editing ? 0xffffffffu : 0xffc0c0c0u, 12);
         }
-        sub(2, {kMenuBox[0], kMenuBox[1], kMenuBox[2], kMenuBox[3]}, x, y, 0x5a);   // FUN_00445000
+        sub(2, kMenuBox, x, y, 0x5a);   // FUN_00445000
         if (h != -1 && (ctx_.mouse().held & kMouseLeft))
-            sub(2, {kMenuRows[h][0], kMenuRows[h][1], kMenuRows[h][2], kMenuRows[h][3]}, x, y + kMenuRowY[h], 0x55);
+            sub(2, kMenuRows[h], x, y + kMenuRowY[h], 0x55);
         backdrop();
         co_await yieldFrame();
     }
@@ -404,7 +404,7 @@ Co<int> NetTask::listScreen(bool byCode) {
     if (byCode) ctx_.engine.input().setTextInput(true);
     bool asked = false;
     rooms_.init(0, 7);                                  // FUN_00445eb0
-    const int x = 0x200 - kListBox[2] / 2, y = 0x180 - kListBox[3] / 2;
+    const int x = 0x200 - kListBox.w / 2, y = 0x180 - kListBox.h / 2;
     std::uint32_t errors = s.errorCount();
     bool failShown = false;
     for (;;) {
@@ -434,7 +434,7 @@ Co<int> NetTask::listScreen(bool byCode) {
             continue;
         }
         if (byCode) typing(code, 8);
-        const int h = hit(reinterpret_cast<const Rect*>(kListButtons), 15);
+        const int h = hit(kListButtons, 15);
         const bool click = ctx_.mouse().pressed & kMouseLeft;
         const int rows = int(s.rooms().size());
         if (rows != rooms_.count()) rooms_.init(rows, 7);  // FUN_00445f00: a new list
@@ -467,10 +467,10 @@ Co<int> NetTask::listScreen(bool byCode) {
             }
         }
         // FUN_00446340: the box, a pressed button over it, then the rows (FUN_004465c0).
-        sub(3, {kListBox[0], kListBox[1], kListBox[2], kListBox[3]}, x, y, 0x5a);
-        text(x + 8, y + kListBox[3] + 6, serverLabel(serverUrl(s)) + ":  " + serverCounts(s), 0x54, 0xffa0d0a0u, 12);   // not the original's
+        sub(3, kListBox, x, y, 0x5a);
+        text(x + 8, y + kListBox.h + 6, serverLabel(serverUrl(s)) + ":  " + serverCounts(s), 0x54, 0xffa0d0a0u, 12);   // not the original's
         if (h >= 0 && h < 8 && (ctx_.mouse().held & kMouseLeft))
-            sub(3, {kListPressed[h][0], kListPressed[h][1], kListPressed[h][2], kListPressed[h][3]},
+            sub(3, kListPressed[h],
                 x + kListPressedAt[h][0], y + kListPressedAt[h][1], 0x55);
         if (s.state() == St::Connecting) {
             text(0x1be, 0x157, "Now Search...", 0x58);
@@ -622,7 +622,7 @@ Co<int> NetTask::roomScreen() {
             sendPick();
         }
         const bool click = ctx_.mouse().pressed & kMouseLeft;
-        const int button = hit(reinterpret_cast<const Rect*>(kRoomButtons), 6);
+        const int button = hit(kRoomButtons, 6);
         // FUN_00448fe0: 0 start (the host: everyone ready, each with units),
         // 1 leave, 2 ready (the others), 3 -, 4 the ready-made units, 5 a save's party.
         if (click && button != -1) {
@@ -688,7 +688,7 @@ Co<int> NetTask::roomScreen() {
         // FUN_0044af30: the roster, four to a row; FUN_0044aee0 flips a pick.
         const int rows = (int(s.roster.size()) + 3) / 4;
         if (click) {
-            const int us = hit(reinterpret_cast<const Rect*>(kUnitScroll), 4);
+            const int us = hit(kUnitScroll, 4);
             if (us == 0) unitScroll_ = 0;
             else if (us == 1) unitScroll_ = std::max(unitScroll_ - 1, 0);
             else if (us == 2) unitScroll_ = std::min(unitScroll_ + 1, std::max(rows - 5, 0));
@@ -707,18 +707,18 @@ Co<int> NetTask::roomScreen() {
                 }
             }
             // FUN_00448320: the chat goes to all (0) or our team (1).
-            const int ct = hit(reinterpret_cast<const Rect*>(kChatButtons), 2);
+            const int ct = hit(kChatButtons, 2);
             if (ct != -1) chatTeam_ = ct;
             // FUN_0044a070: the description's page (summary, objective,
             // conditions, strength).
-            const int tab = hit(reinterpret_cast<const Rect*>(kSideTabs), 4);
+            const int tab = hit(kSideTabs, 4);
             if (tab != -1) infoSide_ = tab;
             // Its arrows (DAT_00605e78 0..3: top, up, down, bottom). The
             // original moves a hidden cursor over all 0x14 lines (a 12-row
             // ListBoxCtrl: FUN_00428720 / 8810 / 8850 / 8760), so the page
             // only moves after 11 presses; here they scroll the page at once
             // and stop at the side's last line of text.
-            const int arrow = hit(reinterpret_cast<const Rect*>(kInfoArrows), 4);
+            const int arrow = hit(kInfoArrows, 4);
             if (arrow != -1) {
                 int lines = 0;
                 for (int i = 0; i < 0x14; ++i) if (!netgame::mapLine(localMap_, infoSide_, i, v).empty()) lines = i + 1;
@@ -730,7 +730,7 @@ Co<int> NetTask::roomScreen() {
             // FUN_0044bb20: the host sets each player's team (1..4, ?
             // random) unless the map is co-operative (FUN_004429a0 sends it).
             if (s.isHost() && !netgame::mapEntry(localMap_, v).coop) {
-                const int cell = hit(reinterpret_cast<const Rect*>(kTeamCells), 20);
+                const int cell = hit(kTeamCells, 20);
                 if (cell != -1 && teams_[std::size_t(cell / 5)] != cell % 5) {
                     teams_[std::size_t(cell / 5)] = std::uint8_t(cell % 5);
                     ctx_.audio->sePlay(5);
@@ -749,14 +749,14 @@ Co<int> NetTask::roomScreen() {
             if (s.isHost()) {
                 for (int l = 0; l < 2; ++l) {
                     ListBoxCtrl& list = mapList_[std::size_t(l)];
-                    const int r = hit(reinterpret_cast<const Rect*>(kMapRows[l]), std::min(list.count(), kVisibleMaps));
+                    const int r = hit(kMapRows[l], std::min(list.count(), kVisibleMaps));
                     if (r != -1) {
                         list.setRow(r);
                         mapType_ = l;
                         ctx_.audio->sePlay(5);
                     }
                 }
-                const int a = hit(reinterpret_cast<const Rect*>(kMapScroll), 8);
+                const int a = hit(kMapScroll, 8);
                 if (a != -1) {
                     ListBoxCtrl& list = mapList_[std::size_t(a / 4)];
                     switch (a & 3) {
@@ -803,10 +803,10 @@ Co<> NetTask::fadeRoom() {
 void NetTask::drawRoom(int pressed) {
     net::Session& s = ctx_.net;
     const GameVersion v = ctx_.version;
-    sub(5, {kRoomBack[0], kRoomBack[1], kRoomBack[2], kRoomBack[3]}, 0, 0, 0x5a);   // FUN_0044b8b0
+    sub(5, kRoomBack, 0, 0, 0x5a);   // FUN_0044b8b0
     if (pressed != -1 && pressed != 2)                                                   // FUN_004492d0
-        sub(5, {kRoomPressed[pressed][0], kRoomPressed[pressed][1], kRoomPressed[pressed][2], kRoomPressed[pressed][3]},
-            kRoomButtons[pressed][0], kRoomButtons[pressed][1], 0x55);
+        sub(5, kRoomPressed[pressed],
+            kRoomButtons[pressed].x, kRoomButtons[pressed].y, 0x55);
     // FUN_00449e00: the two map lists (the host's choice lit).
     for (int l = 0; l < 2; ++l) {
         const std::vector<int> maps = netgame::mapList(l == 1, ctx_.work, v);
@@ -814,15 +814,15 @@ void NetTask::drawRoom(int pressed) {
         for (int r = 0; r < list.disp() && list.top() + r < int(maps.size()); ++r) {
             const int at = maps[std::size_t(list.top() + r)];
             const auto& row = kMapRows[l][r];
-            if (at == localMap_) ctx_.draw.fill({.x = row[0], .y = row[1], .w = row[2], .h = row[3], .priority = 0x56, .argb = 0x60ffffffu});
-            text(row[0] + 2, row[1] + 1, netgame::mapTitle(at, v), 0x54, s.isHost() ? 0xffffffffu : 0xffa0a0a0u, 13);
+            if (at == localMap_) ctx_.draw.fill({.x = row.x, .y = row.y, .w = row.w, .h = row.h, .priority = 0x56, .argb = 0x60ffffffu});
+            text(row.x + 2, row.y + 1, netgame::mapTitle(at, v), 0x54, s.isHost() ? 0xffffffffu : 0xffa0a0a0u, 13);
         }
     }
     // FUN_0044a310 / FUN_0044a3e0 / FUN_0044a530: the side tab, the map's
     // objectives for that side, the map's title.
     // (FUN_0044a210: the tab or arrow under the pointer while held, the same rects.)
-    sub(5, {kSideTabOn[infoSide_][0], kSideTabOn[infoSide_][1], kSideTabOn[infoSide_][2], kSideTabOn[infoSide_][3]},
-        kSideTabs[infoSide_][0], kSideTabs[infoSide_][1], 0x56);
+    sub(5, kSideTabOn[infoSide_],
+        kSideTabs[infoSide_].x, kSideTabs[infoSide_].y, 0x56);
     text(0x324, 0x31, netgame::mapTitle(localMap_, v), 0x54, 0xffffffff, 16);
     // FUN_0044a3e0: that side's 12 rows from its first shown line, 0x11 apart.
     const int top = infoTop_[std::size_t(infoSide_)];
@@ -837,13 +837,13 @@ void NetTask::drawRoom(int pressed) {
         const int x = 0xdd + (c & 3) * 0x48, y = 0x49 + (c >> 2) * 0x48;
         const bool on = at < int(s.picked.size()) && s.picked[std::size_t(at)];
         const int ch = r[2] | r[3] << 8;
-        ysub::drawSub(ctx_, {.bank = static_cast<std::uint8_t>(kFaces), .frame = static_cast<std::uint16_t>(ch), .sx = kFace[0],
-                             .sy = kFace[1], .w = kFace[2], .h = kFace[3], .alpha = std::uint8_t(on ? 0x80 : 0x40), .rgb = std::uint8_t(on ? 0x80 : 0x40)},
+        ysub::drawSub(ctx_, {.bank = static_cast<std::uint8_t>(kFaces), .frame = static_cast<std::uint16_t>(ch), .sx = kFace.x,
+                             .sy = kFace.y, .w = kFace.w, .h = kFace.h, .alpha = std::uint8_t(on ? 0x80 : 0x40), .rgb = std::uint8_t(on ? 0x80 : 0x40)},
                       0x4c, x + 0x15, y + 2);
         const int job = r[0xc] | r[0xd] << 8;
         if (job != 0 && job < 0x80) {
             const int k = std::max(int(logic::sdU8(0x6b2d8a + std::uint32_t(job) * 0x40, v)) - 1, 0);
-            sub(5, {kJobs[std::min(k, 4)][0], kJobs[std::min(k, 4)][1], 18, 18}, x + 1, y + 1, 0x4d);
+            sub(5, {kJobs[std::min(k, 4)].x, kJobs[std::min(k, 4)].y, 18, 18}, x + 1, y + 1, 0x4d);
         }
         const int minutes = std::min<int>(int(std::uint32_t(r[0x20] | r[0x21] << 8 | r[0x22] << 16 | r[0x23] << 24) / 0xe10), 99);
         number(x + 2, y + 0x16, 0x4d, std::min<int>(r[0xe], 99), 2);
@@ -851,11 +851,11 @@ void NetTask::drawRoom(int pressed) {
     }
     // FUN_0044b170: the roster's arrows while held; FUN_00449d00 the map lists'.
     if (ctx_.mouse().held & kMouseLeft) {
-        if (const int us = hit(reinterpret_cast<const Rect*>(kUnitScroll), 4); us != -1)
-            ctx_.draw.fill({.x = kUnitScroll[us][0], .y = kUnitScroll[us][1], .w = kUnitScroll[us][2], .h = kUnitScroll[us][3], .priority = 0x54, .argb = 0x50ffffffu});
+        if (const int us = hit(kUnitScroll, 4); us != -1)
+            ctx_.draw.fill({.x = kUnitScroll[us].x, .y = kUnitScroll[us].y, .w = kUnitScroll[us].w, .h = kUnitScroll[us].h, .priority = 0x54, .argb = 0x50ffffffu});
         if (s.isHost())
-            if (const int a = hit(reinterpret_cast<const Rect*>(kMapScroll), 8); a != -1)
-                sub(5, {kMapScrollOn[a][0], kMapScrollOn[a][1], kMapScrollOn[a][2], kMapScrollOn[a][3]}, kMapScroll[a][0], kMapScroll[a][1], 0x55);
+            if (const int a = hit(kMapScroll, 8); a != -1)
+                sub(5, kMapScrollOn[a], kMapScroll[a].x, kMapScroll[a].y, 0x55);
     }
     // FUN_0044b5b0 / FUN_0044b550: the map's limit and how many are picked.
     number(0x98, 0xb0, 0x55, netgame::mapEntry(localMap_, v).maxUnits, 2);   // FUN_0044ad50: the map's limit
@@ -865,7 +865,7 @@ void NetTask::drawRoom(int pressed) {
         if (m.slot < 0 || m.slot > 3) continue;
         const int y = 0x24d + m.slot * 0x19;
         if (m.ready || m.slot == s.room().host)
-            sub(5, {kReadyMarks[m.slot][0], kReadyMarks[m.slot][1], 20, 21}, 0x239, 0x24a + m.slot * 0x19, 0x55);
+            sub(5, {kReadyMarks[m.slot].x, kReadyMarks[m.slot].y, 20, 21}, 0x239, 0x24a + m.slot * 0x19, 0x55);
         std::string name = m.name + (m.slot == s.room().host ? "  (host)" : "") + (m.slot == s.room().you ? "  *" : "");
         text(0x256, y, name, 0x55, 0xffffffff, 14);
         // FUN_0044b730: the units brought and their total level (FUN_0044acd0); the round trip.
@@ -881,7 +881,7 @@ void NetTask::drawRoom(int pressed) {
     for (int slot = 0; slot < 4; ++slot) {
         const int t = std::min<int>(coop ? 0 : teams_[std::size_t(slot)], 4);
         const auto& c = kTeamCells[slot * 5 + t];
-        sub(5, {kSideMarks[t][0], kSideMarks[t][1], 20, 21}, c[0], c[1], 0x55, 0xff, coop ? 0x68 : 0x80);
+        sub(5, {kSideMarks[t].x, kSideMarks[t].y, 20, 21}, c.x, c.y, 0x55, 0xff, coop ? 0x68 : 0x80);
     }
     // FUN_00449380: our ready mark (the others), the host's start button.
     if (!s.isHost()) {
@@ -918,8 +918,8 @@ void NetTask::drawRoom(int pressed) {
         if (!line.empty()) text(7, 0x1de + row * 0x14, line, 0x55, 0xffffffff, 13);
     });
     // FUN_004483c0: the chosen chat button lit.
-    sub(5, {kChatOn[chatTeam_][0], kChatOn[chatTeam_][1], kChatOn[chatTeam_][2], kChatOn[chatTeam_][3]},
-        kChatButtons[chatTeam_][0], kChatButtons[chatTeam_][1], 0x55);
+    sub(5, kChatOn[chatTeam_],
+        kChatButtons[chatTeam_].x, kChatButtons[chatTeam_].y, 0x55);
     text(7, 0x2ba, "> " + chatLine_ + ((SDL_GetTicks() / 400) % 2 ? "_" : ""), 0x55, 0xffffffff, 14);
     // The invite code (the session name's place).
     text(0x34a, 0x2b6, "Room " + s.room().code, 0x55, 0xffffffff, 14);

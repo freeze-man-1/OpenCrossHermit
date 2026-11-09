@@ -10,7 +10,7 @@ for data files, fixed-width types, no undefined behaviour.
 
 | What | Where |
 |---|---|
-| Port | `~/Documents/modernize` (no git) |
+| Port | `~/Documents/modernize` (git: freeze-man-1/OpenCrossHermit on GitHub) |
 | Imported game data (both releases) | `gamedata/` in the port (git-ignored; `build/gamedata` links to it) |
 | Later TW build (memory dump, source of `ch_data.bin`) | `~/Documents/CrossHermit6/ch.exe` |
 | JP 1.2 update | `~/Downloads/Cross Hermit Update/Update/Cross Hermit.exe` (md5 8ffb4f59…) |
@@ -70,7 +70,7 @@ The repo is prepared for GitHub: no game data, no exe-derived tables, no secrets
   - WebGL is required; without it `SDL_CreateRenderer` fails (the app's built-in browser pane has none). Test with Chromium: `--headless=new --use-angle=swiftshader --enable-unsafe-swiftshader`.
   - Tested: a full JP import (ISO plus update), reload, and the opening; the TW disc ISO added to it, and the title, Load, team and Save screens in TW.
   - Save download and upload: `webInput` / `webDraw` in `saveload_task.cpp` (web only; native has empty bodies) and `chDownload` / `chPickSave` / `addSaves` in the shell. Uploads go through `logic::saveCheck` (`tests/save_check_test.cpp`); `saveValid` stays the looser check for listing and loading. The buttons act on the release, because the file dialog would swallow the mouse-up of a press and leave the button stuck down. Tested in headless Chromium only: the dialog opening is confirmed by Playwright's file chooser event, so a real dialog, Firefox and Safari are untried (Safari is the likeliest to refuse a dialog opened from rAF).
-- **CI:** builds Linux/Windows/macOS and web. Not run yet; expect first-run fixes, MSVC especially.
+- **CI:** builds and tests Linux/Windows/macOS and builds the web version (deployed to Pages from main). The tests that need game files are skipped there.
 - **Removed:** the old `tools/extract_*.py`, `tools/gen/extract_*.py` and `import_assets.sh`. Copies are in the session scratchpad only.
   - `assets/` is the old data folder: ignored and unused.
   - `tools/decomp/` is ignored (decompiler output).

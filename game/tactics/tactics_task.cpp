@@ -23,15 +23,14 @@ namespace ch {
 
 namespace {
 constexpr int kMapPrio = 0xf00;   // FUN_0043fd20(0xf00)
-constexpr std::uint32_t kMapId = 0x7f4488, kStartX = 0x7f4492, kStartY = 0x7f4494;
 
 // FUN_00452cf0: the trial maps (0x4c..0x50, 0x62), when not chained on,
 // bring a fixed party (0xb0-byte records) instead of the work's: those
 // not out of action (+0xa4 below 4) are counted, copied to 0x7f4518 and
 // set five to a row from the start cell (+0x9b / +0x9c). True when it did.
 bool fixedParty(GameWork& w, GameVersion v) {
-    const int map = w.s16(kMapId);
-    if (w.u8(0x7f448c) != 0 || map < 0x4c || (map > 0x50 && map != 0x62)) return false;
+    const int map = w.s16(stage::kMap);
+    if (w.u8(stage::kChained) != 0 || map < 0x4c || (map > 0x50 && map != 0x62)) return false;
     std::uint32_t table;
     int count;
     switch (map - 0x4c) {
@@ -40,20 +39,20 @@ bool fixedParty(GameWork& w, GameVersion v) {
         case 2:  table = 0x607238; count = 3; break;
         case 3:  table = 0x607448; count = 4; break;
         case 4:  table = 0x607708; count = 1; break;   // the tutorial
-        default: table = 0x607d38; count = 0xc; w.set8(0x7f44b8, 0); break;
+        default: table = 0x607d38; count = 0xc; w.set8(stage::kPartyOut, 0); break;
     }
     int n = 0;
     for (int k = 0; k < count; ++k)
         if (logic::sdU8(table + std::uint32_t(k) * 0xb0 + 0xa4, v) < 4) ++n;
-    w.set8(0x7f448d, std::uint8_t(n));
+    w.set8(stage::kPartyCount, std::uint8_t(n));
     w.set8(0x7f448e, 0);
     w.set32(0x7f4508, 0);
     for (int k = 0; k < n; ++k) {
-        const std::uint32_t u = 0x7f4518 + std::uint32_t(k) * 0xb0;
+        const std::uint32_t u = stage::kParty + std::uint32_t(k) * 0xb0;
         w.copy(u, logic::sdBytes(table + std::uint32_t(k) * 0xb0, 0xb0, v));
         if (w.u8(u + 0xa4) < 4) {
-            w.set8(u + 0x9b, std::uint8_t(w.s16(kStartX) + k % 5));
-            w.set8(u + 0x9c, std::uint8_t(w.s16(kStartY) + k / 5));
+            w.set8(u + 0x9b, std::uint8_t(w.s16(stage::kStartX) + k % 5));
+            w.set8(u + 0x9c, std::uint8_t(w.s16(stage::kStartY) + k / 5));
         }
     }
     return true;
@@ -117,13 +116,13 @@ Co<> TacticsTask::start(std::uint32_t) {
     ctx_.draw.text({.x = 0x1b8, .y = 0x17c, .priority = 1, .argb = 0xffffffff, .text = "Tactics Scene", .fontPx = 16});
     ctx_.draw.text({.x = 0x1b8, .y = 400, .priority = 1, .argb = 0xffffffff, .text = "Now Loading....", .fontPx = 16});
     co_await yieldFrame();
-    mapId_ = w.s16(kMapId);
+    mapId_ = w.s16(stage::kMap);
     if (const char* m = SDL_getenv("CH_MAP")) {      // debug: fight another map
         // The stage table row (0x6ad1d0) holds the map number, its start
         // cell and its time limits; the party stays the save's.
-        const std::uint8_t party = w.u8(0x7f448d);
+        const std::uint8_t party = w.u8(stage::kPartyCount);
         PreparationTask::loadStage(w, ctx_.version, static_cast<int>(std::strtol(m, nullptr, 0)), false);
-        w.set8(0x7f448d, party);
+        w.set8(stage::kPartyCount, party);
         // Debug: CH_PARTY=<n> brings the save's own first n party members
         // (its groups first, as the network game's roster) instead.
         if (const char* p = SDL_getenv("CH_PARTY")) {
@@ -131,10 +130,10 @@ Co<> TacticsTask::start(std::uint32_t) {
             const int n = std::min<int>(std::atoi(p), std::min<int>(int(roster.size()), 20));
             for (int i = 0; i < n; ++i)
                 for (std::uint32_t b = 0; b < netgame::kRecord; ++b)
-                    w.set8(0x7f4518 + std::uint32_t(i) * 0xb0 + b, roster[std::size_t(i)][b]);
-            w.set8(0x7f448d, std::uint8_t(n));
+                    w.set8(stage::kParty + std::uint32_t(i) * 0xb0 + b, roster[std::size_t(i)][b]);
+            w.set8(stage::kPartyCount, std::uint8_t(n));
         }
-        mapId_ = w.s16(kMapId);
+        mapId_ = w.s16(stage::kMap);
     }
     if (!map_.load(ctx_, mapId_)) {
         finish(2);
@@ -147,13 +146,13 @@ Co<> TacticsTask::start(std::uint32_t) {
     // relay instead of to the units (net/lockstep.hpp).
     net_ = ctx_.net.state() == net::Session::State::InGame && ctx_.net.lockstep.running() ? &ctx_.net : nullptr;
     if (net_) {
-        units_.setNetwork(w.u8(0x7f4491) != 0);
+        units_.setNetwork(w.u8(stage::kNetwork) != 0);
         units_.setNetSink([this](const net::Command& c) { net_->lockstep.issue(c); });
         netSeen_ = net_->chatCount();                // the room's lines stay in the room
         std::uint8_t present = 0;
         for (const auto& m : net_->room().members) if (m.slot >= 0 && m.slot < 4) present = std::uint8_t(present | 1u << m.slot);
         script_.setNetGate(present, [this](std::uint32_t serial) {
-            net_->lockstep.issue({.type = 0x42, .unit = -1, .extra = std::int16_t(serial)});
+            net_->lockstep.issue({.type = net::kCmdEventDone, .unit = -1, .extra = std::int16_t(serial)});
         });
         units_.setViewer(net_->room().you);          // FUN_00453930: our slot (+0x2f0d4)
     }
@@ -166,8 +165,8 @@ Co<> TacticsTask::start(std::uint32_t) {
     script_.load(mapId_);
     // FUN_00451f50 (phase 0): the music the story left playing gives way to
     // one of the stage's three battle tracks (DAT_007f44bb).
-    ctx_.audio->bgmPlay(w.u8(0x7f44bb + std::uint32_t(units_.random() % 3)), 1);   // FUN_004db010
-    clock_.start(w.s32(0x7f44a8));                   // FUN_00467aa0(DAT_007f44a8)
+    ctx_.audio->bgmPlay(w.u8(stage::kBgm + std::uint32_t(units_.random() % 3)), 1);   // FUN_004db010
+    clock_.start(w.s32(stage::kTimeLimit));                   // FUN_00467aa0(DAT_007f44a8)
     // Debug: CH_TIME_LIMIT=<frames> shortens the stage's time limit.
     if (const char* tl = SDL_getenv("CH_TIME_LIMIT")) clock_.start(std::max(std::atoi(tl), 1));
     SDL_Log("[tactics] map %d: %d x %d cells", mapId_, map_.cellsW(), map_.cellsH());
@@ -175,14 +174,14 @@ Co<> TacticsTask::start(std::uint32_t) {
     // (DAT_007f448f) lets the player choose who goes; the start cell, its
     // range (+0xf) and the most / fewest who may go (+6 / +5).
     sortie_ = {};
-    sortie_.on = w.u8(0x7f448f) != 0;
-    sortie_.sx = w.s16(kStartX);
-    sortie_.sy = w.s16(kStartY);
+    sortie_.on = w.u8(stage::kSortie) != 0;
+    sortie_.sx = w.s16(stage::kStartX);
+    sortie_.sy = w.s16(stage::kStartY);
     if (const char* at = SDL_getenv("CH_START"))     // debug: the sortie's start cell "x,y"
         std::sscanf(at, "%d,%d", &sortie_.sx, &sortie_.sy);
-    sortie_.range = w.u8(0x7f44a2);
-    sortie_.most = w.u8(0x7f44a4);
-    sortie_.fewest = w.u8(0x7f44a3);
+    sortie_.range = w.u8(stage::kStartRange);
+    sortie_.most = w.u8(stage::kMost);
+    sortie_.fewest = w.u8(stage::kFewest);
     units_.setFrozen(true);                          // +0x108b34 0 until case 4
     units_.setOpening(true);                         // +0x108b48 (FUN_00499c90)
     SDL_Log("[tactics] sortie %s: start %d,%d range %d, %d..%d units", sortie_.on ? "on" : "off", sortie_.sx, sortie_.sy,
@@ -199,8 +198,8 @@ Co<> TacticsTask::start(std::uint32_t) {
     const auto netTurn = [&] {
         if (const net::Lockstep::Turn* t = net_->lockstep.beginFrame()) {
             for (const auto& [slot, c] : t->commands) {
-                if (c.type == 0x42) script_.netEventDone(slot, std::uint32_t(std::uint16_t(c.extra)));   // a dialog over
-                else if (c.type == 0x43) script_.dropPlayer(slot);   // the relay: this player left
+                if (c.type == net::kCmdEventDone) script_.netEventDone(slot, std::uint32_t(std::uint16_t(c.extra)));   // a dialog over
+                else if (c.type == net::kCmdPlayerLeft) script_.dropPlayer(slot);
                 else units_.applyNet(slot, c);
             }
             units_.endNetTurn();
@@ -225,11 +224,11 @@ Co<> TacticsTask::start(std::uint32_t) {
     bool partyOut = false;
     const auto sortieFrame = [&] {
         switch (sortie_.phase) {
-            case 0:                                  // the camera on the start (FUN_0043b400)
+            case kSortieCamera:               // the camera on the start (FUN_0043b400)
                 map_.centreOn(sortie_.sx * TacticsMap::kCellW + TacticsMap::kCellW / 2,
                               sortie_.sy * TacticsMap::kCellH + TacticsMap::kCellH / 2);
                 if (!sortie_.on) {
-                    sortie_.phase = 4;
+                    sortie_.phase = kSortieFree;
                 } else if (sortie_.wait != 0) {
                     --sortie_.wait;
                 } else if (sortie_.shown == sortie_.range) {
@@ -239,12 +238,12 @@ Co<> TacticsTask::start(std::uint32_t) {
                     sortie_.wait = 5;
                 }
                 break;
-            case 1:                                  // the cards and the Sortie button
+            case kSortieCards:                // the cards and the Sortie button
                 units_.setCards(true);
                 scroll();
                 sortieMouse();
                 break;
-            case 2:
+            case kSortieChosen:
                 if (sortie_.wait != 0) {
                     --sortie_.wait;
                 } else {
@@ -252,18 +251,18 @@ Co<> TacticsTask::start(std::uint32_t) {
                     ++sortie_.phase;
                 }
                 break;
-            case 3:                                  // FUN_0049a310
+            case kSortieDeploy:               // FUN_0049a310
                 units_.setCards(false);
                 units_.deploySelected(sortie_.sx, sortie_.sy, sortie_.range);
                 partyOut = true;
                 ++sortie_.phase;
                 break;
-            case 4:                                  // three seconds of the units acting (+0x108b34 1)
+            case kSortieFree:                 // three seconds of the units acting (+0x108b34 1)
                 units_.setFrozen(false);
                 ++sortie_.phase;
                 sortie_.wait = 0xb4;
                 break;
-            case 5:
+            case kSortieFreeWait:
                 if (sortie_.wait != 0) {
                     --sortie_.wait;
                 } else {
@@ -271,43 +270,43 @@ Co<> TacticsTask::start(std::uint32_t) {
                     ++sortie_.phase;
                 }
                 break;
-            case 6:                                  // the opening event (FUN_004551c0 / FUN_004549d0)
+            case kSortieOpening:              // the opening event (FUN_004551c0 / FUN_004549d0)
                 // (A versus map in network play has none: FUN_00456b20 / FUN_004daae0.)
                 // It undims (5th 1) and holds nobody (7th 0): the units stay
                 // frozen from case 5 until the battle starts, and even an
                 // event with no script lasts until the start banner lets it go.
-                if (net_ && w.u8(0x7f4504) == 0) script_.startEvent(0, 0, false, false, true, false);
+                if (net_ && w.u8(stage::kRoundFlag) == 0) script_.startEvent(0, 0, false, false, true, false);
                 else if (script_.check(0, 1)) script_.startEvent(0, 1, false, true, true, false);
                 else script_.startEvent(0, 0, false, false, true, false);
                 ++sortie_.phase;
                 break;
-            case 7:                                  // its script done (2), or no event left
+            case kSortieOpeningScript:        // its script done (2), or no event left
                 if (script_.eventState() != 1) ++sortie_.phase;
                 break;
-            case 8:                                  // the start banner when the stage has one (DAT_007f44b9)
+            case kSortieBanner1:              // the start banner when the stage has one (DAT_007f44b9)
                 ++sortie_.phase;
-                if (w.u8(0x7f44b9) != 0) {
+                if (w.u8(stage::kBanner1) != 0) {
                     startBanner(0);
                 } else {
                     script_.releaseEvent();          // FUN_00454c80
                     ++sortie_.phase;
                 }
                 break;
-            case 9:
+            case kSortieBanner1Wait:
                 if (tickBanner()) {
                     script_.releaseEvent();          // FUN_00454c80
                     ++sortie_.phase;
                 }
                 break;
-            case 0xa:                                // the event's undim and end
+            case kSortieOpeningEnd:           // the event's undim and end
                 if (script_.eventState() == 0) ++sortie_.phase;
                 break;
-            case 0xb:                                // the second banner (DAT_007f44ba)
+            case kSortieBanner2:              // the second banner (DAT_007f44ba)
                 ++sortie_.phase;
-                if (w.u8(0x7f44ba) != 0) startBanner(1);
+                if (w.u8(stage::kBanner2) != 0) startBanner(1);
                 else ++sortie_.phase;
                 break;
-            case 0xc:
+            case kSortieBanner2Wait:
                 if (tickBanner()) ++sortie_.phase;
                 break;
             default: break;
@@ -319,7 +318,7 @@ Co<> TacticsTask::start(std::uint32_t) {
         // call), the party goes out in order up to the stage's limit.
         // (Not in network play: it asks after the viewer's units, which
         // differ between the players, and would place a party on one side only.)
-        if (sortie_.phase == 8 && !partyOut && !net_) {
+        if (sortie_.phase == kSortieBanner1 && !partyOut && !net_) {
             partyOut = true;
             if (!units_.anyOwnOnField()) {
                 SDL_Log("[tactics] map %d: the opening placed no party member; the party goes out in order", mapId_);
@@ -328,15 +327,15 @@ Co<> TacticsTask::start(std::uint32_t) {
         }
         map_.fogFrame();
         units_.stampSight(map_);
-        if (sortie_.on && sortie_.phase <= 3) map_.see(sortie_.sx, sortie_.sy, sortie_.shown);   // FUN_0049b9f0
+        if (sortie_.on && sortie_.phase <= kSortieDeploy) map_.see(sortie_.sx, sortie_.sy, sortie_.shown);   // FUN_0049b9f0
         units_.update();
         script_.update();
     };
-    while (sortie_.phase < 0xd) {
+    while (sortie_.phase < kSortieDone) {
         if (!net_) {
             sortieFrame();
         } else {
-            for (int n = net_->lockstep.framesToRun(); n > 0 && sortie_.phase < 0xd; --n) {
+            for (int n = net_->lockstep.framesToRun(); n > 0 && sortie_.phase < kSortieDone; --n) {
                 netTurn();
                 sortieFrame();
                 netEndFrame();
@@ -507,14 +506,14 @@ Co<> TacticsTask::start(std::uint32_t) {
         // 5 -> 6; stage 0x2d banner 0xc) setting DAT_005ff720 (0 a win,
         // 1 the middle ranks, 2 a loss), then the blinds close.
         const int r = rank_ > 0 ? rank_ : checks_.rank() >= 0 ? checks_.rank() : 2;
-        if (SDL_getenv("CH_UNITS")) SDL_Log("[tactics] the battle ends: rank %d", r);
+        if (tactics::traceUnits()) SDL_Log("[tactics] the battle ends: rank %d", r);
         for (int i = 0; i < 0x40; ++i) {
             draw();
             co_await yieldFrame();
         }
         if (r >= 1 && r <= 5) {
             static constexpr int kComing[6] = {0, 0, 1, 1, 2, 2};
-            startBanner(w.s16(0x7f4488) == 0x2d ? 0xc : r + 1);
+            startBanner(w.s16(stage::kMap) == 0x2d ? 0xc : r + 1);
             ctx_.comingResult = kComing[r];
             while (!tickBanner()) {
                 draw();
@@ -550,7 +549,7 @@ Co<> TacticsTask::start(std::uint32_t) {
     // screen and then the room: what they found and learnt stays theirs.
     if (net_) {
         net_->gameOver();
-        if (w.u8(0x7f4504) != 0) {
+        if (w.u8(stage::kRoundFlag) != 0) {
             coopHandBack();
             ctx_.scenes.request(SceneId::TacticsResult);
         } else {
@@ -639,7 +638,7 @@ TacticsUnits::BarInput TacticsTask::barInput() const {
     return {.x = m.x, .y = m.y, .pressed = (m.pressed & legacy::kMouseLeft) != 0,
             .held = (m.held & legacy::kMouseLeft) != 0, .released = (m.released & legacy::kMouseLeft) != 0,
             .dragging = dragging_ && dragged_, .shift = (SDL_GetModState() & KMOD_SHIFT) != 0, .shiftUp = shiftUp_,
-            .fkey = fkey_, .sortie = sortie_.phase < 0xd};
+            .fkey = fkey_, .sortie = sortie_.phase < kSortieDone};
 }
 
 void TacticsTask::mouse() {
@@ -779,22 +778,22 @@ void TacticsTask::mouse() {
 // records' +0xa8..+0xae too; no network map chains.)
 void TacticsTask::coopHandBack() {
     GameWork& w = ctx_.work;
-    const int count = w.u8(0x7f448d);
+    const int count = w.u8(stage::kPartyCount);
     std::vector<const TacticsUnits::Unit*> kept;
     for (int i = 0; i < count && i < TacticsUnits::kSlots; ++i) {
         const auto& u = units_.unit(i);
         if (u.used && u.team() == units_.viewer()) kept.push_back(&u);
     }
-    w.fill(0x7f4518, 0x3700, 0);
+    w.fill(stage::kParty, 0x3700, 0);
     for (std::size_t k = 0; k < kept.size(); ++k)
-        for (std::uint32_t b = 0; b < 0xb0; ++b) w.set8(0x7f4518 + std::uint32_t(k) * 0xb0 + b, kept[k]->data.u8(b));
-    w.set8(0x7f448d, std::uint8_t(kept.size()));
+        for (std::uint32_t b = 0; b < 0xb0; ++b) w.set8(stage::kParty + std::uint32_t(k) * 0xb0 + b, kept[k]->data.u8(b));
+    w.set8(stage::kPartyCount, std::uint8_t(kept.size()));
     w.set16(0x7a5296, 1);
     w.set16(0x7a5298, 1);
     w.set16(0x7a52f8, std::int16_t(kept.size()));
     w.fill(0x7a52d0, 0x28, 0);
-    for (std::size_t k = 0; k < kept.size() && k < 0x14; ++k) w.set16(0x7a52d0 + std::uint32_t(k) * 2, w.s16(0x7f451a + std::uint32_t(k) * 0xb0));
-    const int map = w.s16(0x7f4488);
+    for (std::size_t k = 0; k < kept.size() && k < 0x14; ++k) w.set16At(0x7a52d0, k, w.s16(0x7f451a + std::uint32_t(k) * 0xb0));
+    const int map = w.s16(stage::kMap);
     w.set16(0x7a5294, (map >= 0x25 && map <= 0x28) || (map >= 0x96 && map <= 0x9a) ? map : map >= 0x30 && map <= 0x44 ? 0x30 : 0x25);
     SDL_Log("[net] co-operative battle over: %zu of our units back to the party", kept.size());
 }
@@ -814,7 +813,7 @@ bool inBox(int x, int y, int bx, int by) { return x >= bx && y >= by && x < bx +
 bool TacticsTask::sameSide(int slot) const {
     const int me = net_ ? net_->room().you : 0;
     if (slot < 0 || slot > 3 || me < 0 || me > 3) return false;
-    return ctx_.work.u8(0x7f44e4 + std::uint32_t(slot)) == ctx_.work.u8(0x7f44e4 + std::uint32_t(me));
+    return ctx_.work.u8(stage::kSlotSide + std::uint32_t(slot)) == ctx_.work.u8(stage::kSlotSide + std::uint32_t(me));
 }
 
 // FUN_00493c40: our flare at once and to the others (FUN_00458380, message
@@ -831,7 +830,7 @@ void TacticsTask::flareAt(int px, int py, int side) {
     if (!map_.hasMinimap() || map_.cellsW() == 0 || map_.cellsH() == 0) return;
     const int mx = TacticsMap::kMiniX + px * map_.miniW() / (map_.cellsW() * TacticsMap::kCellW);
     const int my = TacticsMap::kMiniY + py * map_.miniH() / (map_.cellsH() * TacticsMap::kCellH);
-    if (SDL_getenv("CH_UNITS")) SDL_Log("[net] flare at %d,%d (side %d)", px, py, side);
+    if (tactics::traceUnits()) SDL_Log("[net] flare at %d,%d (side %d)", px, py, side);
     units_.flare(mx, my, side);
 }
 
@@ -1109,7 +1108,7 @@ void TacticsTask::drawDigits(int x, int y, int value, int style, std::uint32_t a
 // the base, the pressed and the off button), the fewest and most who may
 // go and the count picked, red when it is out of range.
 void TacticsTask::drawSortie() const {
-    if (!sortie_.on || !sortie_.panel || sortie_.phase >= 4) return;
+    if (!sortie_.on || !sortie_.panel || sortie_.phase >= kSortieFree) return;
     const GameVersion v = ctx_.version;
     constexpr int kPrio = 0xc6;
     const auto part = [&](int row, int x, int y) {
@@ -1438,11 +1437,11 @@ void TacticsTask::draw() {
     // The roster faces count as under the pointer too (the port's).
     int under = hover && units_.isSeen(*hover) ? hover->slot : -1;
     if (const int r = units_.rosterAt(m.x, m.y); r >= 0) under = r;
-    const int shown = units_.updatePanel(under, sortie_.phase < 0xd);   // FUN_0049cc60
-    units_.talk(sortie_.phase < 0xd);                // FUN_0046db20 -> FUN_0049ab60
-    units_.drawHud(shown, sortie_.phase < 0xd);
+    const int shown = units_.updatePanel(under, sortie_.phase < kSortieDone);   // FUN_0049cc60
+    units_.talk(sortie_.phase < kSortieDone);                // FUN_0046db20 -> FUN_0049ab60
+    units_.drawHud(shown, sortie_.phase < kSortieDone);
     units_.updateHelp(barInput(), shown);            // FUN_0049c400
-    units_.drawBar(sortie_.phase < 0xd);                   // FUN_0049beb0
+    units_.drawBar(sortie_.phase < kSortieDone);                   // FUN_0049beb0
     units_.drawHelp();                               // FUN_0049c850
     units_.updateCursor(onMap, cx, cy, hover && units_.isSeen(*hover) ? hover->slot : -1);   // FUN_00490fc0
     if (!script_.eventRunning()) units_.drawCursor(m.x, m.y);                              // FUN_00491680
@@ -1457,7 +1456,7 @@ void TacticsTask::draw() {
         if (const TacticsUnits::Unit* u = hover) {
             info += "  unit " + std::to_string(u->slot) + " id " + std::to_string(u->data.s16(0)) + " kind " +
                     std::to_string(u->data.u16(0xc)) + " team " + std::to_string(u->team()) + " HP " +
-                    std::to_string(u->data.s16(0x16)) + "/" + std::to_string(u->data.s16(0x14)) + " state " +
+                    std::to_string(u->hp()) + "/" + std::to_string(u->maxHp()) + " state " +
                     std::to_string(u->state);
         }
     }
@@ -1478,17 +1477,17 @@ void TacticsTask::draw() {
 void TacticsTask::finish(int rank) {
     GameWork& w = ctx_.work;
     SDL_Log("[tactics] battle over, rank %d", rank);
-    w.set16(0x7f450c, static_cast<std::int16_t>(rank));
-    const std::int32_t mark1 = w.s32(0x7f44ac), mark2 = w.s32(0x7f44b0);
+    w.set16(stage::kRank, static_cast<std::int16_t>(rank));
+    const std::int32_t mark1 = w.s32(stage::kTimeMark1), mark2 = w.s32(stage::kTimeMark2);
     const std::int32_t used = clock_.limit != 0x7fffffff ? clock_.limit - clock_.left : clock_.elapsed;
-    w.set16(0x7f450e, static_cast<std::int16_t>(mark1 == 0 ? 0 : used <= mark1 ? 1 : used <= mark2 ? 2 : 3));
-    w.set16(0x7f4510, units_.enemiesGone() ? 2 : 1);
+    w.set16(stage::kTimeGrade, static_cast<std::int16_t>(mark1 == 0 ? 0 : used <= mark1 ? 1 : used <= mark2 ? 2 : 3));
+    w.set16(stage::kEnemiesGone, units_.enemiesGone() ? 2 : 1);
     for (std::uint32_t k = 0; k < 0x10; ++k)
-        if (const int n = static_cast<std::int8_t>(w.u8(0x7f44be + k)); n != 0) w.set8(0x7f44be + k, units_.baseOurs(n) ? 1 : 0);
-    w.set16(0x7f4512, static_cast<std::int16_t>(units_.teamWorth(units_.viewer())));
+        if (const int n = static_cast<std::int8_t>(w.u8(stage::kPrizes + k)); n != 0) w.set8(stage::kPrizes + k, units_.baseOurs(n) ? 1 : 0);
+    w.set16(stage::kWorth, static_cast<std::int16_t>(units_.teamWorth(units_.viewer())));
     const bool fought = units_.partyCount() > 0;
-    for (int i = 0; i < w.u8(0x7f448d); ++i) {
-        const std::uint32_t u = 0x7f4518 + std::uint32_t(i) * 0xb0;
+    for (int i = 0; i < w.u8(stage::kPartyCount); ++i) {
+        const std::uint32_t u = stage::kParty + std::uint32_t(i) * 0xb0;
         if (fought && i < units_.partyCount()) {
             const auto& d = units_.unit(i).data;
             w.set16(u + 0xaa, d.s16(0xaa));
@@ -1516,14 +1515,14 @@ void TacticsTask::finish(int rank) {
 // goes to the title, the rest to the results.
 void TacticsTask::route(int rank) {
     GameWork& w = ctx_.work;
-    const int stage = w.s16(0x7f4488);           // FUN_00451d10
+    const int stage = w.s16(stage::kMap);           // FUN_00451d10
     switch (stage - 0x4c) {
         case 0: case 1: case 3: ctx_.scenes.request(SceneId::Coming); return;
         case 2: case 4: ctx_.scenes.request(SceneId::Title); return;
         case 6: ctx_.scenes.request(ctx_.comingResult == -1 ? SceneId::TitleTrial : SceneId::Coming); return;
         default: break;
     }
-    const int next = w.s16(0x7f448a);
+    const int next = w.s16(stage::kNextMap);
     bool closeRound = next == -1;
     if (next != 0 && next != -1) {
         bool standing = false;
@@ -1532,18 +1531,18 @@ void TacticsTask::route(int rank) {
         closeRound = true;
         if (standing && clock_.left != 0) {
             logic::addRoundStage(w);                 // FUN_004536c0 -> FUN_004dab50
-            const int count = w.u8(0x7f448d), net = w.u8(0x7f4491);
+            const int count = w.u8(stage::kPartyCount), net = w.u8(stage::kNetwork);
             for (int i = 0; i < count; ++i) {
-                const std::uint32_t u = 0x7f4518 + std::uint32_t(i) * 0xb0;
+                const std::uint32_t u = stage::kParty + std::uint32_t(i) * 0xb0;
                 w.set8(u + 0x9d, 0);
                 w.set8(u + 0x9e, 0);
                 w.set8(u + 0x9f, 2);
                 for (std::uint32_t k = 0xa0; k <= 0xa3; ++k) w.set8(u + k, 0);
             }
             PreparationTask::loadStage(w, ctx_.version, next, false);
-            w.set8(0x7f448c, 1);
-            w.set8(0x7f448d, std::uint8_t(count));
-            w.set8(0x7f4491, std::uint8_t(net));
+            w.set8(stage::kChained, 1);
+            w.set8(stage::kPartyCount, std::uint8_t(count));
+            w.set8(stage::kNetwork, std::uint8_t(net));
             SDL_Log("[tactics] stage %d chains on to %d", stage, next);
             ctx_.scenes.request(SceneId::Tactics);
             return;

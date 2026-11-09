@@ -17,10 +17,9 @@ namespace {
 constexpr std::uint32_t kUnitJob = 6, kUnitStats = 0xc, kUnitRank = 0x50;
 constexpr std::uint32_t kUnitSkills = 0x52, kUnitItems = 0x62, kUnitSlots = 0xb0;
 constexpr std::uint32_t kJobLevel = 0xd8, kJobOpen = 0xf9, kScore = 0x11c;
-constexpr std::uint32_t kInRoster = 0x7a5120, kMembers = 0x7a5210, kMemberCount = 0x7a5260;
-constexpr std::uint32_t kGuests = 0x7a5262, kGuestCount = 0x7a528a, kDifficulty = 0x7a528c;
 constexpr std::uint32_t kItems = 0x7aacaa;   // u16 per item id (1-based)
 constexpr std::uint32_t kSeen = 0x7d4f3c;
+using roster::kInRoster, roster::kMembers, roster::kMemberCount, roster::kGuests, roster::kGuestCount, roster::kYear;
 } // namespace
 
 // The decompiled TW build's tables, the JP version's differing ones from
@@ -48,9 +47,8 @@ bool inRoster(const GameWork& w, int id) {   // FUN_004d46e0
     return id >= 0 && id < 0xf0 && w.u8(kInRoster + std::uint32_t(id)) != 0;
 }
 
-// -------------------------------------------------------------- new game ---
-// FUN_004e1b60 -> FUN_004e1be0 -> FUN_0049e930. The zero writes of the
-// original are covered by the memsets; only the non-zero ones are listed.
+// ------------------------------------------------------------------- rng ---
+// FUN_004d1cb0 / FUN_004d1c60: the CRT rand() / srand() (game_logic.hpp).
 namespace { std::uint32_t randSeed = 1; }
 void srand(std::uint32_t seed) { randSeed = seed; }
 int rand() {
@@ -62,11 +60,11 @@ int rand() {
 int rosterSlot(const GameWork& w, int id) {
     if (id == 0 || !inRoster(w, id)) return -1;
     if (id < 0x65) {
-        for (int i = 0; i < w.s16(0x7a5260); ++i)
-            if (w.s16(0x7a5210 + std::uint32_t(i) * 2) == id) return i;
+        for (int i = 0; i < w.s16(kMemberCount); ++i)
+            if (w.s16At(kMembers, i) == id) return i;
     } else {
-        for (int i = 0; i < w.s16(0x7a528a); ++i)
-            if (w.s16(0x7a5262 + std::uint32_t(i) * 2) == id) return i;
+        for (int i = 0; i < w.s16(kGuestCount); ++i)
+            if (w.s16At(kGuests, i) == id) return i;
     }
     return -1;
 }
@@ -123,7 +121,7 @@ int unitVoiceLine(int unit, int category, int extra) {
         }
         case 3: {
             constexpr std::array<int, 3> t{0x15, 0x13, 0x14};
-            (void)rand();
+            (void)rand();                     // the original rolls rand() % 100 even for one line
             line = base + t[extra < 4 ? 0 : extra < 6 ? 1 : 2];
             break;
         }
@@ -136,14 +134,14 @@ int unitVoiceLine(int unit, int category, int extra) {
         case 5: line = base + std::array<int, 2>{0x10, 0x1b}[pickWeighted(std::array<int, 2>{0x32, 0x32})]; break;
         case 6: line = base + std::array<int, 3>{0x1a, 0x1c, 0x12}[pickWeighted(std::array<int, 3>{0x1e, 0x28, 0x1e})]; break;
         case 7: line = base + std::array<int, 3>{0x1c, 0x16, 0x17}[pickWeighted(std::array<int, 3>{0x28, 0x1e, 0x1e})]; break;
-        case 8: (void)rand(); line = base + 0x1f; break;
+        case 8: (void)rand(); line = base + 0x1f; break;    // rolled, one line
         case 9: {
             constexpr std::array<int, 3> t{-1, 0x22, 0x23};
             const std::size_t i = pickWeighted(std::array<int, 3>{0x28, 0x1e, 0x1e});
             if (t[i] != -1) line = base + t[i];
             break;
         }
-        case 10: (void)rand(); line = base + 0x21; break;
+        case 10: (void)rand(); line = base + 0x21; break;   // rolled, one line
         case 0xb: {
             constexpr std::array<int, 4> t{-1, 0x16, 0x1a, 0x1b};
             const std::size_t i = pickWeighted(std::array<int, 4>{0x19, 0x19, 0x19, 0x19});
@@ -201,34 +199,37 @@ std::array<std::int32_t, 8> lectureGain(const GameWork& w, GameVersion v, int un
     return out;
 }
 
+// -------------------------------------------------------------- new game ---
+// FUN_004e1b60 -> FUN_004e1be0 -> FUN_0049e930. The zero writes of the
+// original are covered by the memsets; only the non-zero ones are listed.
 void newGame(GameWork& w, GameVersion v) {
     w.fill(0x7e17e8, 0x12ca0, 0);
-    w.fill(0x7f4518, 0x3700, 0);
-    w.fill(0x7f4488, 0x8c, 0);
+    w.fill(stage::kParty, 0x3700, 0);
+    w.fill(stage::kBase, stage::kSize, 0);
     w.copy(0x7e17e8, sdBytes(0x6f5088, 0x12ca0, v));      // 65 unit templates (FUN_004e1be0)
 
     w.fill(0x7a50e8, 0x306d4, 0);
-    w.set16(kDifficulty, 1);
+    w.set16(kYear, 1);
     w.setMonth(4); w.setWeek(0); w.setDay(1);
     w.set16(0x7a55f8, 1);
-    for (std::uint32_t i = 0; i < 5; ++i) {               // five parties
-        const std::uint32_t p = i * 0x1c;
-        w.set16(0x7aaa12 + p, -1);
-        for (std::uint32_t k = 0; k < 4; ++k) w.set16(0x7aaa22 + p + k * 2, -1);
-        w.set8(0x7aaa15 + p, 1);
-        w.set8(0x7aaa16 + p, 0xff);
-        w.set16(0x7aaa18 + p, -1);
-        w.set16(0x7aaa1a + p, -1);
-        w.set16(0x7aaa1c + p, -1);
-        w.set16(0x7aaa1e + p, -1);
+    for (int i = 0; i < 5; ++i) {                         // five groups
+        const std::uint32_t g = groups::at(i);
+        w.set16(g + groups::kLeader, -1);
+        for (std::uint32_t k = 0; k < 4; ++k) w.set16(g + groups::kMembers + k * 2, -1);
+        w.set8(g + 3, 1);                                 // 0x7aaa15: lecture flag
+        w.set8(g + 4, 0xff);                              // 0x7aaa16
+        w.set16(g + 6, -1);                               // 0x7aaa18..0x7aaa1e: the choice
+        w.set16(g + 8, -1);
+        w.set16(g + 0xa, -1);
+        w.set16(g + 0xc, -1);
     }
     for (std::uint32_t i = 0; i < 5; ++i) {               // FUN_004d3d00
         for (std::uint32_t k = 0; k < 4; ++k) {
-            w.set16(0x7aaae0 + i * 8 + k * 2, -1);
-            w.set16(0x7aaab8 + i * 8 + k * 2, -1);
+            w.set16(groups::kMemberSlots + i * 8 + k * 2, -1);
+            w.set16(groups::kMemberIds + i * 8 + k * 2, -1);
         }
-        w.set16(0x7aaaae + i * 2, -1);
-        w.set16(0x7aaaa4 + i * 2, -1);
+        w.set16(groups::kLeaderSlots + i * 2, -1);
+        w.set16(groups::kLeaderIds + i * 2, -1);
     }
     w.copy(0x7d3d70, sdBytes(0x74e4b0, 0x43 * 0x44, v));
     for (std::uint32_t i = 0; i < 300; ++i) w.set8(0x7a54ca + i, 5);
@@ -287,6 +288,13 @@ void refreshEquipment(GameWork& w) {
 // (FUN_004e1c70, the other restore, is empty in this build).
 namespace {
 constexpr std::uint32_t kSaveBase = 0x7a50e8, kSaveSize = 0x306d4;
+constexpr std::uint32_t kSaveSum = kSaveBase + 0x2c;                                   // 0x7a5114
+// The blocks saved through a copy (see above).
+constexpr std::uint32_t kUnitRecords = 0x7e17e8, kUnitCopy = 0x7bc6ac, kUnitBytes = 0x41 * 0x4a0;
+constexpr std::uint32_t kGlobals = 0x7f7c18, kGlobalsCopy = 0x7aaf7c, kGlobalsBytes = 0x11730;
+void copyBlock(GameWork& w, std::uint32_t to, std::uint32_t from, std::uint32_t n) {
+    for (std::uint32_t i = 0; i < n; ++i) w.set8(to + i, w.u8(from + i));
+}
 std::int32_t saveChecksum(std::span<const std::uint8_t> b) {
     std::int32_t sum = 0;
     for (std::size_t i = 0; i < b.size(); ++i)
@@ -298,13 +306,13 @@ std::int32_t saveChecksum(std::span<const std::uint8_t> b) {
 std::vector<std::uint8_t> saveGame(GameWork& w) {
     w.set16(kSaveBase, 7);
     w.set32(kSaveBase + 4, 0x10002);                      // FUN_004e2c30
-    for (std::uint32_t i = 0; i < 0x41 * 0x4a0; ++i) w.set8(0x7bc6ac + i, w.u8(0x7e17e8 + i));
-    for (std::uint32_t i = 0; i < 0x11730; ++i) w.set8(0x7aaf7c + i, w.u8(0x7f7c18 + i));
-    w.set32(0x7a5114, 0);
+    copyBlock(w, kUnitCopy, kUnitRecords, kUnitBytes);
+    copyBlock(w, kGlobalsCopy, kGlobals, kGlobalsBytes);
+    w.set32(kSaveSum, 0);
     std::vector<std::uint8_t> out(kSaveSize);
     for (std::uint32_t i = 0; i < kSaveSize; ++i) out[i] = w.u8(kSaveBase + i);
     const std::int32_t sum = saveChecksum(out);
-    w.set32(0x7a5114, sum);
+    w.set32(kSaveSum, sum);
     for (int k = 0; k < 4; ++k) out[0x2c + std::size_t(k)] = static_cast<std::uint8_t>(std::uint32_t(sum) >> (8 * k));
     return out;
 }
@@ -321,12 +329,14 @@ SaveProblem saveIntegrity(std::span<const std::uint8_t> b) {
 
 bool saveValid(std::span<const std::uint8_t> b) { return saveIntegrity(b) == SaveProblem::None; }
 
+int saveField16(std::span<const std::uint8_t> b, std::uint32_t va) {
+    const std::size_t o = va - kSaveBase;
+    return int(std::int16_t(b[o] | b[o + 1] << 8));
+}
+
 SaveProblem saveCheck(std::span<const std::uint8_t> b) {
     if (const SaveProblem p = saveIntegrity(b); p != SaveProblem::None) return p;
-    const auto s16 = [&](std::uint32_t va) {
-        const std::size_t o = va - kSaveBase;
-        return int(std::int16_t(b[o] | b[o + 1] << 8));
-    };
+    const auto s16 = [&](std::uint32_t va) { return saveField16(b, va); };
     // joinRoster / leaveRoster keep these in step: each id on its list once,
     // and flagged; nothing else flagged. Members are ids below 0x65.
     const auto flag = [&](int id) { return b[kInRoster - kSaveBase + std::size_t(id)]; };
@@ -346,7 +356,7 @@ SaveProblem saveCheck(std::span<const std::uint8_t> b) {
         if (flag(id) != (listed[std::size_t(id)] ? 1 : 0)) return SaveProblem::Contents;
     // The list shows the year and month in two digits and the week in one.
     // Scripts can set the month, so these are wider than a normal game.
-    const int year = s16(kDifficulty), month = s16(0x7a528e), week = s16(0x7a5290);
+    const int year = s16(kYear), month = s16(roster::kMonth), week = s16(roster::kWeek);
     if (year < 0 || year > 99 || month < 1 || month > 99 || week < 0 || week > 9) return SaveProblem::Contents;
     return SaveProblem::None;
 }
@@ -354,7 +364,7 @@ SaveProblem saveCheck(std::span<const std::uint8_t> b) {
 bool loadGame(GameWork& w, std::span<const std::uint8_t> b) {
     if (!saveValid(b)) return false;
     for (std::uint32_t i = 0; i < kSaveSize; ++i) w.set8(kSaveBase + i, b[i]);
-    for (std::uint32_t i = 0; i < 0x41 * 0x4a0; ++i) w.set8(0x7e17e8 + i, w.u8(0x7bc6ac + i));
+    copyBlock(w, kUnitRecords, kUnitCopy, kUnitBytes);
     refreshEquipment(w);                                   // FUN_0049e8f0
     return true;
 }
@@ -365,7 +375,7 @@ void advanceWeek(GameWork& w, GameVersion) {
     if (w.week() > 5) { w.setMonth(w.month() + 1); w.setWeek(1); }
     w.set16(0x7a55fa, 0);
     w.setWorkRoomEventSeen(false);
-    for (int i = 0; i < w.s16(kMemberCount); ++i) openJobs(w, w.s16(kMembers + std::uint32_t(i) * 2));
+    for (int i = 0; i < w.s16(kMemberCount); ++i) openJobs(w, w.s16At(kMembers, i));
     refreshEquipment(w);
     w.setAreaBgm(0xb);
     w.setAreaBgmOn(false);
@@ -378,11 +388,11 @@ void joinRoster(GameWork& w, GameVersion v, int id, int party, int slot) {
     if (id < 0x65) {
         const int index = w.s16(kMemberCount);
         w.set16(kMemberCount, index + 1);
-        w.set16(kMembers + std::uint32_t(index) * 2, id);
+        w.set16At(kMembers, index, id);
         if (party >= 0 && slot >= 0) {
-            w.set16(0x7aaae0 + std::uint32_t(party) * 8 + std::uint32_t(slot) * 2, index);
-            w.set16(0x7aaab8 + std::uint32_t(party) * 8 + std::uint32_t(slot) * 2, id);
-            w.set16(0x7aaa22 + std::uint32_t(slot) * 2 + std::uint32_t(party) * 0x1c, id);
+            w.set16(groups::kMemberSlots + std::uint32_t(party) * 8 + std::uint32_t(slot) * 2, index);
+            w.set16(groups::kMemberIds + std::uint32_t(party) * 8 + std::uint32_t(slot) * 2, id);
+            w.set16(groups::kBase + groups::kMembers + std::uint32_t(slot) * 2 + std::uint32_t(party) * groups::kStride, id);
         }
         const std::uint32_t rec = GameWork::unitRecord(id), prog = GameWork::unitProgress(id);
         for (std::uint32_t j = 0; j < 0x20; ++j) w.set8(prog + kJobOpen + j, 0);
@@ -397,11 +407,11 @@ void joinRoster(GameWork& w, GameVersion v, int id, int party, int slot) {
             f = static_cast<std::uint16_t>((f & 0xff01) | (id & 0x7f) << 1);
             w.set16(at, f);
         }
-        for (std::uint32_t k = 0; k < 8; ++k) {          // skills: set, unless on hard difficulty
+        for (std::uint32_t k = 0; k < 8; ++k) {          // skills: set, unless past the first year
             const int s = w.s16(rec + kUnitSkills + k * 2);
             if (s <= 0) continue;
-            const int diff = w.s16(kDifficulty);
-            if (diff < 0 || diff > 1) w.set16(rec + kUnitSkills + k * 2, 0);
+            const int year = w.s16(kYear);
+            if (year < 0 || year > 1) w.set16(rec + kUnitSkills + k * 2, 0);
             else w.set8(rec + kUnitSlots + 8 + std::uint32_t(s - 1) * 0xc, 6);
         }
         w.set8(rec + kUnitRank, unitSummary(w, v, id).rank);
@@ -409,11 +419,11 @@ void joinRoster(GameWork& w, GameVersion v, int id, int party, int slot) {
     } else {
         const int index = w.s16(kGuestCount);
         w.set16(kGuestCount, index + 1);
-        w.set16(kGuests + std::uint32_t(index) * 2, id);
+        w.set16At(kGuests, index, id);
         if (party >= 0) {
-            w.set16(0x7aaaae + std::uint32_t(party) * 2, index);
-            w.set16(0x7aaaa4 + std::uint32_t(party) * 2, id);
-            w.set16(0x7aaa12 + std::uint32_t(party) * 0x1c, id);
+            w.set16At(groups::kLeaderSlots, party, index);
+            w.set16At(groups::kLeaderIds, party, id);
+            w.set16(groups::kBase + std::uint32_t(party) * groups::kStride, id);
         }
     }
     w.set8(kInRoster + std::uint32_t(id), 1);             // FUN_004d4730
@@ -425,12 +435,12 @@ void leaveRoster(GameWork& w, int id) {
     if (id < 0x65) {
         const int n = w.s16(kMemberCount);
         int i = 0;
-        while (i < n && w.s16(kMembers + std::uint32_t(i) * 2) != id) ++i;
-        for (; i < n - 1; ++i) w.set16(kMembers + std::uint32_t(i) * 2, w.s16(kMembers + std::uint32_t(i + 1) * 2));
+        while (i < n && w.s16At(kMembers, i) != id) ++i;
+        for (; i < n - 1; ++i) w.set16At(kMembers, i, w.s16At(kMembers, i + 1));
         w.set16(kMemberCount, n - 1);
         for (std::uint32_t p = 0; p < 5; ++p)
             for (std::uint32_t k = 0; k < 4; ++k)
-                if (w.s16(0x7aaa22 + k * 2 + p * 0x1c) == id) w.set16(0x7aaa22 + k * 2 + p * 0x1c, -1);
+                if (w.s16(groups::kBase + groups::kMembers + k * 2 + p * groups::kStride) == id) w.set16(groups::kBase + groups::kMembers + k * 2 + p * groups::kStride, -1);
         for (std::uint32_t k = 0; k < 8; ++k) {          // equipped items go to storage
             const int item = w.s16(GameWork::unitRecord(id) + kUnitItems + k * 2);
             if (item <= 0) continue;
@@ -440,10 +450,10 @@ void leaveRoster(GameWork& w, int id) {
     } else {
         const int n = w.s16(kGuestCount);
         int i = 0;
-        while (i < n && w.s16(kGuests + std::uint32_t(i) * 2) != id) ++i;
-        for (; i < n - 1; ++i) w.set16(kGuests + std::uint32_t(i) * 2, w.s16(kGuests + std::uint32_t(i + 1) * 2));
+        while (i < n && w.s16At(kGuests, i) != id) ++i;
+        for (; i < n - 1; ++i) w.set16At(kGuests, i, w.s16At(kGuests, i + 1));
         for (std::uint32_t p = 0; p < 5; ++p)
-            if (w.s16(0x7aaa12 + p * 0x1c) == id) w.set16(0x7aaa12 + p * 0x1c, -1);
+            if (w.s16(groups::kBase + p * groups::kStride) == id) w.set16(groups::kBase + p * groups::kStride, -1);
         w.set16(kGuestCount, n - 1);
     }
     w.set8(kInRoster + std::uint32_t(id), 0);             // FUN_004d4770
@@ -485,12 +495,16 @@ void openJobs(GameWork& w, int unit) {
 }
 
 // ------------------------------------------------------------- summaries ---
-// FUN_004d56a0: exp per level from 0x6e4308; the cap is level 100 (or 0x87
-// when the difficulty value is not 0/1).
+// FUN_004d56a0's level cap: 100, or 0x87 when the year is not 0 / 1.
+int levelCap(const GameWork& w) {
+    const int year = w.s16(kYear);
+    return year < 0 || year > 1 ? 0x87 : 100;
+}
+
+// FUN_004d56a0: exp per level from 0x6e4308, up to levelCap.
 StatProgress statProgress(const GameWork& w, int level, std::int32_t exp) {
     const auto expAt = [](int k) { return sdS32(0x6e4308 + std::uint32_t(k) * 4); };
-    const int diff = w.s16(kDifficulty);
-    const int cap = diff < 0 || diff > 1 ? 0x87 : 100;
+    const int cap = levelCap(w);
     StatProgress p;
     for (int k = 0; k <= cap; ++k) p.capTotal += expAt(k);
     p.toMax = p.capTotal - exp;
@@ -538,11 +552,11 @@ namespace {
 struct ValueBlock { std::uint32_t base, s16, u8, bits; std::uint32_t limit[4]; };
 constexpr ValueBlock kGlobalValues{0x7f7c18, 0x100, 0x200, 0x300, {64, 128, 256, 2048}};
 ValueBlock mapBlock(const GameWork& w, int map) {
-    if (map == -1 || map == 0xffff) map = w.s16(0x7f4488);
+    if (map == -1 || map == 0xffff) map = w.s16(stage::kMap);
     return {0x7f8020 + std::uint32_t(map) * 0xb0, 0x28, 0x50, 0x78, {10, 20, 40, 320}};
 }
 bool mapOk(const GameWork& w, int map) {
-    if (map == -1 || map == 0xffff) map = w.s16(0x7f4488);
+    if (map == -1 || map == 0xffff) map = w.s16(stage::kMap);
     return map >= 0 && map < 400;
 }
 std::int32_t readBlock(const GameWork& w, const ValueBlock& b, int type, std::uint32_t i) {
@@ -594,8 +608,8 @@ void bootReset(GameWork& w) {
     w.fill(0x7f7c18, 0x11730, 0);
     w.fill(0x7f801c, 0x11304, 0);
     w.fill(0x7e17e8, 0x12ca0, 0);
-    w.fill(0x7f4518, 0x3700, 0);
-    w.fill(0x7f4488, 0x8c, 0);
+    w.fill(stage::kParty, 0x3700, 0);
+    w.fill(stage::kBase, stage::kSize, 0);
     w.fill(0x809694, 0x100, 0);
     static constexpr char kName[] = "PlayerName";
     for (std::uint32_t i = 0; i < sizeof kName; ++i) w.set8(0x809694 + i, std::uint8_t(kName[i]));
@@ -604,14 +618,14 @@ void bootReset(GameWork& w) {
 // ------------------------------------------------------ chained rounds ---
 namespace {
 constexpr std::uint32_t kRoundMembers = 0x8093fa, kRoundCount = 0x8093f8, kRound = 0x80967a;
-constexpr std::uint32_t kParty = 0x7f4518;
+using stage::kParty;
 }
 
-int roundFlag(const GameWork& w) { return w.s16(0x7f4504); }
+int roundFlag(const GameWork& w) { return w.s16(stage::kRoundFlag); }
 
 void addRoundStage(GameWork& w) {
     const auto add16 = [&](std::uint32_t at, int v) { w.set16(at, static_cast<std::int16_t>(std::min(w.s16(at) + v, 0x7fff))); };
-    for (std::uint32_t i = 0; i < w.u8(0x7f448d); ++i) {
+    for (std::uint32_t i = 0; i < w.u8(stage::kPartyCount); ++i) {
         const std::uint32_t r = kRoundMembers + i * 8, p = kParty + i * 0xb0;
         add16(r, w.s16(p + 0xa8));
         add16(r + 2, w.s16(p + 0xaa));
@@ -619,17 +633,17 @@ void addRoundStage(GameWork& w) {
         w.set8(r + 6, static_cast<std::uint8_t>(std::min(static_cast<std::int8_t>(w.u8(r + 6)) + static_cast<std::int8_t>(w.u8(p + 0xae)), 0x7f)));
     }
     static constexpr int kPoints[6] = {0, 10, 7, 5, 1, 0};
-    const int rank = w.s16(0x7f450c);
+    const int rank = w.s16(stage::kRank);
     add16(kRound + 0x10, rank >= 0 && rank <= 5 ? kPoints[rank] : 0);
-    if (w.s16(kRound + 0x14) < w.s16(0x7f4510)) w.set16(kRound + 0x14, w.s16(0x7f4510));
-    add16(kRound + 0x16, w.s16(0x7f4512));
+    if (w.s16(kRound + 0x14) < w.s16(stage::kEnemiesGone)) w.set16(kRound + 0x14, w.s16(stage::kEnemiesGone));
+    add16(kRound + 0x16, w.s16(stage::kWorth));
     for (std::uint32_t k = 0; k < 0x10; ++k)
-        if (w.u8(0x7f44be + k) != 0) w.set8(kRound + k, w.u8(kRound + k) | w.u8(0x7f44be + k));
+        if (w.u8(stage::kPrizes + k) != 0) w.set8(kRound + k, w.u8(kRound + k) | w.u8(stage::kPrizes + k));
     w.set16(kRoundCount, static_cast<std::int16_t>(w.s16(kRoundCount) + 1));
 }
 
 void finishRound(GameWork& w) {
-    for (std::uint32_t i = 0; i < w.u8(0x7f448d); ++i) {
+    for (std::uint32_t i = 0; i < w.u8(stage::kPartyCount); ++i) {
         const std::uint32_t r = kRoundMembers + i * 8, p = kParty + i * 0xb0;
         w.set16(p + 0xa8, w.s16(r));
         w.set16(p + 0xaa, w.s16(r + 2));
@@ -638,11 +652,11 @@ void finishRound(GameWork& w) {
     }
     const int stages = w.s16(kRoundCount);
     const int avg = stages != 0 ? w.s16(kRound + 0x10) / stages : 0;
-    w.set16(0x7f450c, static_cast<std::int16_t>(avg >= 10 ? 1 : avg >= 7 ? 2 : avg >= 5 ? 3 : avg >= 1 ? 4 : 5));
-    w.set16(0x7f450e, w.s16(kRound + 0x12));
-    w.set16(0x7f4510, w.s16(kRound + 0x14));
-    w.set16(0x7f4512, w.s16(kRound + 0x16));
-    for (std::uint32_t k = 0; k < 0x10; ++k) w.set8(0x7f44be + k, w.u8(kRound + k));
+    w.set16(stage::kRank, static_cast<std::int16_t>(avg >= 10 ? 1 : avg >= 7 ? 2 : avg >= 5 ? 3 : avg >= 1 ? 4 : 5));
+    w.set16(stage::kTimeGrade, w.s16(kRound + 0x12));
+    w.set16(stage::kEnemiesGone, w.s16(kRound + 0x14));
+    w.set16(stage::kWorth, w.s16(kRound + 0x16));
+    for (std::uint32_t k = 0; k < 0x10; ++k) w.set8(stage::kPrizes + k, w.u8(kRound + k));
 }
 
 } // namespace ch::logic

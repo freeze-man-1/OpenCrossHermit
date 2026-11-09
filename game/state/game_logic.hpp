@@ -58,6 +58,8 @@ void refreshEquipment(GameWork& w);              // FUN_0049e8f0: FUN_004d31f0 +
 // roster lists and the date in range. Says what was wrong.
 enum class SaveProblem { None, Size, Format, Checksum, Contents };
 [[nodiscard]] SaveProblem saveCheck(std::span<const std::uint8_t> bytes);
+// The s16 at image address `va` in a save of the right size.
+[[nodiscard]] int saveField16(std::span<const std::uint8_t> bytes, std::uint32_t va);
 bool loadGame(GameWork& w, std::span<const std::uint8_t> bytes);
 [[nodiscard]] bool inRoster(const GameWork& w, int id);
 void joinRoster(GameWork& w, GameVersion v, int id, int party, int slot);
@@ -73,11 +75,13 @@ struct StatProgress {          // FUN_004d56a0 result, 8 ints in this order
     std::int32_t levelSpan = 0;
     std::int32_t toNext = 0;
     std::int32_t intoLevel = 0;    // exp past levelStart
-    std::int32_t capTotal = 0;     // exp of the level cap (100, or 0x87 on hard)
+    std::int32_t capTotal = 0;     // exp of the level cap (levelCap)
     std::int32_t toMax = 0;        // capTotal - exp
     std::int32_t percent = 0;      // 0..100 through the level
 };
 [[nodiscard]] StatProgress statProgress(const GameWork& w, int level, std::int32_t exp);
+// The stat level cap: 100, or 0x87 past the first year (0x7a528c not 0 / 1).
+[[nodiscard]] int levelCap(const GameWork& w);
 
 struct UnitSummary {           // FUN_004d58e0 result
     std::int32_t statExp = 0;      // sum of the 7 stats' exp

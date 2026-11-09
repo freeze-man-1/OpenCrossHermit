@@ -14,12 +14,9 @@ using ysub::fill;
 
 namespace {
 constexpr std::uint32_t kEvent = 0x7a5294, kStage = 0x7a5296, kPoints = 0x7a511c;
-constexpr std::uint32_t kRank = 0x7f450c, kTurns = 0x7f450e, kGoal = 0x7f4510;
-constexpr std::uint32_t kNetwork = 0x7f4491, kNetworkWon = 0x7f4505, kChests = 0x7f44be;
-constexpr std::uint32_t kBattleUnit = 0x7f4518;           // + 0xb0 i (PreparationTask)
 constexpr std::uint32_t kItemState = 0x7aaca8;            // u16 by item id
 constexpr std::uint32_t kItems = 0x6d5118;                // 0x38-byte item records
-constexpr std::uint32_t stage(int s) { return std::uint32_t(s) * 0x70; }
+constexpr std::uint32_t sortieRow(int s) { return std::uint32_t(s) * 0x70; }
 constexpr std::uint32_t event(int e) { return 0x73bed0 + std::uint32_t(e) * 0x100; }
 // Rect table DAT_0061c320 (16-byte records).
 enum : std::uint32_t {
@@ -59,7 +56,7 @@ Co<> TacticsResultTask::start(std::uint32_t) {
 void TacticsResultTask::init() {
     GameWork& w = ctx_.work;
     ctx_.sprites->loadBank(kBank, ctx_.readData("data\\TacticsResult\\TacticsResult.bin"));
-    if (w.u8(kNetwork) == 1 && w.u8(kNetworkWon) == 0) { skip_ = true; return; }
+    if (w.u8(stage::kNetwork) == 1 && w.u8(stage::kNetSaveUnits) == 0) { skip_ = true; return; }
     // FUN_004bbcc0
     eventRecords();
     itemDrops();
@@ -72,7 +69,7 @@ void TacticsResultTask::init() {
 void TacticsResultTask::eventRecords() {
     GameWork& w = ctx_.work;
     const int ev = w.s16(kEvent);
-    const int rank = std::clamp<int>(w.s16(kRank), 1, 5);
+    const int rank = std::clamp<int>(w.s16(stage::kRank), 1, 5);
     const int s = w.s16(kStage) - 1;
     const std::uint32_t best = 0x7a54ca + std::uint32_t(ev);
     if (rank < w.u8(best)) w.set8(best, rank);
@@ -84,8 +81,8 @@ void TacticsResultTask::eventRecords() {
     const auto skillState = [&](int unit, int skill) {
         return GameWork::unitRecord(unit) + 0xb8 + std::uint32_t(skill - 1) * 0xc;
     };
-    for (int c = 0; c < w.s16(0x7a52f8 + stage(s)); ++c) {
-        const int unit = w.s16(0x7a52d0 + std::uint32_t(c) * 2 + stage(s));
+    for (int c = 0; c < w.s16(0x7a52f8 + sortieRow(s)); ++c) {
+        const int unit = w.s16(0x7a52d0 + std::uint32_t(c) * 2 + sortieRow(s));
         for (std::size_t k = 0; k < 7; ++k)
             if (w.u8(skillState(unit, kSkills[k])) == 0 && count[k] < 0x1e)
                 lacking[k][std::size_t(count[k]++)] = static_cast<std::int16_t>(unit);
@@ -106,10 +103,10 @@ void TacticsResultTask::itemDrops() {
     GameWork& w = ctx_.work;
     const GameVersion v = ctx_.version;
     const std::uint32_t ev = event(w.s16(kEvent));
-    const int rank = std::max(w.s16(kRank) - 1, 0);
+    const int rank = std::max(w.s16(stage::kRank) - 1, 0);
     constexpr int kCats = 10;
     const auto category = [&](int item) { return int(logic::sdS16(kItems + 8 + std::uint32_t(item) * 0x38, v)); };
-    const auto owned = [&](int item) { return (w.u16(kItemState + std::uint32_t(item) * 2) & 1) != 0; };
+    const auto owned = [&](int item) { return (w.u16At(kItemState, item) & 1) != 0; };
     std::array<std::vector<std::int16_t>, kCats> pool;     // every item by category
     std::array<std::array<std::int16_t, 10>, kCats> got{};
     std::array<int, kCats> gotCount{};
@@ -132,7 +129,7 @@ void TacticsResultTask::itemDrops() {
         if (item > 0 && !owned(item)) give(item);
     }
     for (std::uint32_t k = 0; k < 0x10; ++k) {
-        if (w.u8(kChests + k) == 0) continue;
+        if (w.u8(stage::kPrizes + k) == 0) continue;
         const std::uint32_t chest = ev + 0xa0 + k * 6;
         const int item = logic::sdS16(chest, v);
         if (item < 1) {
@@ -169,11 +166,11 @@ void TacticsResultTask::expAndPoints() {
     const GameVersion v = ctx_.version;
     const std::uint32_t ev = event(w.s16(kEvent));
     const int s = w.s16(kStage) - 1;
-    const int rank = std::max(w.s16(kRank) - 1, 0);
-    const int turns = w.s16(kTurns);
-    int goal = w.s16(kGoal);
-    const bool network = w.u8(kNetwork) != 0;
-    w.set16(0x7a5306 + stage(s), rank);
+    const int rank = std::max(w.s16(stage::kRank) - 1, 0);
+    const int turns = w.s16(stage::kTimeGrade);
+    int goal = w.s16(stage::kEnemiesGone);
+    const bool network = w.u8(stage::kNetwork) != 0;
+    w.set16(0x7a5306 + sortieRow(s), rank);
     if (turns == 0) turns_ = 3;
     else if (turns > 0 && turns < 4) turns_ = static_cast<std::int16_t>(rank > 2 ? 3 : turns - 1);
     if (logic::sdS16(ev + 0x3a, v) == 0 && logic::sdS16(ev + 0x3c, v) == 0 && logic::sdS16(ev + 0x3e, v) == 0)
@@ -181,12 +178,12 @@ void TacticsResultTask::expAndPoints() {
     if (goal == 0) goal_ = 2; else if (goal == 1) goal_ = 1; else if (goal == 2) goal_ = 0;
     if (logic::sdS16(ev + 0x38, v) == 0) { goal = 0; goal_ = 2; }
 
-    const int members = w.s16(0x7a52f8 + stage(s));
+    const int members = w.s16(0x7a52f8 + sortieRow(s));
     const int party = std::clamp(members - 1, 1, 0x14) / 4;
     rank_ = static_cast<std::int16_t>(rank);
     units_ = static_cast<std::int16_t>(members);
     pointsBefore_ = w.s32(kPoints);
-    const auto unitAt = [&](int c) { return kBattleUnit + std::uint32_t(c) * 0xb0; };
+    const auto unitAt = [&](int c) { return stage::kParty + std::uint32_t(c) * 0xb0; };
     // The sum is kept in the 16-bit +0x4c as it goes, then clamped (so past
     // 32767 it wraps, and a negative total becomes 0).
     std::int16_t damage = 0;
@@ -205,15 +202,15 @@ void TacticsResultTask::expAndPoints() {
     std::int16_t kills = 0, downs = 0;
     for (int c = 0; c < members; ++c) {
         const std::uint32_t bu = unitAt(c);
-        const int unit = w.s16(0x7a52d0 + std::uint32_t(c) * 2 + stage(s));
-        const int grp = w.s16(0x7a52a8 + std::uint32_t(c) * 2 + stage(s));
+        const int unit = w.s16(0x7a52d0 + std::uint32_t(c) * 2 + sortieRow(s));
+        const int grp = w.s16(0x7a52a8 + std::uint32_t(c) * 2 + sortieRow(s));
         const int share = damage_ == 0 ? 0 : static_cast<std::int16_t>(w.s16(bu + 0xac) * 100 / damage_);
         int step = 0;
         while (step < 10 && logic::sdS16(kShareSteps + std::uint32_t(step) * 2, v) - 1 < share) ++step;
         const std::uint32_t rec = GameWork::unitRecord(unit);
         const int type = logic::sdU8(0x6b2d8a + std::uint32_t(w.s16(rec + 6)) * 0x40, v);
         const int jobRate = logic::sdS16(kJobRate + std::uint32_t(type * 0xb + step) * 2, v);
-        const int affinity = network ? 0 : w.s16(0x7a529c + stage(grp));
+        const int affinity = network ? 0 : w.s16(0x7a529c + sortieRow(grp));
         const int affRate = affinity / 10 + 100;
         std::int32_t exp = stageExp + (jobRate - 100) * stageExp / 100 + stageExp * (affRate - 100) / 100;
         exp = std::max(exp, base / 2);
@@ -246,10 +243,10 @@ void TacticsResultTask::expAndPoints() {
             for (int k = 0; k < 4; ++k) {
                 bool here = false;
                 if (!network) {
-                    const std::uint16_t slot = w.u16(0x7aaae0 + std::uint32_t(g) * 8 + std::uint32_t(k) * 2);
-                    here = w.s16(0x7a5210 + std::uint32_t(slot) * 2) == unit;
+                    const std::uint16_t slot = w.u16(groups::kMemberSlots + std::uint32_t(g) * 8 + std::uint32_t(k) * 2);
+                    here = w.s16At(roster::kMembers, slot) == unit;
                 } else {
-                    here = w.u16(kBattleUnit + 2 + std::uint32_t(k + g * 4) * 0xb0) == unit;
+                    here = w.u16(stage::kParty + 2 + std::uint32_t(k + g * 4) * 0xb0) == unit;
                 }
                 if (!here) continue;
                 Card& cd = cards_[std::size_t(g)][std::size_t(k)];
@@ -275,7 +272,7 @@ void TacticsResultTask::expAndPoints() {
 // FUN_004bab60
 Co<> TacticsResultTask::screen() {
     GameWork& w = ctx_.work;
-    ctx_.audio->bgmPlay(w.s16(kRank) - 1 < 3 ? 0x17 : 0x1c, 0);
+    ctx_.audio->bgmPlay(w.s16(stage::kRank) - 1 < 3 ? 0x17 : 0x1c, 0);
     for (int i = 0; i < 0x10; ++i) {
         co_await yieldFrame();
         ysub::fadeBlack(ctx_, 0xff - i * 0xff / 0xf);
@@ -284,7 +281,7 @@ Co<> TacticsResultTask::screen() {
     for (;;) {
         co_await yieldFrame();
         draw();
-        if ((ysub::hit(ctx_, 0x175, 0x2c8, 299, 0x1c).pressed & 1) != 0) break;
+        if (ysub::clicked(ctx_, 0x175, 0x2c8, 299, 0x1c)) break;
     }
     ctx_.audio->sePlay(5);
     for (int i = 0; i < 8; ++i) {

@@ -71,6 +71,10 @@ struct Hit {
     std::uint32_t pressed = 0;    // +4  (+0x1990)
 };
 [[nodiscard]] Hit hit(const GameContext& ctx, int x, int y, int w, int h);
+// A left press inside the rect: hit(...).pressed & kMouseLeft.
+[[nodiscard]] inline bool clicked(const GameContext& ctx, int x, int y, int w, int h) {
+    return (hit(ctx, x, y, w, h).pressed & legacy::kMouseLeft) != 0;
+}
 
 // FUN_004d5ca0 -> FUN_004d5d10 -> FUN_004d5a60: a 2x2 box at the pointer
 // against row `index` of the shared hit table (DAT_006253c8, {x, y, w, h}),

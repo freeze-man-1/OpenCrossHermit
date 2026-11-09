@@ -419,7 +419,7 @@ bool AdvTask::waitDone(std::uint16_t op) {
         case 0x3b: case 0x3c: return backgroundsIdle();
         case 0x3d: return !(playerTurn_ = !tickChoice());
         case 0xa8:                         // the cursor wait (0x33), or the timed one (0x0d) when DAT_007f4491 is set
-            if (ctx_.work.u8(0x7f4491) != 0) {
+            if (ctx_.work.u8(stage::kNetwork) != 0) {
                 bool done = false;
                 if (ctx_.skipHeld()) { done = true; stopVoice(); }
                 if (clicked()) done = true;

@@ -61,7 +61,7 @@ Co<> TitleTask::run() {
                 break;
             case 1:                                   // the tutorial map
                 logic::newGame(ctx_.work, ctx_.version);
-                ctx_.work.set16(0x7f4488, 0x50);
+                ctx_.work.set16(stage::kMap, 0x50);
                 PreparationTask::loadStage(ctx_.work, ctx_.version, 0x50, true);   // FUN_004da860
                 ctx_.scenes.request(SceneId::Tactics);
                 break;
@@ -110,7 +110,7 @@ Co<> TitleTask::run() {
 // 0x50 and its stage row loaded (FUN_00475290 -> FUN_004752e0, the battle cleared).
 void TitleTask::startTutorial() {
     logic::newGame(ctx_.work, ctx_.version);
-    ctx_.work.set16(0x7f4488, 0x50);
+    ctx_.work.set16(stage::kMap, 0x50);
     PreparationTask::loadStage(ctx_.work, ctx_.version, 0x50, true);
     ctx_.scenes.request(SceneId::Tactics);
 }

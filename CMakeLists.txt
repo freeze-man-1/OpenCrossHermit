@@ -193,67 +193,76 @@ else()
   set(CH_TEST_DATA "${CMAKE_SOURCE_DIR}/gamedata" CACHE PATH "Imported game data for the tests")
   set(CH_EXE_DATA game/state/exe_image.cpp game/import/ch_patch.cpp game/import/zlib_util.cpp game/text/sjis.cpp)
 
+  # A test program. Each has its own main(): SDL.h must not rename it to
+  # SDL_main (on Windows that needs SDL2main, which they do not link).
+  function(ch_test_program target)
+    add_executable(${target} ${ARGN})
+    target_compile_definitions(${target} PRIVATE SDL_MAIN_HANDLED)
+  endfunction()
+  # A test that reads the imported game data: skipped (exit 77) without it.
+  function(ch_data_test name)
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT "CH_DATA=${CH_TEST_DATA};CH_RESOURCES=${CMAKE_SOURCE_DIR}/resources"
+                         SKIP_RETURN_CODE 77)
+  endfunction()
+
   # SDL-free unit tests
   enable_testing()
-  add_executable(task_system_test tests/task_system_test.cpp game/task_system.cpp)
+  ch_test_program(task_system_test tests/task_system_test.cpp game/task_system.cpp)
   add_test(NAME task_system COMMAND task_system_test)
 
-  add_executable(sys_box_test tests/sys_box_test.cpp)
+  ch_test_program(sys_box_test tests/sys_box_test.cpp)
   add_test(NAME sys_boxes COMMAND sys_box_test)
-  add_executable(bank_format_test tests/bank_format_test.cpp game/bank_format.cpp)
+  ch_test_program(bank_format_test tests/bank_format_test.cpp game/bank_format.cpp)
   add_test(NAME bank_format COMMAND bank_format_test ${CH_TEST_DATA})
+  set_tests_properties(bank_format PROPERTIES SKIP_RETURN_CODE 77)
 
   # Whole opening, headless: fake SDL (tests/sdl_fake.cpp) + software renderer.
   # `op_headless out/f 150 1600` also writes those ticks as PNGs.
-  add_executable(op_headless tests/op_headless.cpp tests/sdl_fake.cpp engine/engine_core.cpp
-                 game/task_system.cpp game/draw_list.cpp game/bank_format.cpp game/op/op_task.cpp game/hata/hata_task.cpp
-                 game/anm/anm_player.cpp game/lang/language_pack.cpp game/import/archives.cpp game/import/zlib_util.cpp
-                 game/text/sjis.cpp ${CH_EXE_DATA})
+  ch_test_program(op_headless tests/op_headless.cpp tests/sdl_fake.cpp engine/engine_core.cpp
+                  game/task_system.cpp game/draw_list.cpp game/bank_format.cpp game/op/op_task.cpp game/hata/hata_task.cpp
+                  game/anm/anm_player.cpp game/lang/language_pack.cpp game/import/archives.cpp game/import/zlib_util.cpp
+                  game/text/sjis.cpp ${CH_EXE_DATA})
   target_link_libraries(op_headless PRIVATE ZLIB::ZLIB)
   target_include_directories(op_headless PRIVATE ${CMAKE_SOURCE_DIR}
                              $<TARGET_PROPERTY:SDL2::SDL2,INTERFACE_INCLUDE_DIRECTORIES>)
   add_test(NAME opening COMMAND op_headless)
-  set_tests_properties(opening PROPERTIES ENVIRONMENT "CH_DATA=${CH_TEST_DATA};CH_RESOURCES=${CMAKE_SOURCE_DIR}/resources"
-                       SKIP_RETURN_CODE 77)
+  ch_data_test(opening)
 
   # The original router (tactics_path) on real maps, against the port's A*.
-  add_executable(route_test tests/route_test.cpp tests/sdl_fake.cpp engine/engine_core.cpp
-                 game/tactics/tactics_map.cpp game/tactics/tactics_path.cpp game/state/game_logic.cpp
-                 game/state/unit_stats.cpp game/draw_list.cpp game/task_system.cpp game/ysub/ysub.cpp
-                 game/adv/ybc_vm.cpp game/state/exe_image.cpp game/import/ch_patch.cpp game/import/zlib_util.cpp
-                 game/text/sjis.cpp)
+  ch_test_program(route_test tests/route_test.cpp tests/sdl_fake.cpp engine/engine_core.cpp
+                  game/tactics/tactics_map.cpp game/tactics/tactics_path.cpp game/state/game_logic.cpp
+                  game/state/unit_stats.cpp game/draw_list.cpp game/task_system.cpp game/ysub/ysub.cpp
+                  game/adv/ybc_vm.cpp game/state/exe_image.cpp game/import/ch_patch.cpp game/import/zlib_util.cpp
+                  game/text/sjis.cpp)
   target_link_libraries(route_test PRIVATE ZLIB::ZLIB)
   target_include_directories(route_test PRIVATE ${CMAKE_SOURCE_DIR}
                              $<TARGET_PROPERTY:SDL2::SDL2,INTERFACE_INCLUDE_DIRECTORIES>)
   add_test(NAME router COMMAND route_test 1 2 14)
-  set_tests_properties(router PROPERTIES ENVIRONMENT "CH_DATA=${CH_TEST_DATA};CH_RESOURCES=${CMAKE_SOURCE_DIR}/resources"
-                       SKIP_RETURN_CODE 77)
+  ch_data_test(router)
 
-  add_executable(ybc_vm_test tests/ybc_vm_test.cpp game/adv/ybc_vm.cpp game/state/game_logic.cpp game/state/unit_stats.cpp
-                 engine/engine_core.cpp ${CH_EXE_DATA})
+  ch_test_program(ybc_vm_test tests/ybc_vm_test.cpp game/adv/ybc_vm.cpp game/state/game_logic.cpp game/state/unit_stats.cpp
+                  engine/engine_core.cpp ${CH_EXE_DATA})
   target_include_directories(ybc_vm_test PRIVATE ${CMAKE_SOURCE_DIR})
   target_link_libraries(ybc_vm_test PRIVATE SDL2::SDL2 ZLIB::ZLIB)
   add_test(NAME ybc_new_game COMMAND ybc_vm_test ${CH_TEST_DATA})
-  set_tests_properties(ybc_new_game PROPERTIES ENVIRONMENT "CH_DATA=${CH_TEST_DATA};CH_RESOURCES=${CMAKE_SOURCE_DIR}/resources"
-                       SKIP_RETURN_CODE 77)
-  set_tests_properties(bank_format PROPERTIES SKIP_RETURN_CODE 77)
+  ch_data_test(ybc_new_game)
 
-  add_executable(save_check_test tests/save_check_test.cpp game/state/game_logic.cpp game/state/unit_stats.cpp
-                 engine/engine_core.cpp ${CH_EXE_DATA})
+  ch_test_program(save_check_test tests/save_check_test.cpp game/state/game_logic.cpp game/state/unit_stats.cpp
+                  engine/engine_core.cpp ${CH_EXE_DATA})
   target_include_directories(save_check_test PRIVATE ${CMAKE_SOURCE_DIR})
   target_link_libraries(save_check_test PRIVATE SDL2::SDL2 ZLIB::ZLIB)
   add_test(NAME save_check COMMAND save_check_test)
 
-  add_executable(language_pack_test tests/language_pack_test.cpp game/lang/language_pack.cpp game/import/archives.cpp
-                 game/import/zlib_util.cpp game/bank_format.cpp game/text/sjis.cpp engine/engine_core.cpp)
+  ch_test_program(language_pack_test tests/language_pack_test.cpp game/lang/language_pack.cpp game/import/archives.cpp
+                  game/import/zlib_util.cpp game/bank_format.cpp game/text/sjis.cpp engine/engine_core.cpp)
   target_include_directories(language_pack_test PRIVATE ${CMAKE_SOURCE_DIR})
   target_link_libraries(language_pack_test PRIVATE SDL2::SDL2 ZLIB::ZLIB)
   add_test(NAME language_pack COMMAND language_pack_test)
 
   # Two clients against the relay (tools/netserver/relay.mjs); needs Node.
   find_program(NODE_EXE node)
-  add_executable(net_relay_test tests/net_relay_test.cpp game/net/net_session.cpp game/net/net_transport.cpp
-                 game/net/net_apinator.cpp game/net/relay_core.cpp)
+  ch_test_program(net_relay_test tests/net_relay_test.cpp game/net/net_session.cpp game/net/net_transport.cpp
+                  game/net/net_apinator.cpp game/net/relay_core.cpp)
   target_include_directories(net_relay_test PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/generated)
   if(OpenSSL_FOUND)
     target_compile_definitions(net_relay_test PRIVATE CH_HAVE_TLS=1)
@@ -262,12 +271,6 @@ else()
   if(WIN32)
     target_link_libraries(net_relay_test PRIVATE ws2_32)
   endif()
-  # The tests have their own main(): SDL.h must not rename it to SDL_main
-  # (on Windows that needs SDL2main, which they do not link).
-  foreach(t op_headless route_test ybc_vm_test save_check_test language_pack_test net_relay_test bank_format_test
-            task_system_test sys_box_test)
-    target_compile_definitions(${t} PRIVATE SDL_MAIN_HANDLED)
-  endforeach()
   if(NODE_EXE)
     add_test(NAME net_relay COMMAND bash ${CMAKE_SOURCE_DIR}/tests/net_relay_test.sh
              ${CMAKE_SOURCE_DIR}/tools/netserver/relay.mjs $<TARGET_FILE:net_relay_test>)
