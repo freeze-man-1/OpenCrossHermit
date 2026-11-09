@@ -61,7 +61,7 @@ const worker = {
 export default worker;
 
 // ------------------------------------------------------------ Node 18+ ---
-if (typeof process !== 'undefined' && process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
+if (typeof process !== 'undefined' && process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).pop())) {
   const { createServer } = await import('node:http');
   const { readFileSync } = await import('node:fs');
   const args = process.argv.slice(2);
