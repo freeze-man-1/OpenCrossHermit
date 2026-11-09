@@ -43,7 +43,7 @@ private:
     using Key = std::tuple<std::string, int, bool>;
     struct KeyHash {
         std::size_t operator()(const Key& k) const noexcept {
-            return std::hash<std::string>{}(std::get<0>(k)) ^ (std::size_t(std::get<1>(k)) << 1) ^ std::get<2>(k);
+            return std::hash<std::string>{}(std::get<0>(k)) ^ (std::size_t(std::get<1>(k)) << 1) ^ std::size_t(std::get<2>(k));
         }
     };
     struct Entry { legacy::TexturePtr tex; int w, h; std::list<Key>::iterator lru; };

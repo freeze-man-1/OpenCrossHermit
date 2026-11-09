@@ -12,7 +12,7 @@ APINATOR_KEY=app_test APINATOR_SECRET=s3cret node "$auth" --port "$aport" > /dev
 apid=$!
 trap 'kill $fpid $apid 2>/dev/null' EXIT
 for p in $port $aport; do
-  for i in 1 2 3 4 5 6 7 8 9 10; do
+  for i in $(seq 1 50); do
     (exec 3<>/dev/tcp/127.0.0.1/$p) 2>/dev/null && break
     sleep 0.2
   done

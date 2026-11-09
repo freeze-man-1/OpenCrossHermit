@@ -13,6 +13,16 @@
 #include <emscripten/websocket.h>
 #else
 #include <cerrno>
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -20,6 +30,7 @@
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 #ifdef CH_HAVE_TLS
 #include <openssl/err.h>
 #include <openssl/ssl.h>
@@ -143,6 +154,40 @@ private:
 };
 #else
 // ------------------------------------------------------------- native ---
+// Sockets: Winsock on Windows, BSD sockets elsewhere.
+#ifdef _WIN32
+using Sock = SOCKET;
+const Sock kNoSock = INVALID_SOCKET;
+constexpr int kNoSignal = 0;
+bool sockStartup() {
+    static const bool ok = [] { WSADATA d; return WSAStartup(MAKEWORD(2, 2), &d) == 0; }();
+    return ok;
+}
+void sockClose(Sock s) { closesocket(s); }
+void sockNonBlocking(Sock s) { u_long one = 1; ioctlsocket(s, FIONBIO, &one); }
+int sockError() { return WSAGetLastError(); }
+bool sockInterrupted(int e) { return e == WSAEINTR; }
+bool sockWouldBlock(int e) { return e == WSAEWOULDBLOCK; }
+bool sockNotYet(int e) { return e == WSAENOTCONN || e == WSAEINPROGRESS || e == WSAEWOULDBLOCK; }
+int sockPoll(pollfd* p) { return WSAPoll(p, 1, 0); }
+#else
+using Sock = int;
+constexpr Sock kNoSock = -1;
+#ifdef MSG_NOSIGNAL
+constexpr int kNoSignal = MSG_NOSIGNAL;
+#else
+constexpr int kNoSignal = 0;
+#endif
+bool sockStartup() { return true; }
+void sockClose(Sock s) { ::close(s); }
+void sockNonBlocking(Sock s) { fcntl(s, F_SETFL, fcntl(s, F_GETFL) | O_NONBLOCK); }
+int sockError() { return errno; }
+bool sockInterrupted(int e) { return e == EINTR; }
+bool sockWouldBlock(int e) { return e == EAGAIN || e == EWOULDBLOCK; }
+bool sockNotYet(int e) { return e == ENOTCONN || e == EINPROGRESS; }
+int sockPoll(pollfd* p) { return ::poll(p, 1, 0); }
+#endif
+
 struct Url { bool tls = false; std::string host, port, path; };
 bool splitUrl(const std::string& url, const char* plain, const char* secure, Url& u) {
     std::string rest;
@@ -189,17 +234,24 @@ public:
         tls_ = u.tls;
         host_ = u.host;
         path_ = u.path;
+        if (!sockStartup()) { fail("no network (WSAStartup failed)"); return; }
         addrinfo hints{};
         hints.ai_family = AF_UNSPEC;
         hints.ai_socktype = SOCK_STREAM;
         addrinfo* res = nullptr;
         if (getaddrinfo(host_.c_str(), u.port.c_str(), &hints, &res) != 0 || !res) { fail("unknown host " + host_); return; }
         fd_ = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-        if (fd_ >= 0) {
+        if (fd_ != kNoSock) {
             const int one = 1;
-            setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, &one, sizeof one);   // no Nagle delay on small frames
-            fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK);
-            if (::connect(fd_, res->ai_addr, res->ai_addrlen) != 0 && errno != EINPROGRESS) fail("connect failed");
+            setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char*>(&one), sizeof one);   // no Nagle delay on small frames
+            sockNonBlocking(fd_);
+#ifdef SO_NOSIGPIPE
+            setsockopt(fd_, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof one);   // macOS: no MSG_NOSIGNAL on older SDKs
+#endif
+            if (::connect(fd_, res->ai_addr, static_cast<socklen_t>(res->ai_addrlen)) != 0) {
+                const int e = sockError();
+                if (!sockNotYet(e) && !sockWouldBlock(e)) fail("connect failed");
+            }
         } else {
             fail("no socket");
         }
@@ -228,7 +280,7 @@ public:
 #ifdef CH_HAVE_TLS
         if (ssl_) SSL_free(ssl_);
 #endif
-        if (fd_ >= 0) ::close(fd_);
+        if (fd_ != kNoSock) sockClose(fd_);
     }
     State state() const override { return state_; }
     void send(std::vector<std::uint8_t> m) override {
@@ -237,7 +289,7 @@ public:
         frame(text_ ? 1 : 2, m);
     }
     void poll(std::vector<std::vector<std::uint8_t>>& out) override {
-        if (fd_ < 0 || state_ == State::Closed) return;
+        if (fd_ == kNoSock || state_ == State::Closed) return;
         if (!linkUp()) return;
         flush();
         std::uint8_t buf[8192];
@@ -283,16 +335,16 @@ private:
     bool linkUp() {
         if (!tcpUp_) {
             pollfd p{fd_, POLLOUT, 0};
-            if (::poll(&p, 1, 0) <= 0) return false;
+            if (sockPoll(&p) <= 0) return false;
             int err = 0;
             socklen_t len = sizeof err;
-            getsockopt(fd_, SOL_SOCKET, SO_ERROR, &err, &len);
+            getsockopt(fd_, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&err), &len);
             if (err != 0) { fail(std::string("connect failed: ") + std::strerror(err)); return false; }
             tcpUp_ = true;
 #ifdef CH_HAVE_TLS
             if (tls_) {
                 if (!tlsContext() || !(ssl_ = SSL_new(tlsContext()))) { fail("TLS could not start"); return false; }
-                SSL_set_fd(ssl_, fd_);
+                SSL_set_fd(ssl_, static_cast<int>(fd_));
                 SSL_set_tlsext_host_name(ssl_, host_.c_str());
                 SSL_set1_host(ssl_, host_.c_str());
                 SSL_set_mode(ssl_, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
@@ -325,10 +377,11 @@ private:
         }
 #endif
         for (;;) {
-            const ssize_t r = ::recv(fd_, buf, n, 0);
+            const auto r = ::recv(fd_, reinterpret_cast<char*>(buf), static_cast<int>(n), 0);
             if (r >= 0) return long(r);
-            if (errno == EINTR) continue;
-            return errno == EAGAIN || errno == EWOULDBLOCK ? -1 : -2;
+            const int e = sockError();
+            if (sockInterrupted(e)) continue;
+            return sockWouldBlock(e) ? -1 : -2;
         }
     }
     long writeSome(const std::uint8_t* buf, std::size_t n) {
@@ -341,10 +394,11 @@ private:
         }
 #endif
         for (;;) {
-            const ssize_t r = ::send(fd_, buf, n, MSG_NOSIGNAL);
+            const auto r = ::send(fd_, reinterpret_cast<const char*>(buf), static_cast<int>(n), kNoSignal);
             if (r >= 0) return long(r);
-            if (errno == EINTR) continue;
-            return errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN || errno == EINPROGRESS ? -1 : -2;
+            const int e = sockError();
+            if (sockInterrupted(e)) continue;
+            return sockWouldBlock(e) || sockNotYet(e) ? -1 : -2;
         }
     }
     void frame(int op, const std::vector<std::uint8_t>& p) {
@@ -408,7 +462,7 @@ private:
         }
     }
 
-    int fd_ = -1;
+    Sock fd_ = kNoSock;
     bool text_ = false, tls_ = false, tcpUp_ = false, tlsUp_ = false;
 #ifdef CH_HAVE_TLS
     SSL* ssl_ = nullptr;
@@ -448,18 +502,18 @@ public:
         } else
 #endif
         {
-            if (u.tls) return;
+            if (u.tls || !sockStartup()) return;
             addrinfo hints{};
             hints.ai_socktype = SOCK_STREAM;
             addrinfo* res = nullptr;
             if (getaddrinfo(u.host.c_str(), u.port.c_str(), &hints, &res) != 0 || !res) return;
-            const int fd = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-            if (fd >= 0 && ::connect(fd, res->ai_addr, res->ai_addrlen) == 0 &&
-                ::send(fd, req.data(), req.size(), MSG_NOSIGNAL) == ssize_t(req.size())) {
+            const Sock fd = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+            if (fd != kNoSock && ::connect(fd, res->ai_addr, static_cast<socklen_t>(res->ai_addrlen)) == 0 &&
+                ::send(fd, req.data(), static_cast<int>(req.size()), kNoSignal) == static_cast<long>(req.size())) {
                 char buf[4096];
-                for (ssize_t n; (n = ::recv(fd, buf, sizeof buf, 0)) > 0;) raw.append(buf, std::size_t(n));
+                for (long n; (n = long(::recv(fd, buf, sizeof buf, 0))) > 0;) raw.append(buf, std::size_t(n));
             }
-            if (fd >= 0) ::close(fd);
+            if (fd != kNoSock) sockClose(fd);
             freeaddrinfo(res);
         }
         const std::size_t sp = raw.find(' '), end = raw.find("\r\n\r\n");
