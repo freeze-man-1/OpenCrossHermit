@@ -18,12 +18,12 @@ jobs:
         include:
           - { os: ubuntu-24.04, name: linux }
           - { os: windows-2022, name: windows }
-          - { os: macos-14,     name: macos }
+          - { os: macos-15,     name: macos }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
       - name: Dependencies (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev zlib1g-dev libssl-dev ninja-build
@@ -50,7 +50,7 @@ jobs:
         run: |
           cmake --install build --config Release --prefix dist/cross-hermit
           if [ "$RUNNER_OS" = Windows ]; then cp build/Release/*.dll dist/cross-hermit/; fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: cross-hermit-${{ matrix.name }}
           path: dist/cross-hermit
@@ -58,7 +58,7 @@ jobs:
   web:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: mymindstorm/setup-emsdk@v14
         with: { version: 4.0.10 }
       - name: Build
@@ -68,7 +68,7 @@ jobs:
           mkdir -p site
           cp build-web/game.html site/index.html
           cp build-web/game.js build-web/game.wasm build-web/game.data site/
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with: { path: site }
 
   pages:
@@ -83,4 +83,4 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

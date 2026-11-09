@@ -12,6 +12,7 @@
 #include <map>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <set>
 #include <vector>
 
@@ -42,6 +43,11 @@ public:
 } // namespace
 
 int main(int argc, char** argv) {
+    // The opening reads the imported game files (CH_DATA); without them, skip.
+    if (const char* data = std::getenv("CH_DATA"); !data || !std::ifstream(std::string(data) + "/installed.txt")) {
+        std::puts("SKIP: no imported game data");
+        return 77;
+    }
     legacy::Engine engine({.title = "headless", .logicalW = 1024, .logicalH = 768});
     ch::GameContext ctx{.engine = engine, .sprites = std::make_unique<RecordingBanks>(),
                         .audio = std::make_unique<ch::NullAudio>()};
