@@ -51,7 +51,7 @@ Debug env vars:
 The repo is prepared for GitHub: no game data, no exe-derived tables, no secrets. See `README.md`.
 - **Import:** `game/import/` reads ISO, InstallShield 3 `data.z`, T-TIME `cd1` and the update's SFX ZIP.
   - It writes `<data root>/{jp,tw,common}/data/...`, plus `common/static/{jp.exe,tw.exe,ch_data.bin}` and `installed.txt`.
-  - The game files screen (`data_scene.cpp`) opens at start when nothing is installed, and on F9.
+  - The game files screen (`data_scene.cpp`) opens at start when nothing is installed, and on F9. On the desktop it has the web page's two buttons itself: Add game files… (`file_dialog.cpp`: GetOpenFileNameW, osascript, or zenity/kdialog, on a thread) and Erase imported files (a second press confirms; removes jp/, tw/, common/, lang/ and installed.txt, never the saves).
   - CLI: `game --data DIR --import FILE...`.
 - **Static data:** every table and text the port used to carry as generated headers is now read at runtime by address.
   - `game/state/exe_image.hpp`: `exe::logicData(v)` is the ch_data build, `exe::own(v)` the release's own exe.

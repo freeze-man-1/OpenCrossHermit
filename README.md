@@ -23,8 +23,8 @@ imported you can switch languages at any time from the game files screen.
 ## Playing
 
 1. Start the game. Without imported files it opens the **game files** screen.
-2. Drop the files onto the window, or run `game --import FILE...` from a
-   terminal. The screen lists what is still missing.
+2. Press **Add game files…** (or drop the files onto the window, or run
+   `game --import FILE...` from a terminal). The screen lists what is still missing.
 3. Press **Import**. The files are identified by their contents, not their
    names. A full import takes a minute or two.
 4. Press **Play 日本語** or **Play 繁體中文**.

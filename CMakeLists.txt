@@ -45,6 +45,7 @@ add_executable(game
   game/import/archives.cpp
   game/import/importer.cpp
   game/import/data_scene.cpp
+  game/import/file_dialog.cpp
   game/workroom/workroom_task.cpp
   game/han/han_task.cpp
   game/kojin/kojin_task.cpp
@@ -176,7 +177,7 @@ else()
   find_package(ZLIB REQUIRED)
   target_link_libraries(game PRIVATE SDL2::SDL2 SDL2::SDL2main SDL2_ttf::SDL2_ttf ZLIB::ZLIB)
   if(WIN32)
-    target_link_libraries(game PRIVATE ws2_32)     # Winsock (game/net/net_transport.cpp)
+    target_link_libraries(game PRIVATE ws2_32 comdlg32 ole32)   # Winsock (game/net/net_transport.cpp); the file dialog
   endif()
   if(CH_AUDIO)
     find_package(SDL2_mixer REQUIRED)

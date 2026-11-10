@@ -2,6 +2,7 @@
 // data_scene.cpp
 // ============================================================================
 #include "data_scene.hpp"
+#include "file_dialog.hpp"
 #include "../state/exe_image.hpp"
 #include "../text/text_renderer.hpp"
 
@@ -60,6 +61,17 @@ void DataScene::layout() {
         buttons_.push_back({{x, 672, w, 48}, std::move(label), on, std::move(fn)});
         x += w + 16;
     };
+#ifndef __EMSCRIPTEN__
+    // The web page has these above the game; on the desktop they are here.
+    buttons_.push_back({{600, 34, 190, 34}, import::fileDialogOpen() ? "Choosing…" : "Add game files…",
+                        !busy && !import::fileDialogOpen(), [] { import::openFileDialog(); }, 16});
+    buttons_.push_back({{806, 34, 190, 34}, eraseArmed_ ? "Click again to erase" : "Erase imported files",
+                        !busy && (have_.jpExe || have_.jp || have_.tw || !packs_.empty()), [this] {
+        if (!eraseArmed_) { eraseArmed_ = true; return; }
+        eraseArmed_ = false;
+        eraseImported();
+    }, 16});
+#endif
     add(200, "Import", ready && !busy, [this] {
         message_.clear();
         imp_.start();
@@ -90,6 +102,20 @@ void DataScene::layout() {
     }
 }
 
+void DataScene::eraseImported() {
+    // What the importer and the language packs wrote; saves live elsewhere (vfs::saveRoot).
+    lang::activate({});
+    std::error_code ec, failed;
+    const std::filesystem::path root(legacy::vfs::dataRoot());
+    for (const char* d : {"jp", "tw", "common", "lang"})
+        if (std::filesystem::remove_all(root / d, ec); ec) failed = ec;
+    if (std::filesystem::remove(root / "installed.txt", ec); ec) failed = ec;
+    exe::reload();
+    have_ = import::installed();
+    packs_ = lang::packs();
+    message_ = failed ? "Erasing failed: " + failed.message() : "The imported files were erased. Saves are kept.";
+}
+
 void DataScene::startSync(std::string doneMessage) {
 #ifdef __EMSCRIPTEN__
     webSynced() = false;
@@ -106,6 +132,9 @@ void DataScene::startSync(std::string doneMessage) {
 
 void DataScene::fixedUpdate(legacy::Engine& e, double) {
     auto files = e.takeDroppedFiles();
+    std::string dialogError;
+    for (auto& f : import::takeChosenFiles(&dialogError)) files.push_back(std::move(f));
+    if (!dialogError.empty()) message_ = dialogError;
     for (auto& f : webQueue()) files.push_back(std::move(f));
     webQueue().clear();
     if (!imp_.running())
@@ -158,8 +187,12 @@ void DataScene::fixedUpdate(legacy::Engine& e, double) {
         const SDL_Rect& r = buttons_[i].r;
         if (m.x >= r.x && m.x < r.x + r.w && m.y >= r.y && m.y < r.y + r.h) hover_ = int(i);
     }
-    if ((m.pressed & legacy::kMouseLeft) && hover_ >= 0 && buttons_[std::size_t(hover_)].enabled)
+    if ((m.pressed & legacy::kMouseLeft) && hover_ >= 0 && buttons_[std::size_t(hover_)].enabled) {
+        if (buttons_[std::size_t(hover_)].label != "Click again to erase") eraseArmed_ = false;
         buttons_[std::size_t(hover_)].click();
+    } else if (m.pressed & legacy::kMouseLeft) {
+        eraseArmed_ = false;
+    }
 }
 
 void DataScene::text(SDL_Renderer* r, const std::string& s, int x, int y, int px, SDL_Color c, bool bold) {
@@ -180,8 +213,8 @@ void DataScene::render(legacy::Engine&, SDL_Renderer* r, double) {
     text(r, "This port plays your own copy of the game. Choose the files with the buttons", 64, 96, 17, kText);
     text(r, "above the game (or drop them on the page). They stay in this browser.", 64, 120, 17, kText);
 #else
-    text(r, "This port plays your own copy of the game. Drop these files onto this window", 64, 96, 17, kText);
-    text(r, "(or run: game --import FILE...):", 64, 120, 17, kText);
+    text(r, "This port plays your own copy of the game. Choose these files with Add game files…", 64, 96, 17, kText);
+    text(r, "(or drop them onto this window, or run: game --import FILE...):", 64, 120, 17, kText);
 #endif
     auto has = [&](import::Kind k) {
         return std::any_of(imp_.inputs().begin(), imp_.inputs().end(), [k](const import::Input& i) { return i.kind == k; });

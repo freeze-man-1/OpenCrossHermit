@@ -2,8 +2,8 @@
 // data_scene.hpp — the game files screen: import, and pick the release
 // ============================================================================
 // Shown at start when no release is imported, and on F9 at any time. Files
-// are dropped onto the window (desktop) or chosen with the page's buttons
-// (web: they arrive through ch_web_add_file).
+// are chosen with Add game files… or dropped onto the window (desktop), or
+// chosen with the page's buttons (web: they arrive through ch_web_add_file).
 #pragma once
 #include "importer.hpp"
 #include "../lang/language_pack.hpp"
@@ -30,7 +30,8 @@ public:
 
 private:
     struct Button { SDL_Rect r; std::string label; bool enabled; std::function<void()> click; int px = 18; };
-    void startSync(std::string doneMessage);       // web: keep the changes in the browser
+    void startSync(std::string doneMessage);
+    void eraseImported();                          // desktop: Erase imported files       // web: keep the changes in the browser
     void layout();
     void text(SDL_Renderer* r, const std::string& s, int x, int y, int px, SDL_Color c, bool bold = false);
 
@@ -44,6 +45,7 @@ private:
     std::string syncedMessage_;
     std::vector<lang::Pack> packs_;
     bool syncing_ = false;
+    bool eraseArmed_ = false;                      // Erase was pressed once; the next press erases
     int hover_ = -1;
 };
 
