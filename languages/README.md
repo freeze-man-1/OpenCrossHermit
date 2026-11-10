@@ -105,6 +105,38 @@ A PNG one past a bank's last frame adds a new frame of any size, which gives tex
 that outgrows its sheet somewhere to go. New frames are added in order, so `3.png` must
 exist before `4.png` counts. The opening and the week and map screens use this.
 
+### Name and skill plates: drawing them for another language
+
+Several lists of names are pictures drawn 1:1 in small cells. `tools/make_english_pack.py`
+has one function per strip, each taking the names (and, for skills and quests, a font), so a
+script for another language can import it and call it with its own lists (set
+`make_english_pack.PACK` to your pack's folder first):
+
+| What | Where | Function |
+|---|---|---|
+| Skill names (character screen, skill lists) | `data/menu/kojindata.bin` frame 8: 120 x 12 cells from (0, 756), 4 columns of 21 | `skill_names(columns, font)` |
+| Students' short names on the character screen's face cards | `data/menu/kojindata.bin` frame 10: 64 x 16 rows at x 304, 34 rows | `name_column(rel, 10, 304, names)` |
+| Short names on the battle results' unit cards | `data/tacticsresult/tacticsresult.bin` frame 2: 64 x 16 rows at x 256, 35 rows (the students, then Denehere) | `name_column(rel, 2, 256, names)` |
+| Quest names on the team screen's plates | `data/menu/handata.bin` frame 4: the boxes in `QUEST_LABELS` | `quest_plates(preview, labels, font)` |
+
+- The lists run in the game's order. `STUDENTS`, `SKILL_COLUMNS` and `QUEST_LABELS` hold the
+  English ones; copy them and translate. In a skill or quest list, `None` keeps that
+  plate's Japanese.
+- Skill and quest names use the pack's outlined label style (`render_line(..., steady=True)`:
+  light text with a dark halo, every name on one baseline). One size serves the whole
+  strip: the largest at which every name fits, squeezed sideways by up to a quarter
+  (`fitted_size`), so a long name makes the whole strip smaller. Shorten it rather than
+  let the strip shrink.
+- Skill plates are redrawn whole on opaque black, as the Japanese is. Quest plates keep
+  the game's art. The texels under the Japanese are rebuilt from the plain texels of
+  the same colour's other plates in that column, including the ones whose names are
+  kept, so the light inner frame and the fill stay whole. They are stored as a diff,
+  so the pack still holds no game pixels. Pass `--preview <dir>` to see the result
+  (`handata_4.png`) before importing.
+- Pick a font that covers your script and whose licence lets you share pictures made
+  with it (DejaVu, Liberation and Noto all do). The English uses DejaVu Serif Condensed
+  Bold (`FONT`). For Chinese, Japanese or Korean, pass a Noto Sans/Serif CJK font.
+
 ### `images/<game file>/layout.txt`: moved sprite rectangles
 
 For screens whose text is drawn from fixed rectangles of their sheets. Each line says

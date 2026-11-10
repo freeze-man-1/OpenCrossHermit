@@ -96,14 +96,7 @@ LABELS = {
            + rows(3, 80, 190, 24, 21, JOBS) + rows(85, 162, 190, 24, 21, WHITE) + rows(167, 244, 190, 24, 21, BLACK),
         2: rows(304, 372, 0, 16, 16, STUDENTS) + [((153, 387, 226, 403), "Jacobin")],
         3: rows(228, 292, 0, 16, 16, OTHERS) + [((6, 100, 70, 113), "Barbara"), ((6, 244, 70, 258), "Rubigore"), ((82, 460, 146, 474), "Nazrek")],
-        4: rows(9, 106, 4, 22, 14, ["First Battle", "Light in the Dark", "Chaos Wells Up", "The Cursed Child", "Sunlight", "Battle of Segnor",
-                                    "Encounter", None, "Taking Euria", "Parting Escort", "Defense vs. Dark", None, "Night Ruins",
-                                    "Pale Fortress", None, None, None, None, None, "The Seal", "Endymion", "Provocation", "Rescue"])
-           + rows(175, 271, 4, 22, 14, ["Watchtower Spire", "Unmoving Bridge", "Silent Chapel", "A Girl's Wildfire", "Baleos Wastes", "King of Ruin",
-                                        None, "To the Next Cycle", "Retake Dalesion", "Yard Training"])
-           + rows(336, 434, 4, 22, 14, ["Deep Drill", "Sandbar Battle", "Arts vs. Dark", None, None, None, None, None, None, None, None,
-                                        "Saint's Tomb", "Great Library", "Labyrinth"])
-           + rows(292, 322, 422, 22, 14, ["Now", "Now", "Now", "Now"]) + [((336, 488, 436, 502), "Self Study")],
+        # 4: the quest plates, quest_plates()
         5: LECTURES, 6: LECTURES, 7: LECTURES,
         11: [((60, 56, 102, 76), "Yes"), ((160, 56, 222, 76), "No"), ((60, 95, 102, 114), "Yes"), ((160, 95, 222, 114), "No")],
     },
@@ -140,18 +133,6 @@ LABELS = {
               ((42, 848, 114, 866), "Owned"), ((42, 887, 114, 905), "Learn"), ((42, 924, 114, 942), "Learned"), ((96, 955, 134, 971), "Sure")]
            + rows(722, 800, 411, 14, 14, ["Absolute", "Adjust", "Hit", "Power", "Effect", "Evade", "Armor", "Barrier", "HP Regen", "MP Regen",
                                           "Sight", "Move", "Range", "Area", "Recovery", "Body", "Will"]),
-        8: rows(0, 122, 756, 12, 12, ["Concentration", "Break Smash", "Toughness", "Burn Nap", "Life", "Aura Ray", "Angelic Arms", "Shield Smith",
-                                      "Multi Attack", "Attack Sense", "Air Slash", "Eagle Claw", "Striker", "Hawk Eye", "Spiral Shot", "Swift",
-                                      "Poison Arrow", "Silver Arrowhead", "Multi Shoot", "Arrow Rain", "Snipe"])
-           + rows(122, 240, 756, 12, 12, ["Regenerate", "Crack Shot", "Dissolution", "Poison Trap", "Entangle Prison", "Mage Killer", "Critical Arrow",
-                                          "Recover", "Bless", "Heal", "Holy Purge", "Major Heal", "Haste", "Great Heal", "Dark Chime", "Acid Chain",
-                                          "Truth", "Dark Force", "Word of Curse", "Slow", "Blood Ritual"])
-           + rows(240, 360, 756, 12, 12, ["Phantom Image", "Clairvoyance", "Mind Leak", "Power Blast", "Dispel Magic", "Refuse Magic", "Life Force",
-                                          "Hermit Charm", "Stone Fang", "Gaia", "Wilderness", "Magic Growth", "Magic Resist", "Earth Bind", "Sylph Field",
-                                          "Noise", "Thunderbolt", "Tender Wind", "Feather Walk", "Quick Gate", "Tear Storm"])
-           + rows(360, 488, 756, 12, 12, ["Web", "Freeze Lance", "Magic Reduce", "Icicle Fall", "Magician's Charm", "Tentacles Pile", "Frost Harden",
-                                          "Fire Arrow", "Heat Accel", "Explosion", "Master Force", "Enchant Weapon", "Strike Nova", "Shooting Star",
-                                          "Skill Mastery", "Iconoclast", "Soul Punisher", "Holy Oath", "Power Word", "Resurrect Orb", "Sacrifice"]),
         # The longest Japanese names start left of the plate's black.
         **{12 + i: ([((18, 363, 34, 378), "", (88, 82, 58))] if i in (2, 34) else []) + [((28, 362, 259, 379), name, (6, 6, 8))]
            for i, name in enumerate(FULL_NAMES)},
@@ -205,19 +186,23 @@ def text_colour(frame, box, background):
 SS = 4         # text is drawn this much larger, then scaled down
 
 
-def fitted_size(text, width, height):
+def fitted_size(text, width, height, font_path=FONT):
     """The largest size that fits, squeezed up to a quarter."""
     for size in range(min(height, 18), 6, -1):
-        l, t, r, b = ImageFont.truetype(FONT, size * SS).getbbox(text)
+        l, t, r, b = ImageFont.truetype(font_path, size * SS).getbbox(text)
         if (b - t) / SS <= height and (r - l) / SS * 0.75 <= width - 2:
             return size
     return 7
 
 
-def render_line(text, width, height, colour, size):
-    """The text centred in width x height."""
-    font = ImageFont.truetype(FONT, size * SS)
+def render_line(text, width, height, colour, size, font_path=FONT, steady=False):
+    """The text centred in width x height, with a dark halo. steady: centred on the font's ascent and
+    descent rather than this text's ink, so a list of names shares one baseline."""
+    font = ImageFont.truetype(font_path, size * SS)
     l, t, r, b = font.getbbox(text)
+    if steady:
+        probe = text + ("Agjpqy" if text.isascii() else "")
+        t, b = min(t, font.getbbox(probe)[1]), max(b, font.getbbox(probe)[3])
     tw, th = r - l, b - t
     canvas = Image.new("L", (tw + 8, th + 8), 0)
     ImageDraw.Draw(canvas).text((4 - l, 4 - t), text, font=font, fill=255)
@@ -869,19 +854,145 @@ def han_bar():
     sheet.save(rel, 0)
 
 
-def results_names():
-    """Frame 2's column of names for the unit cards: one per 16-texel row from (256, 0), 64 wide."""
-    out = PACK / "images/data/tacticsresult/tacticsresult.bin"
+# kojindata.bin frame 8: the skill name plates (rect 0x12, 120 x 12 from (0, 756)), 21 per column, as
+# drawSkillName reads them. The Japanese is a 1-bit white font on opaque black: so is the English.
+SKILL_COLUMNS = [
+    ["Concentration", "Break Smash", "Toughness", "Burn Nap", "Life", "Aura Ray", "Angelic Arms", "Shield Smith",
+     "Multi Attack", "Attack Sense", "Air Slash", "Eagle Claw", "Striker", "Hawk Eye", "Spiral Shot", "Swift",
+     "Poison Arrow", "Silver Arrowhead", "Multi Shoot", "Arrow Rain", "Snipe"],
+    ["Regenerate", "Crack Shot", "Dissolution", "Poison Trap", "Entangle Prison", "Mage Killer", "Critical Arrow",
+     "Recover", "Bless", "Heal", "Holy Purge", "Major Heal", "Haste", "Great Heal", "Dark Chime", "Acid Chain",
+     "Truth", "Dark Force", "Word of Curse", "Slow", "Blood Ritual"],
+    ["Phantom Image", "Clairvoyance", "Mind Leak", "Power Blast", "Dispel Magic", "Refuse Magic", "Life Force",
+     "Hermit Charm", "Stone Fang", "Gaia", "Wilderness", "Magic Growth", "Magic Resist", "Earth Bind", "Sylph Field",
+     "Noise", "Thunderbolt", "Tender Wind", "Feather Walk", "Quick Gate", "Tear Storm"],
+    ["Web", "Freeze Lance", "Magic Reduce", "Icicle Fall", "Magician's Charm", "Tentacles Pile", "Frost Harden",
+     "Fire Arrow", "Heat Accel", "Explosion", "Master Force", "Enchant Weapon", "Strike Nova", "Shooting Star",
+     "Skill Mastery", "Iconoclast", "Soul Punisher", "Holy Oath", "Power Word", "Resurrect Orb", "Sacrifice"],
+]
+
+
+def skill_names(columns=SKILL_COLUMNS, font=FONT):
+    """Each plate redrawn whole on opaque black, as the Japanese's is, so no texel of it shows; the name
+    in the pack's outlined label style, one size for all.
+    columns: 4 lists of 21 names in the game's order (None keeps the Japanese plate)."""
+    out = PACK / "images/data/menu/kojindata.bin"
+    out.mkdir(parents=True, exist_ok=True)
+    names = [n for column in columns for n in column if n]
+    size = min(fitted_size(n, 120, 12, font) for n in names)
+    img = Image.new("RGBA", (512, 1024), (0, 0, 0, 0))
+    for c, column in enumerate(columns):
+        for r, name in enumerate(column):
+            if name:
+                cell = Image.new("RGBA", (120, 12), (0, 0, 0, 255))
+                cell.alpha_composite(render_line(name, 120, 12, (240, 240, 232), size, font, steady=True))
+                img.paste(cell, (c * 120, 756 + r * 12))
+    img.save(out / "8.png", optimize=True)
+
+
+# handata.bin frame 4: the quest plates, 22 texels apart in columns, their names in the boxes below.
+QUEST_LABELS = (rows(9, 106, 4, 22, 14, ["First Battle", "Light in the Dark", "Chaos Wells Up", "The Cursed Child", "Sunlight", "Battle of Segnor",
+                                    "Encounter", None, "Taking Euria", "Parting Escort", "Defense vs. Dark", None, "Night Ruins",
+                                    "Pale Fortress", None, None, None, None, None, "The Seal", "Endymion", "Provocation", "Rescue"])
+           + rows(175, 271, 4, 22, 14, ["Watchtower Spire", "Unmoving Bridge", "Silent Chapel", "A Girl's Wildfire", "Baleos Wastes", "King of Ruin",
+                                        None, "To the Next Cycle", "Retake Dalesion", "Yard Training"])
+           + rows(336, 434, 4, 22, 14, ["Deep Drill", "Sandbar Battle", "Arts vs. Dark", None, None, None, None, None, None, None, None,
+                                        "Saint's Tomb", "Great Library", "Labyrinth"])
+           + rows(292, 322, 422, 22, 14, ["Now", "Now", "Now", "Now"]) + [((336, 488, 436, 502), "Self Study")])
+
+
+def quest_plates(preview, labels=QUEST_LABELS, font=FONT):
+    """Each name's Japanese texels rebuilt from the same colour's other plates in the column (the
+    per-texel median where they have no text), then the new name in the pack's outlined label style.
+    labels: (box, name) pairs as QUEST_LABELS has them; a None name keeps the Japanese."""
+    rel = "data/menu/handata.bin"
+    jp = decode(frames_of(GAME / rel)[4]).astype(float)
+    sheet = Sheet(jp)
+    lum = jp[..., :3].mean(axis=2)
+    columns = {}
+    for (x0, y0, x1, y1), text, *_ in labels:
+        columns.setdefault((round(x0), round(x1)), []).append((round(y0), round(y1), text))
+    size = min(fitted_size(t, round(x1) - round(x0), round(y1) - round(y0), font) for (x0, y0, x1, y1), t, *_ in labels if t)
+    for (bx0, bx1), boxes in columns.items():
+        x0, x1 = bx0 - 4, bx1 + 4      # the Japanese runs past the boxes; texels like the clean plate are kept anyway
+        def text_mask(y0, y1):
+            here = lum[y0:y1, x0:x1]
+            return ndimage.binary_dilation(here > np.median(here, axis=1, keepdims=True) + 45, iterations=1)
+        # Plates of one colour: their median colour (the text's white aside) within 30 of the group's first.
+        # The column's other plates (every 22 texels; their names kept) lend their plain texels too.
+        h = boxes[0][1] - boxes[0][0]
+        colour = lambda y0: np.median(jp[y0:y0 + h, x0:x1, :3].reshape(-1, 3), axis=0)
+        groups = []
+        def group_of(y0):
+            return next((g for g in groups if np.abs(colour(g[0][0]) - colour(y0)).max() < 30), None)
+        for y0, y1, text in boxes:
+            g = group_of(y0)
+            g.append((y0, y1, text)) if g else groups.append([(y0, y1, text)])
+        taken = {y0 for y0, _, _ in boxes}
+        for y0 in range(boxes[0][0] % 22, jp.shape[0] - h - 2, 22):
+            if y0 not in taken and (g := group_of(y0)):
+                g.append((y0, y0 + h, None))
+        for plates in groups:
+            top, h = -1, plates[0][1] - plates[0][0] + 3          # the plate's inside: a row over the box, two under
+            stack = np.stack([jp[y0 + top:y0 + top + h, x0:x1, :3] for y0, _, _ in plates])
+            masks = np.stack([text_mask(y0 + top, y0 + top + h) for y0, _, _ in plates])
+            # The light inner frame is bright too, but on most plates at once; text is where the names differ.
+            edge = np.ones(masks.shape[1:], bool)
+            edge[3:-3, 8:-8] = False
+            masks &= ~(edge & (masks.mean(axis=0) >= 0.75))
+            for _ in range(2):      # then again, with anything unlike the clean plate counted as text
+                clean = np.nanmedian(np.where(masks[..., None], np.nan, stack), axis=0)
+                bands = np.nanmedian(np.where(masks[..., None], np.nan, stack), axis=(0, 2))   # where every plate has text
+                known = np.where(~np.isnan(bands).any(axis=1))[0]   # a row that is all text: the nearest that isn't
+                bands = bands[known[np.abs(np.arange(len(bands))[:, None] - known[None, :]).argmin(axis=1)]]
+                band = np.broadcast_to(bands[:, None, :], clean.shape)
+                clean = np.where(np.isnan(clean), band, clean)
+                # Inside the box, text where most plates have it: brighter than its row, unlike the plain plate.
+                bright = np.zeros(clean.shape[:2], bool)
+                bright[1:-2, 4:-4] = (clean - band).mean(axis=2)[1:-2, 4:-4] > 24
+                # but not the plate's light inner frame: lines down or across most of it are no text
+                bright &= ~(bright.mean(axis=0, keepdims=True) > 0.6) & ~(bright.mean(axis=1, keepdims=True) > 0.6)
+                clean = np.where(bright[..., None], band, clean)
+                masks = ndimage.binary_dilation(np.abs(stack - clean).max(axis=3) > 24, iterations=1, structure=np.ones((1, 3, 3)))
+            if len({t for _, _, t in plates}) == 1:     # the same word on all of them ("Now"): no clean texel to take
+                masks[:, 1:-2, 4:-4] = True
+            for (y0, _, text), mask, here in zip(plates, masks, stack):
+                if not text:
+                    continue
+                sheet.rebuild((slice(y0 + top, y0 + top + h), slice(x0, x1)), np.where(mask[..., None], clean, here))
+                glyph = np.array(render_line(text, bx1 - bx0, 14, (255, 255, 255), size, font, steady=True)).astype(float)
+                region = sheet.over[y0:y0 + 14, bx0:bx1]
+                ga, ra = glyph[..., 3:] / 255, region[..., 3:] / 255
+                alpha = ga + ra * (1 - ga)
+                region[..., :3] = (glyph[..., :3] * ga + region[..., :3] * ra * (1 - ga)) / np.maximum(alpha, 1e-6)
+                region[..., 3:] = alpha * 255
+    sheet.save(rel, 4, preview, "handata_4")
+
+
+def name_column(rel, index, x, names):
+    """A frame's column of short names: one per 16-texel row from (x, 0), 64 wide, white.
+    names: in unit order (the 34 students, then Denehere where the frame has him)."""
+    out = PACK / "images" / rel
+    out.mkdir(parents=True, exist_ok=True)
     over = np.zeros((1024, 512, 4), float)
-    for i, name in enumerate(STUDENTS + ["Denehere"]):
+    for i, name in enumerate(names):
         a, top = ink(name, 12)
         a = a[:, :62]
-        put(over, a, 256 + (64 - a.shape[1]) // 2, i * 16 + 3 - round(top), (255, 255, 255))    # caps from row 3
-    Image.fromarray(over.round().astype(np.uint8), "RGBA").save(out / "2.png", optimize=True)
+        put(over, a, x + (64 - a.shape[1]) // 2, i * 16 + 3 - round(top), (255, 255, 255))    # caps from row 3
+    Image.fromarray(over.round().astype(np.uint8), "RGBA").save(out / f"{index}.png", optimize=True)
     erase = np.zeros((1024, 512), bool)
-    erase[:16 * 35, 256:320] = True
-    erase_png = english_opening.erase_png(erase)
-    erase_png.save(out / "2.erase.png", optimize=True)
+    erase[:16 * len(names), x:x + 64] = True
+    english_opening.erase_png(erase).save(out / f"{index}.erase.png", optimize=True)
+
+
+def results_names():
+    """The results screen's unit cards (tacticsresult.bin frame 2)."""
+    name_column("data/tacticsresult/tacticsresult.bin", 2, 256, STUDENTS + ["Denehere"])
+
+
+def koji_names():
+    """The character screen's student cells (kojindata.bin frame 10, rect 0xc)."""
+    name_column("data/menu/kojindata.bin", 10, 304, STUDENTS)
 
 
 def results_screen(preview):
@@ -925,6 +1036,9 @@ def main():
     top_bar(args.preview)
     game_images(args.preview)
     koji_buttons()
+    koji_names()
+    skill_names()
+    quest_plates(args.preview)
     han_bar()
     english_opening.build(PACK / "images", GAME.parent, args.preview)
     import english_tutorial     # here: they import this module
