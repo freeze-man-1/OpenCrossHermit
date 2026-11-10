@@ -22,7 +22,7 @@ for data files, fixed-width types, no undefined behaviour.
 ## Build and check (always stop on a green build)
 ```
 cmake --build build -j16          # must print no warnings
-cd build && ctest                 # 10 tests; those needing game files read CH_TEST_DATA (default gamedata/), skip (77) without
+cd build && ctest                 # 11 tests; those needing game files read CH_TEST_DATA (default gamedata/), skip (77) without
 cmake --build build-asan -j8      # ASan/UBSan build for runtime checks
 ```
 Headless battle run (from any scratch dir holding `../tr/pre_prep.SAV`, a save just before preparation):
@@ -33,7 +33,7 @@ CH_MAP=<n> CH_AUTOSKIP=1 SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy timeout
 Debug env vars:
 - Logging: `CH_SCRIPT` (stage script trace), `CH_UNITS` (unit states and hits), `CH_PERF`, `CH_DEBUG` (map/cell info line).
 - Control: `CH_MAP` (stage), `CH_AUTOSKIP` (skip dialogue), `CH_EXIT_SCENE=<n>`.
-- Input and capture: `CH_SHOTS=t1,t2` (BMP screenshots of the whole window at ticks), `CH_MOUSE="x,y@tick:d;..."` (scripted clicks, in 1024x768 game coordinates; with `CH_MOUSE_WINDOW=1` in window coordinates, mapped like real mouse events). `CH_KEYS="41@tick;..."` (scripted keys by SDL scancode, 41 = Escape; released 2 ticks later).
+- Input and capture: `CH_INPUT_LOG` (each tick's mouse button edges and touch gestures), `CH_SHOTS=t1,t2` (BMP screenshots of the whole window at ticks), `CH_MOUSE="x,y@tick:d;..."` (scripted clicks, in 1024x768 game coordinates; with `CH_MOUSE_WINDOW=1` in window coordinates, mapped like real mouse events). `CH_KEYS="41@tick;..."` (scripted keys by SDL scancode, 41 = Escape; released 2 ticks later).
 
 ## How coverage is measured
 - Regenerate: `python3 tools/inventory/build_inventory.py`. It writes `functions.csv` and `report.html`.
@@ -150,6 +150,16 @@ Not covered:
 The same panel switches language: `options::languages()` is filled in by `main.cpp`, and its `switchTo` saves the choice and restarts on the option screen through `SwitchScene` (`data_scene.hpp`), so the old `GameSystem` and its audio device are gone before the new one opens. The option screen is only reachable from the title, so no game in progress is lost; the volumes are written first because they normally go in only on OK.
 
 `~MixerAudio` clears the output node's `onaudioprocess` on the web. SDL 2.30's close leaves it set, and a queued event then ran on the freed device (divide by zero or out-of-bounds in `HandleAudioProcess`). A quick close and reopen hit it every time; F9 could too.
+
+## UI style and touch (2026-11-08)
+Groundwork for a switchable mobile UI; the new UI's design itself is not built yet (a parallel design study picks it).
+- **UI style:** `PortOptions::modernUi` (`ui_style=classic|new` in `port_options.txt`), a row in the Option screen's port panel (UIスタイル: クラシック / 新; TW 介面風格: 經典 / 新; English in `languages/en/text/port.tsv`, and `languages/english.zip`'s copy of that file was replaced to match). Game code asks `ch::ui::modern()` (`options.hpp`). Nothing reads it yet, so Classic and New play the same today. A new UI must still turn input into the same mouse/keys the game logic reads: network play is lockstep.
+- **Touch:** `engine/touch_gestures.hpp` (`legacy::touch::Recognizer`, SDL-free, tested by `tests/touch_test.cpp`). The engine feeds it SDL finger events (`SDL_HINT_TOUCH_MOUSE_EVENTS` is off, and mouse events with `SDL_TOUCH_MOUSEID` are ignored). SDL's renderer already normalizes a finger to the letterboxed logical viewport, so `x * 1024` is the logical x.
+  - One finger works the mouse in both styles: tap = left click where it lifts; long-press (450 ms, within 14 logical px) = right click while still held; drag = left held from the start point, released where it lifts (the selection box). The steps go out one tick at a time (`InputState::applyTouch`), so the game sees the pointer arrive before a press, and a drag's press at its start.
+  - A second finger ends the one-finger gesture (a drag is released where it is); two-finger pan and pinch are only reported, nothing more happens until every finger is up.
+  - `InputState::touch()` gives each tick's gestures (tap, long-press, drag edges, fingers, pan, pinch); `setTouchMouse(false)` stops the mouse stand-in for a UI that reads gestures itself.
+- **Web page:** no zoom (viewport meta), `touch-action: none` and no selection or callout on the canvas, the page's own touch handling prevented. The first touch (a touchend, which browsers accept) asks for fullscreen on the page and a landscape lock; a refusal (iPhone Safari has no element fullscreen) is ignored. Once touched, the canvas may fill the height less the import bar (`--bar`). Page fullscreen is not SDL's, so `Engine::fullscreen()` still says off there.
+- **Tested:** native Option screen headless (the row toggles, `ui_style=new` saved, both labels fit). Headless Chromium with CDP touch emulation (`--use-angle=swiftshader`), mobile 900x700 at 2x, on the game files screen with `CH_INPUT_LOG` (set through `ENV` in a copy of the page's `preRun`): tap, long-press, drag and pinch gave exactly the expected mouse ticks at the right logical points, also after the page went fullscreen; mouse left/right clicks unchanged; no scroll or zoom. Not tried: a real phone, iOS Safari, a native touchscreen, and a battle by touch (no game data in that browser).
 
 Language packs: `game/lang/language_pack.cpp`, format in `languages/README.md`, English source in `languages/en/` (`tools/make_english_pack.py` writes `languages/english.zip`).
   - The opening's image text (`tools/english_opening.py`, called by `make_english_pack.py`): `opdata.bin` frames 0 (captions), 1 (logo subtitle, staff), 13 (map plates) and 22 (title card). All the English sits on a new frame 48 (2048x1024), and `images/data/op/opdata.bin/layout.txt` sends `HataTask::opSprite` there (`lang::spriteParts`). `CH_OP_TRACE=<file>` logs each draw from those frames, which is how the `CAPTIONS` rectangles were found; it holds every rectangle the Japanese opening drew in a full run. `opdata2.bin` holds animation data and is shared with TW; `opdata_256.bin` is not read. opdata.bin is painted when loaded and never cached (96 MB).

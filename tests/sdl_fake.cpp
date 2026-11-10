@@ -32,12 +32,14 @@ int SDL_SetTextureScaleMode(SDL_Texture*, SDL_ScaleMode) { return 0; }
 int SDL_RenderCopy(SDL_Renderer*, SDL_Texture*, const SDL_Rect*, const SDL_Rect*) { return 0; }   // the frame into the window
 Uint64 SDL_GetPerformanceFrequency() { return 1000; }
 Uint64 SDL_GetPerformanceCounter() { return 0; }
+Uint32 SDL_GetTicks() { return 0; }
 int SDL_PollEvent(SDL_Event*) { return 0; }
 static Uint32 g_color = 0;
 int SDL_SetRenderDrawColor(SDL_Renderer*, Uint8 r, Uint8 g, Uint8 b, Uint8 a) { g_color = Uint32(a) << 24 | Uint32(r) << 16 | Uint32(g) << 8 | b; return 0; }
 int SDL_RenderClear(SDL_Renderer*) { return 0; }
 void SDL_RenderPresent(SDL_Renderer*) {}
 int SDL_RenderFillRect(SDL_Renderer*, const SDL_Rect* r) { if (soft::enabled && r) soft::fillRect(r->x, r->y, r->w, r->h, g_color); return 0; }
+int SDL_RenderGeometry(SDL_Renderer*, SDL_Texture*, const SDL_Vertex*, int, const int*, int) { return 0; }
 int SDL_RenderDrawRect(SDL_Renderer*, const SDL_Rect*) { return 0; }
 int SDL_SetRenderDrawBlendMode(SDL_Renderer*, SDL_BlendMode) { return 0; }
 char* SDL_GetBasePath() {

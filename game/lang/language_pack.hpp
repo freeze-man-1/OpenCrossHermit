@@ -42,7 +42,10 @@ bool removePack(const std::string& id);
 void savePreferred(const std::string& id);
 [[nodiscard]] GameVersion versionOf(const std::string& id);
 // Makes a pack's files, text and images take effect; a release's id or "" ends that.
+// The pack's images are painted on a thread of their own, so the game runs meanwhile.
 void activate(const std::string& id);
+// Stops that painting (before the files it reads change). activate() calls it first.
+void stopPainting();
 
 // A pack's images/<game file>/layout.txt moves sprites whose new text doesn't fit the old
 // rectangle: one sprite of the original becomes these parts. dx, dy are the part's offset

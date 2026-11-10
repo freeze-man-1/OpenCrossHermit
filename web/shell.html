@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Cross Hermit (port)</title>
 <link rel="icon" href="data:,">
 <style>
@@ -21,7 +21,12 @@
   /* The canvas fills what the page leaves; the game scales its 4:3 frame into it
      (pillarbox on a wide screen). Absolute, so its size never feeds back into the layout. */
   #stage { flex: 1 1 auto; min-height: 0; width: 100%; position: relative; background: #000; }
-  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none;
+           /* Touch goes to the game (engine/touch_gestures.hpp): no scrolling, zooming,
+              text selection, callout menu or tap flash on the canvas. */
+           touch-action: none; user-select: none; -webkit-user-select: none;
+           -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  html, body { overscroll-behavior: none; }
   #status { color: var(--dim); padding: 8px 16px; }
 </style>
 </head>
@@ -77,6 +82,29 @@
   // also changes size when the import bar or the status line shows or hides.
   new ResizeObserver(function () { window.dispatchEvent(new Event('resize')); })
     .observe(document.getElementById('stage'));
+
+  // Touch: SDL turns the canvas's touch events into fingers. Stop the browser's
+  // own handling too (scrolling, double-tap zoom, the mouse events it would
+  // simulate). The first touch asks for fullscreen and landscape, which a
+  // browser allows only in a touchend; one that refuses (iPhone Safari) is left as is.
+  (function () {
+    var canvas = document.getElementById('canvas'), asked = false;
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function (t) {
+      canvas.addEventListener(t, function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false });
+    });
+    canvas.addEventListener('touchend', function () {
+      if (asked) return;
+      asked = true;
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!req || document.fullscreenElement || document.webkitFullscreenElement) return;
+      try {
+        Promise.resolve(req.call(el, { navigationUI: 'hide' })).then(function () {
+          if (screen.orientation && screen.orientation.lock) return screen.orientation.lock('landscape');
+        }).catch(function () {});
+      } catch (err) {}
+    });
+  })();
 
   async function addFiles(files) {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist();

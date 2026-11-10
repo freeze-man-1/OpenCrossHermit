@@ -22,7 +22,7 @@ constexpr std::uint32_t kLevels[3] = {options::kBgm, options::kSe, options::kVoi
 // The port's panel, just under the original's and as wide.
 constexpr int kPortX = kPanelX, kPortY = 473, kPortW = 400, kPortRowH = 30, kPortSwitchX = kPortX + 290, kPortSwitchW = 92;
 // What the mouse can be over in that panel. The language button opens a list of them.
-enum PortItem { kItemFullscreen, kItemInfinite, kItemInstantWin, kItemTutorial, kItemLanguage, kItemChapters,
+enum PortItem { kItemFullscreen, kItemInfinite, kItemInstantWin, kItemUiStyle, kItemTutorial, kItemLanguage, kItemChapters,
                 kItemWindow, kItemScale };
 constexpr int kLanguageW = 184, kLanguageX = kPortSwitchX + kPortSwitchW - kLanguageW;
 constexpr int kListRowH = 28;
@@ -85,14 +85,14 @@ Co<> OptionTask::start(std::uint32_t) {
 }
 
 // Fullscreen, the window size (not on the web, where the page sizes it), the
-// scaling, infinite time, the instant win, the language if it can change,
-// Tutorial in the TW build, the chapter select.
+// scaling, infinite time, the instant win, the UI style, the language if it can
+// change, Tutorial in the TW build, the chapter select.
 std::vector<int> OptionTask::portItems() const {
     std::vector<int> items{kItemFullscreen};
 #ifndef __EMSCRIPTEN__
     items.push_back(kItemWindow);
 #endif
-    items.insert(items.end(), {kItemScale, kItemInfinite, kItemInstantWin});
+    items.insert(items.end(), {kItemScale, kItemInfinite, kItemInstantWin, kItemUiStyle});
     if (options::languages().switchTo) items.push_back(kItemLanguage);
     if (ctx_.version == GameVersion::Tw) items.push_back(kItemTutorial);
     items.push_back(kItemChapters);
@@ -200,6 +200,9 @@ void OptionTask::portInput() {
         case kItemInstantWin:
             p.instantWin = !p.instantWin;
             break;
+        case kItemUiStyle:
+            p.modernUi = !p.modernUi;
+            break;
         case kItemTutorial:
             p.twTutorial = !p.twTutorial;
             break;
@@ -283,6 +286,10 @@ void OptionTask::drawPortPanel() {
     ++row;
     toggle(row++, tw ? "單位時間無限 (單人)" : tr("ユニット時間無限 (シングル)"), options::port().infiniteUnitTime, kItemInfinite);
     toggle(row++, tw ? "按Enter立即勝利 (單人)" : tr("Enterで即勝利 (シングル)"), options::port().instantWin, kItemInstantWin);
+    label(row, tw ? "介面風格" : tr("UIスタイル"));
+    button(kPortSwitchX, row, kPortSwitchW, ui::modern() ? (tw ? "新" : tr("新")) : (tw ? "經典" : tr("クラシック")),
+           ui::modern(), hot == kItemUiStyle);
+    ++row;
     if (const auto& l = options::languages(); l.switchTo) {
         label(row, tw ? "語言" : tr("言語"));
         std::string name;

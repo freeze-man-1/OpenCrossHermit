@@ -182,9 +182,14 @@ SDL_Texture* BankSprites::fontAtlas(SDL_Renderer* r) {
     return font_.get();
 }
 
+int BankSprites::textWidth(const std::string& utf8, int px, bool bold, int face) {
+    if (utf8.empty() || !px || !text_.available()) return 0;
+    return text_.render(utf8, px, bold, face).w;
+}
+
 void BankSprites::drawText(SDL_Renderer* r, const TextCmd& c) {
     if (c.fontPx && text_.available()) {
-        const auto g = text_.render(c.text, c.fontPx, c.bold);
+        const auto g = text_.render(c.text, c.fontPx, c.bold, c.face);
         if (!g.tex) return;
         SDL_SetTextureColorMod(g.tex, std::uint8_t(c.argb >> 16), std::uint8_t(c.argb >> 8), std::uint8_t(c.argb));
         SDL_SetTextureAlphaMod(g.tex, std::uint8_t(c.argb >> 24));

@@ -2,8 +2,10 @@
 // kojin_task.cpp
 // ============================================================================
 #include "kojin_task.hpp"
+#include "kojin_blend.hpp"
 #include "../state/game_logic.hpp"
 #include "../state/exe_image.hpp"
+#include "../option/options.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -86,6 +88,8 @@ int compare(int baseline, int current) {
     return baseline < current ? 0x98 : 0x130;
 }
 } // namespace
+
+KojinTask::KojinTask(GameContext& ctx) : ctx_(ctx) {}
 
 KojinTask::~KojinTask() {   // FUN_004b8be0: FUN_0041f4e0(0xd), FUN_004d1bf0 frees the font
     for (AnmPlayer::NodeId n : fxNode_) if (fxFile_.loaded()) fx_.freeRoot(n);
@@ -174,6 +178,8 @@ void KojinTask::open() {
         if (units_[std::size_t(i)] == w.s16(kPicked)) w.set16(kShown, i);
     job_ = w.s16(GameWork::unitRecord(shownUnit()) + 6);
     computeUnit(shownUnit(), -1, true, 2);
+    if (!blend_) blend_ = std::make_unique<KojinBlend>(*this, ctx_);
+    blend_->open();
 }
 
 // FUN_004b5a00
@@ -257,6 +263,19 @@ void KojinTask::frame() {
     GameWork& w = ctx_.work;
     cursor_ = 0;
     keyTabs_ = false;
+    tapPlaced_ = false;
+    swipe_ = 0;
+    if (ui::modern() && blend_) {                          // New style: the one-page screen
+        blend_->frame();
+        const auto& m = ctx_.mouse();
+        if (!ctx_.engine.input().touch().used) drawRect(ctx_, rect(kCursor), 0x33, m.x, m.y);
+        return;
+    }
+    if (ui::modern() && w.u8(kLeftPane) == 0) {          // New style: a swipe across the card steps the student
+        const auto& g = ctx_.engine.input().touch();
+        const float dx = g.dragPos.x - g.dragStart.x, dy = g.dragPos.y - g.dragStart.y;
+        if (g.dragEnded && g.dragStart.y < 0x1a5 && dx * dx > 0x80 * 0x80 && dx * dx > 4 * dy * dy) swipe_ = dx < 0 ? 1 : -1;
+    }
     drawRect(ctx_, rect(kTabFrame), 0x4f, 8, 0x1b4);
     drawRect(ctx_, rect(kPaneFrame), 0x4f, 0, 2);
     drawRect(ctx_, rect(kPaneFrame), 0x4f, 0, 0x1a5);
@@ -301,6 +320,7 @@ void KojinTask::frame() {
     if (tab != 5 && tab != 6) drawRect(ctx_, rect(kTabLit), 0x48, 8, tab * 0x2f + 0x1b4, 0, (tab + 6) * 0x2c);
 
     const auto& m = ctx_.mouse();
+    if (ui::modern() && ctx_.engine.input().touch().used) return;   // no pointer under a finger
     if (cursor_ == 0) drawRect(ctx_, rect(kCursor), 0x33, m.x, m.y);
     else drawRect(ctx_, rect(kCursor + cursor_), 0x33, m.x - 0x12, m.y - 0x12);
 }
@@ -593,7 +613,7 @@ void KojinTask::drawEquipItems() {
         const int pos = skillSlots_ + k, x = pos * 0x24 + 0x16e;
         drawItemIcon(x, 0x1be, it - 1, 1, 0x3f);
         // In the 装備 tab an equipped item can be picked up.
-        if (w.s16(kItemDrag) != 1 || w.u8(kTab) != 1 || w.u8(kLeftPane) != 0) continue;
+        if (w.s16(kItemDrag) != 1 || w.u8(kTab) != 1 || w.u8(kLeftPane) != 0 || tapPlaced_) continue;
         const ysub::Hit h = ysub::hit(ctx_, x + 1, 0x1bf, 0x23, 0x23);
         if (!h.over) continue;
         drawRect(ctx_, rect(0x13), 0x35, x, 0x1be);
@@ -601,6 +621,7 @@ void KojinTask::drawEquipItems() {
         if (h.pressed & legacy::kMouseLeft) {
             ctx_.audio->sePlay(kSe);
             w.set16(kItemBarK, k); w.set16(kItemBarPos, pos);
+            retap_ = w.s16(kItemId) == it;
             w.set16(kItemDrag, 3);
             w.set16(kItemId, it);
             w.set16(slot, 0);
@@ -623,7 +644,7 @@ void KojinTask::drawEquipSkills() {
         const int x = k * 0x24 + 0x16e;
         drawSkillIcon(x, 0x1be, cat, sub, 7, 0x40);
         // In the 技能 tab an equipped skill can be picked up (FUN_004b10b0).
-        if (w.s16(kSkillDrag) != 1 || w.u8(kTab) != 0 || w.u8(kLeftPane) != 0) continue;
+        if (w.s16(kSkillDrag) != 1 || w.u8(kTab) != 0 || w.u8(kLeftPane) != 0 || tapPlaced_) continue;
         const ysub::Hit h = ysub::hit(ctx_, x + 1, 0x1bf, 0x23, 0x23);
         if (!h.over) continue;
         drawRect(ctx_, rect(0x13), 0x35, x, 0x1be);
@@ -631,6 +652,7 @@ void KojinTask::drawEquipSkills() {
         if (h.pressed & legacy::kMouseLeft) {
             ctx_.audio->sePlay(kSe);
             w.set16(kBarCat, cat); w.set16(kBarSub, sub); w.set16(kBarSlot, k);
+            retap_ = w.s16(kSkillId) == s;
             w.set16(kSkillDrag, 3);
             w.set16(kSkillId, s);
             w.set16(slot, 0);
@@ -716,9 +738,9 @@ void KojinTask::tabStudents() {
         }
     }
     const auto& in = ctx_.engine.input();
-    if (in.pressed(legacy::Action::Left) || in.pressed(legacy::Action::Right)) {
+    if (stepPrev() || stepNext()) {
         ctx_.audio->sePlay(kSe);
-        stepUnit(in.pressed(legacy::Action::Right));
+        stepUnit(stepNext());
     } else if (pick >= 0) {
         w.set16(kShown, pick);
         computeUnit(shownUnit(), -1, true, 2);
@@ -833,12 +855,12 @@ void KojinTask::tabJobs() {
         default: break;
     }
     const auto& in = ctx_.engine.input();
-    if (in.pressed(legacy::Action::Left) || in.pressed(legacy::Action::Right)) {
+    if (stepPrev() || stepNext()) {
         ctx_.audio->sePlay(kSe);
         const int cur = w.s16(kShown);
         int next = cur;
         for (int i = 0; i < unitCount_; ++i) {
-            next = in.pressed(legacy::Action::Right) ? (cur + 1 + i) % unitCount_ : (cur - (i + 1) + unitCount_) % unitCount_;
+            next = stepNext() ? (cur + 1 + i) % unitCount_ : (cur - (i + 1) + unitCount_) % unitCount_;
             if (units_[std::size_t(next)] != -1) break;
         }
         w.set16(kShown, next);
@@ -959,14 +981,14 @@ void KojinTask::tabStats() {
                 if (w.s32(kPoints) < need || logic::unitSummary(w, v, unit).toCap < need) { can = 0; state = 2; }
             }
             const int y = c * 0x22;
-            if (canEdit && ysub::clicked(ctx_, 0x1b1, y + 0x1e9, 0x15, 0x12) && can == 2) {
+            if (canEdit && (hitTouch(0x1b1, y + 0x1e9, 0x15, 0x12).pressed & legacy::kMouseLeft) && can == 2) {
                 flashes_.add(rect(0x53), 0x4c, 0x1a7, y + 0x1e1, 8);
                 ctx_.audio->sePlay(kSe);
                 changed = true;
                 w.set16(kAdd + cu * 2, add(c) + 1);
                 w.set32(kCost + cu * 4, levelStart(base + add(c)) - w.s32(rec + 0x10 + cu * 8));
             }
-            if (ysub::clicked(ctx_, 0x1d5, y + 0x1e9, 0x15, 0x12) && add(c) != 0) {
+            if ((hitTouch(0x1d5, y + 0x1e9, 0x15, 0x12).pressed & legacy::kMouseLeft) && add(c) != 0) {
                 w.set16(kAdd + cu * 2, add(c) - 1);
                 flashes_.add(rect(0x54), 0x4c, 0x1cc, y + 0x1e1, 8);
                 ctx_.audio->sePlay(kSe);
@@ -1000,12 +1022,12 @@ void KojinTask::tabStats() {
                 drawRect(ctx_, rect(kTooltips), 0x4a, 0x2c8, 0x1cc, 0, (icon - 1) * 0xe);   // FUN_004b8930
         }
     }
-    if (ysub::clicked(ctx_, 0x3e1, 0x209, 0x14, 0x2a)) {
+    if (hitTouch(0x3e1, 0x209, 0x14, 0x2a).pressed & legacy::kMouseLeft) {
         flashes_.add(rect(0x55), 0x4c, 0x3df, 0x207, 8);
         capText_.scroll(0);
         ctx_.audio->sePlay(kSe);
     }
-    if (ysub::clicked(ctx_, 0x3e1, 0x238, 0x14, 0x2a)) {
+    if (hitTouch(0x3e1, 0x238, 0x14, 0x2a).pressed & legacy::kMouseLeft) {
         flashes_.add(rect(0x56), 0x4c, 0x3df, 0x236, 8);
         capText_.scroll(1);
         ctx_.audio->sePlay(kSe);
@@ -1098,11 +1120,11 @@ void KojinTask::tabStats() {
     }
 
     const auto& in = ctx_.engine.input();
-    if (in.pressed(legacy::Action::Left) || in.pressed(legacy::Action::Right)) {
+    if (stepPrev() || stepNext()) {
         ctx_.audio->sePlay(kSe);
         w.set16(kSel, -1);
         clearAdds(10);
-        stepUnit(in.pressed(legacy::Action::Right));
+        stepUnit(stepNext());
         copyRecord();
         w.set16(kPhase, 1);
     }
@@ -1159,6 +1181,19 @@ void KojinTask::stepUnit(bool forward) {
     computeUnit(shownUnit(), -1, false, 0);
 }
 
+// The port's New UI style: small buttons take a fingertip (at least 34 x 32,
+// centred on the drawn button); the arrow keys or a swipe step the student.
+ysub::Hit KojinTask::hitTouch(int x, int y, int w, int h) const {
+    if (ui::modern()) {
+        const int gw = std::max(w, 0x22), gh = std::max(h, 0x20);
+        x -= (gw - w) / 2; y -= (gh - h) / 2; w = gw; h = gh;
+    }
+    return ysub::hit(ctx_, x, y, w, h);
+}
+
+bool KojinTask::stepPrev() const { return ctx_.engine.input().pressed(legacy::Action::Left) || swipe_ < 0; }
+bool KojinTask::stepNext() const { return ctx_.engine.input().pressed(legacy::Action::Right) || swipe_ > 0; }
+
 // FUN_004b6d90: the text panel's scroll buttons (top, up, down, bottom).
 int KojinTask::textScrollButton() {
     struct Btn { int hitY, fx, fy, sx, sy, w, h; };
@@ -1167,7 +1202,7 @@ int KojinTask::textScrollButton() {
                                        {0x2a9, 0x3e5, 0x2b6, 0x3d6, 0x9b, 0xe, 0xd},
                                        {0x2cf, 0x3e4, 0x2db, 0x3d5, 0xd5, 0xf, 0x11}}};
     for (std::size_t i = 0; i < kBtn.size(); ++i) {
-        if (!ysub::clicked(ctx_, 0x3e2, kBtn[i].hitY, 0x14, 0x23)) continue;
+        if (!(hitTouch(0x3e2, kBtn[i].hitY, 0x14, 0x23).pressed & legacy::kMouseLeft)) continue;
         ctx_.audio->sePlay(kSe);
         flashes_.add({.bank = kBank, .frame = 7, .sx = static_cast<std::int16_t>(kBtn[i].sx),
                        .sy = static_cast<std::int16_t>(kBtn[i].sy), .w = static_cast<std::int16_t>(kBtn[i].w),
@@ -1200,13 +1235,30 @@ void KojinTask::tabSkills() {
         case 1: {
             keyTabs_ = true;
             // Left / right: previous / next unit (DIK 0xcb / 0xcd).
-            const bool prev = ctx_.engine.input().pressed(legacy::Action::Left);
-            const bool next = ctx_.engine.input().pressed(legacy::Action::Right);
+            const bool prev = stepPrev();
+            const bool next = stepNext();
             if (prev || next) {
                 ctx_.audio->sePlay(kSe);
                 stepUnit(next);
                 w.set16(kSkillCol, -1); w.set16(kSkillRow, -1); w.set16(kSkillId, -1);
                 w.set16(0x7d6a3e, 0);
+            }
+            // New style: with a learned skill selected, tapping a slot puts it
+            // there (the old one back to the grid), as dropping it there would.
+            if (const int sel = w.s16(kSkillId); ui::modern() && w.u8(kLeftPane) == 0 && sel > 0 && w.u8(slotState(sel)) == 3) {
+                for (int k = 0; k < jobSkillSlots; ++k) {
+                    const int x = k * 0x24 + 0x16e;
+                    drawRect(ctx_, rect(0x13), 0x35, x, 0x1be);
+                    if (!(hitTouch(x + 1, 0x1bf, 0x23, 0x23).pressed & legacy::kMouseLeft)) continue;
+                    const std::uint32_t slot = rec + 0x52 + std::uint32_t(k) * 2;
+                    if (const int old = w.s16(slot); old != 0) w.set8(slotState(old), 3);
+                    w.set16(slot, sel);
+                    w.set8(slotState(sel), 6);
+                    ctx_.audio->sePlay(kSe);
+                    computeUnit(unit, -1, false, 0);
+                    tapPlaced_ = true;
+                    break;
+                }
             }
             constexpr std::array<int, 4> kScroll{2, 0, 1, 3};
             if (const int b = textScrollButton(); b > 0) skillText_.scroll(kScroll[std::size_t(b - 1)]);
@@ -1222,10 +1274,12 @@ void KojinTask::tabSkills() {
                 result = 1;
             }
             const int id = w.s16(kSkillId);
+            int placedAt = -1;
             for (int k = 0; k < jobSkillSlots; ++k) {
                 if (!ysub::hit(ctx_, k * 0x24 + 0x16f, 0x1bf, 0x23, 0x23).over) continue;
                 drawRect(ctx_, rect(0x13), 0x35, k * 0x24 + 0x16e, 0x1be);
                 if (result != 1) continue;
+                placedAt = k;
                 const std::uint32_t slot = rec + 0x52 + std::uint32_t(k) * 2;
                 const int old = w.s16(slot);
                 w.set16(slot, id);
@@ -1238,6 +1292,11 @@ void KojinTask::tabSkills() {
             }
             drawSkillIcon(m.x - 0x10, m.y - 0x10, fromBar ? w.s16(kBarCat) : w.s16(kSkillCol),
                           fromBar ? w.s16(kBarSub) : w.s16(kSkillRow), 7, 0x34);
+            // New style: a second tap on the selected skill's slot takes it off.
+            if (ui::modern() && fromBar && result == 3 && retap_ && placedAt == w.s16(kBarSlot)) {
+                w.set16(rec + 0x52 + std::uint32_t(placedAt) * 2, 0);
+                result = 1;
+            }
             if (result == 1) w.set8(slotState(id), 3);    // back to the grid, unequipped
             if (result != 0) computeUnit(unit, -1, false, 0);
             if (fromBar) {
@@ -1501,13 +1560,30 @@ void KojinTask::tabItems() {
             break;
         case 1: {
             keyTabs_ = true;
-            const bool prev = ctx_.engine.input().pressed(legacy::Action::Left);
-            const bool next = ctx_.engine.input().pressed(legacy::Action::Right);
+            const bool prev = stepPrev();
+            const bool next = stepNext();
             if (prev || next) {
                 ctx_.audio->sePlay(kSe);
                 stepUnit(next);
                 w.set16(kItemCol, -1);
                 w.set16(kItemId, -1);
+            }
+            // New style: with an item from storage selected, tapping a slot
+            // equips it there (the old one back to storage), as dropping it would.
+            if (const int sel = w.s16(kItemId); ui::modern() && w.u8(kLeftPane) == 0 && sel > 0 && (w.u16(store(sel)) >> 8 & 0xf) == 1) {
+                for (int k = 0; k < jobItemSlots; ++k) {
+                    if (canEquip(rec, k, sel)) lightBar(k);
+                    if (!(hitTouch((jobSkillSlots + k) * 0x24 + 0x16f, 0x1bf, 0x23, 0x23).pressed & legacy::kMouseLeft)) continue;
+                    tapPlaced_ = true;
+                    if (!canEquip(rec, k, sel)) { voice(unit, 8); break; }
+                    voice(unit, 0xb);
+                    w.set16(store(sel), (w.u16(store(sel)) & 0xf0ff & 0xff01) | 0x300 | (unit & 0x7f) << 1);
+                    const std::uint32_t slot = rec + 0x62 + std::uint32_t(k) * 2;
+                    if (const int old = w.u16(slot); old != 0) setState(old, 1);
+                    w.set16(slot, sel);
+                    computeUnit(unit, -1, false, 0);
+                    break;
+                }
             }
             (void)itemScrollButton();          // called twice a frame in the original; this result is unused
             switch (pageButton()) {
@@ -1560,6 +1636,7 @@ void KojinTask::tabItems() {
                 for (int k = 0; k < jobItemSlots; ++k) {
                     if (!overBar(k)) continue;
                     const std::uint32_t slot = rec + 0x62 + std::uint32_t(k) * 2;
+                    if (ui::modern() && retap_ && k == w.s16(kItemBarK)) break;   // New style: a second tap takes it off
                     if (w.u16(slot) != 0) w.set16(rec + 0x62 + std::uint32_t(w.s16(kItemBarK)) * 2, w.u16(slot));
                     w.set16(slot, id);
                     ctx_.audio->sePlay(kSe);

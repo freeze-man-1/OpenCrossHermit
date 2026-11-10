@@ -94,6 +94,7 @@ int main(int argc, char** argv) {
             for (const auto& c : ch::lang::choices(ch::import::installed())) languages.all.push_back({c.id, c.name});
             languages.current = language;
             const ch::GameVersion v = ch::lang::versionOf(language);
+            ch::lang::stopPainting();      // (it reads through the variant's files)
             legacy::vfs::setVariant(v == ch::GameVersion::Tw ? "tw" : "jp");
             ch::lang::activate(language);
             ch::exe::reload();

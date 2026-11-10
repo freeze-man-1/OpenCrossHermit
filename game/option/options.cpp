@@ -82,13 +82,15 @@ void loadPort() {
         port().windowH = h;
     }
     parseScale(value("scale"), port().scale);
+    port().modernUi = value("ui_style") == "new";
 }
 
 void savePort() {
     const std::string s = std::string("fullscreen=") + (port().fullscreen ? "1" : "0") + "\ninfinite_unit_time=" +
                           (port().infiniteUnitTime ? "1" : "0") + "\ntw_tutorial=" + (port().twTutorial ? "1" : "0") +
                           "\ninstant_win=" + (port().instantWin ? "1" : "0") + "\nwindow=" + std::to_string(port().windowW) +
-                          "x" + std::to_string(port().windowH) + "\nscale=" + scaleName(port().scale) + "\n";
+                          "x" + std::to_string(port().windowH) + "\nscale=" + scaleName(port().scale) +
+                          "\nui_style=" + (port().modernUi ? "new" : "classic") + "\n";
     try {
         legacy::vfs::writeSave(kPortFile, std::span<const std::uint8_t>(reinterpret_cast<const std::uint8_t*>(s.data()), s.size()));
     } catch (const std::exception& ex) {

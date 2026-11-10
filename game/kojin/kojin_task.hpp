@@ -30,17 +30,21 @@
 
 #include <array>
 #include <cstdint>
+#include <memory>
 
 namespace ch {
+
+class KojinBlend;
 
 class KojinTask final : public Task {
 public:
     // FUN_004b8a90; its 12px font (CreateFontA, +0x323) is the engine's text font here.
-    explicit KojinTask(GameContext& ctx) : ctx_(ctx) {}
+    explicit KojinTask(GameContext& ctx);
     ~KojinTask() override;                      // FUN_004b8be0 / FUN_004b8d10
     Co<> start(std::uint32_t) override;         // FUN_004b8d50
 
 private:
+    friend class KojinBlend;                     // the New style's one-page screen
     static constexpr std::uint16_t kBank = 0xd;      // data\menu\KojinData.bin
 
     void open();                                 // FUN_004b5600
@@ -65,6 +69,9 @@ private:
     // 技能 tab (FUN_004ae370).
     void tabSkills();
     void stepUnit(bool forward);                 // FUN_004b6fb0 + recompute
+    [[nodiscard]] ysub::Hit hitTouch(int x, int y, int w, int h) const;   // New style: grown to take a fingertip
+    [[nodiscard]] bool stepPrev() const;          // left key or a swipe right
+    [[nodiscard]] bool stepNext() const;
     [[nodiscard]] int textScrollButton();        // FUN_004b6d90: 1..4 or 0
     [[nodiscard]] int gridSkill(int col, int row) const;   // FUN_004ae2f0 (DAT_0061ba30)
 
@@ -93,6 +100,7 @@ private:
 
     GameContext&   ctx_;
     ysub::Flashes  flashes_;
+    std::unique_ptr<KojinBlend> blend_;          // New style
     bool           needOpen_ = true;             // DAT_007a4ae0
     std::int16_t   fade_ = 0;
 
@@ -115,6 +123,9 @@ private:
     int            total_ = 0, baselineTotal_ = 0;    // +0xc82 / +0xc80
     std::uint8_t   cursor_ = 0;                  // DAT_007d6a30
     bool           keyTabs_ = false;             // +0xc88: up / down switch tabs this frame
+    bool           tapPlaced_ = false;           // New style: a tap equipped into a slot this frame
+    bool           retap_ = false;               // New style: the slot tapped held the selection already
+    int            swipe_ = 0;                   // New style: -1 / 1 a swipe stepped the student this frame
     std::uint8_t   equippedSkills_ = 0, equippedItems_ = 0;   // +0xc87 / +0xc86
 
     ysub::TextList skillText_;                   // SkillExp, 10 lines

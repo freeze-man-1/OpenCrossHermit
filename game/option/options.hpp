@@ -35,6 +35,7 @@ struct PortOptions {
     bool instantWin = false;         // single player: Confirm (Enter / Z) wins a battle at once (rank 2)
     int windowW = 1024, windowH = 768;   // the window when not fullscreen (desktop builds; the web page sizes its own)
     legacy::ScaleMode scale = legacy::ScaleMode::Smooth;   // how the 1024x768 frame fills the window or screen
+    bool modernUi = false;           // UI style: false = Classic (the original's), true = New (touch friendly)
 };
 // "smooth", "sharp", "integer", "stretch": the file's spelling of a ScaleMode.
 [[nodiscard]] const char* scaleName(legacy::ScaleMode m);
@@ -56,3 +57,10 @@ struct Languages {
 [[nodiscard]] std::int32_t voiceVolume(int level, GameVersion v);
 
 } // namespace ch::options
+
+namespace ch::ui {
+// The UI style the player picked (Option screen): the new, touch-friendly one,
+// or the original's. Display only: input must still turn into the same game
+// commands either way, as network play is lockstep.
+[[nodiscard]] inline bool modern() { return options::port().modernUi; }
+} // namespace ch::ui

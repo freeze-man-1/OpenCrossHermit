@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <mutex>
 #include <unordered_map>
 #include <chrono>
 #include <cstdlib>
@@ -66,6 +67,18 @@ void InputState::beginTick() noexcept {
     mouse_.pressed  = (mousePrev_ ^ cur) & cur;
     mouse_.released = (mousePrev_ ^ cur) & mousePrev_;
     mousePrev_      = cur;
+    mouse_.wheel    = wheel_;
+    wheel_          = 0;
+}
+
+void InputState::applyTouch() {
+    while (touch_.hasMouseStep()) {
+        const touch::MouseStep s = touch_.popMouseStep();
+        onMouseMove(static_cast<int>(s.at.x), static_cast<int>(s.at.y));
+        if (s.button != touch::MouseStep::None)
+            onMouseButton(s.button == touch::MouseStep::Left ? SDL_BUTTON_LEFT : SDL_BUTTON_RIGHT, s.down);
+        if (s.endTick) break;
+    }
 }
 
 // ------------------------------------------------------------ Engine ------
@@ -74,6 +87,9 @@ Engine::Engine(EngineConfig cfg) : cfg_(std::move(cfg)) {
         throw std::runtime_error(std::string("SDL_Init: ") + SDL_GetError());
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");  // nearest-neighbour: preserve pixel art (the frame's own filter is per ScaleMode)
+    // Fingers work the mouse through touch::Recognizer (long-press is the right
+    // button), not SDL's left-button-only stand-in.
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
 #ifdef __EMSCRIPTEN__
     SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
 #endif
@@ -285,17 +301,35 @@ void Engine::frame() {
             case SDL_TEXTINPUT:
                 input_.onText(e.text.text);
                 break;
-            // Window coordinates (touch arrives as these too); the frame's black bars clamp to its edge.
+            // Window coordinates; the frame's black bars clamp to its edge. Fingers come as SDL_FINGER*.
             case SDL_MOUSEMOTION: {
+                if (e.motion.which == SDL_TOUCH_MOUSEID) break;
                 const SDL_Point p = logicalFromWindow(float(e.motion.x), float(e.motion.y));
                 input_.onMouseMove(p.x, p.y);
                 break;
             }
+            case SDL_MOUSEWHEEL:
+                if (e.wheel.which == SDL_TOUCH_MOUSEID) break;
+                input_.onWheel(e.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -e.wheel.y : e.wheel.y);
+                break;
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP: {
+                if (e.button.which == SDL_TOUCH_MOUSEID) break;
                 const SDL_Point p = logicalFromWindow(float(e.button.x), float(e.button.y));
                 input_.onMouseMove(p.x, p.y);
                 input_.onMouseButton(e.button.button, e.type == SDL_MOUSEBUTTONDOWN);
+                break;
+            }
+            case SDL_FINGERDOWN:
+            case SDL_FINGERMOTION:
+            case SDL_FINGERUP: {
+                // Normalized to the window: mapped into the frame as the mouse is.
+                const SDL_Point lp = logicalFromNormalized(e.tfinger.x, e.tfinger.y);
+                const touch::Point p{float(lp.x), float(lp.y)};
+                auto& t = input_.touch_;
+                if (e.type == SDL_FINGERDOWN)        t.down(e.tfinger.fingerId, p, e.tfinger.timestamp);
+                else if (e.type == SDL_FINGERMOTION) t.move(e.tfinger.fingerId, p, e.tfinger.timestamp);
+                else                                 t.up(e.tfinger.fingerId, p, e.tfinger.timestamp);
                 break;
             }
             case SDL_WINDOWEVENT:
@@ -304,6 +338,8 @@ void Engine::frame() {
             default: break;
         }
     }
+
+    input_.touch_.update(SDL_GetTicks());   // a long-press fires while the finger stays still
 
     // 2. Fixed-timestep logic at the original tick rate
     const std::uint64_t now = SDL_GetPerformanceCounter();
@@ -329,7 +365,19 @@ void Engine::frame() {
         }
         for (const auto& [at, key] : keyScript_)
             if (at == tickCount_ || at + 2 == tickCount_) input_.onKey(key, at == tickCount_);
+        input_.applyTouch();
         input_.beginTick();
+        // Debug: CH_INPUT_LOG logs each tick's mouse button edges and touch gestures.
+        static const bool inputLog = SDL_getenv("CH_INPUT_LOG") != nullptr;
+        if (const auto& m = input_.mouse(); inputLog && (m.pressed || m.released))
+            SDL_Log("[input] tick %llu mouse %d,%d pressed %u released %u", static_cast<unsigned long long>(tickCount_),
+                    m.x, m.y, m.pressed, m.released);
+        if (const auto& g = input_.touch(); inputLog && (g.tap || g.longPress || g.dragBegan || g.dragEnded))
+            SDL_Log("[input] tick %llu touch%s%s%s%s at %.0f,%.0f", static_cast<unsigned long long>(tickCount_),
+                    g.tap ? " tap" : "", g.longPress ? " long-press" : "", g.dragBegan ? " drag-begin" : "",
+                    g.dragEnded ? " drag-end" : "",
+                    double(g.tap ? g.tapAt.x : g.longPress ? g.longPressAt.x : g.dragBegan ? g.dragStart.x : g.dragPos.x),
+                    double(g.tap ? g.tapAt.y : g.longPress ? g.longPressAt.y : g.dragBegan ? g.dragStart.y : g.dragPos.y));
         for (const auto& [at, text] : textScript_)
             if (at == tickCount_) input_.injectText(text);
         if (scene_) scene_->fixedUpdate(*this, dt);
@@ -421,6 +469,8 @@ const std::string& resourceRootRef() {
 
 std::string& variantRef() { static std::string v = "jp"; return v; }
 std::string& overlayRef() { static std::string v; return v; }
+// readAsset's cache is shared with the thread that paints a language pack's images.
+std::mutex& assetCacheMutex() { static std::mutex m; return m; }
 std::unordered_map<std::string, std::vector<std::uint8_t>>& assetCacheRef() {
     static std::unordered_map<std::string, std::vector<std::uint8_t>> cache;
     return cache;
@@ -487,9 +537,13 @@ const std::string& variant() { return variantRef(); }
 void setOverlay(std::string_view dir) { overlayRef() = std::string(dir); }
 void setAssetFilter(std::function<void(const std::string&, std::vector<std::uint8_t>&)> filter) {
     assetFilterRef() = std::move(filter);
+    const std::lock_guard lock(assetCacheMutex());
     assetCacheRef().clear();
 }
-void cacheAsset(const std::string& rel, std::vector<std::uint8_t> bytes) { assetCacheRef()[rel] = std::move(bytes); }
+void cacheAsset(const std::string& rel, std::vector<std::uint8_t> bytes) {
+    const std::lock_guard lock(assetCacheMutex());
+    assetCacheRef()[rel] = std::move(bytes);
+}
 
 std::string assetPath(std::string_view legacyPath) {
     const std::string rel = normalize(legacyPath);
@@ -505,7 +559,10 @@ std::string assetPath(std::string_view legacyPath) {
 bool assetExists(std::string_view legacyPath) { return isFile(assetPath(legacyPath)); }
 
 std::vector<std::uint8_t> readAsset(std::string_view legacyPath) {
-    if (const auto it = assetCacheRef().find(normalize(legacyPath)); it != assetCacheRef().end()) return it->second;
+    {
+        const std::lock_guard lock(assetCacheMutex());
+        if (const auto it = assetCacheRef().find(normalize(legacyPath)); it != assetCacheRef().end()) return it->second;
+    }
     auto bytes = readFile(assetPath(legacyPath));
     if (assetFilterRef()) assetFilterRef()(normalize(legacyPath), bytes);
     return bytes;

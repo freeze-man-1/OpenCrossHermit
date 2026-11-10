@@ -5,6 +5,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(CH_AUDIO "Build the SDL_mixer audio backend (MP3 BGM, WAV SE)" ON)
 
+# A language pack's images are painted on a thread of their own (game/lang/language_pack.cpp).
+if(NOT EMSCRIPTEN)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+  find_package(Threads REQUIRED)
+  link_libraries(Threads::Threads)
+endif()
+
 add_executable(game
   main.cpp
   engine/engine_core.cpp
@@ -41,6 +48,7 @@ add_executable(game
   game/workroom/workroom_task.cpp
   game/han/han_task.cpp
   game/kojin/kojin_task.cpp
+  game/kojin/kojin_blend.cpp
   game/preparation/preparation_task.cpp
   game/saveload/saveload_task.cpp
   game/allresult/allresult_task.cpp
@@ -212,6 +220,8 @@ else()
 
   ch_test_program(sys_box_test tests/sys_box_test.cpp)
   add_test(NAME sys_boxes COMMAND sys_box_test)
+  ch_test_program(touch_test tests/touch_test.cpp)
+  add_test(NAME touch COMMAND touch_test)
   ch_test_program(bank_format_test tests/bank_format_test.cpp game/bank_format.cpp)
   add_test(NAME bank_format COMMAND bank_format_test ${CH_TEST_DATA})
   set_tests_properties(bank_format PROPERTIES SKIP_RETURN_CODE 77)
