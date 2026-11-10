@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ch::options {
@@ -32,7 +33,12 @@ struct PortOptions {
     bool infiniteUnitTime = false;   // single player: a unit's time on the field does not run out
     bool twTutorial = false;         // Traditional Chinese: the JP title's Tutorial item (ch.exe has none)
     bool instantWin = false;         // single player: Confirm (Enter / Z) wins a battle at once (rank 2)
+    int windowW = 1024, windowH = 768;   // the window when not fullscreen (desktop builds; the web page sizes its own)
+    legacy::ScaleMode scale = legacy::ScaleMode::Smooth;   // how the 1024x768 frame fills the window or screen
 };
+// "smooth", "sharp", "integer", "stretch": the file's spelling of a ScaleMode.
+[[nodiscard]] const char* scaleName(legacy::ScaleMode m);
+bool parseScale(std::string_view name, legacy::ScaleMode& out);
 [[nodiscard]] PortOptions& port();
 void loadPort();
 void savePort();

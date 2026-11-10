@@ -1,6 +1,12 @@
 # English: Japanese text<TAB>English. A line with no English stays Japanese.
 # Option screen
 フルスクリーン (F11)	Fullscreen (F11)
+ウィンドウサイズ	Window size
+拡大方法	Scaling
+なめらか	Smooth
+シャープ	Sharp
+整数倍	Whole multiples
+引き伸ばし	Stretch
 ユニット時間無限 (シングル)	Infinite unit time (solo)
 Enterで即勝利 (シングル)	Instant win with Enter (solo)
 言語	Language

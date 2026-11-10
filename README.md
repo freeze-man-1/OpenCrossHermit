@@ -33,6 +33,11 @@ Press **F9** at any time to return to the game files screen: add the other
 disc, or switch languages. The choice is remembered.
 
 Press **F11** at any time for fullscreen, in any release and in the browser.
+The game keeps its 4:3 1024x768 picture and scales it to the window or screen with
+black bars at the sides on a wide display. The Option screen picks the window size
+(desktop) and the scaling: Smooth, Sharp, Whole multiples or Stretch. These are kept in
+`port_options.txt` next to the saves; `--window 1920x1080`, `--scale integer`,
+`--fullscreen` and `--windowed` override them for one run.
 The Option screen has the same switch, and **infinite unit time** for an easier
 game: units on the field keep their time left. It has no effect in network play.
 

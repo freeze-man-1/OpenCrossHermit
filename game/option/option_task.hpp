@@ -14,8 +14,9 @@
 #pragma once
 #include "../game_context.hpp"
 
-#include <vector>
 #include <array>
+#include <string>
+#include <vector>
 #include <cstdint>
 
 namespace ch {
@@ -42,6 +43,8 @@ private:
     [[nodiscard]] std::vector<int> portItems() const;   // the panel's PortItem per row
     [[nodiscard]] int portRows() const;
     [[nodiscard]] int portHover() const;           // a PortItem under the mouse, or -1
+    void stepDisplay(int item, int step);          // the window size or the scaling, to the next (+1) or previous (-1)
+    [[nodiscard]] std::string scaleLabel(legacy::ScaleMode m) const;
 
     GameContext& ctx_;
     std::array<int, 4> hover_{-1, -1, -1, -1};     // +0x38: back, BGM, SE, voice cell under a held button

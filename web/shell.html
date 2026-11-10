@@ -18,8 +18,10 @@
   #bar .note { color: var(--dim); flex: 1; min-width: 200px; }
   #bar input { display: none; }
   body.dropping { outline: 3px dashed var(--accent); }
-  canvas { display: block; flex: none; max-width: 100%; max-height: calc(100vh - 60px); aspect-ratio: 4 / 3;
-           background: #000; outline: none; }
+  /* The canvas fills what the page leaves; the game scales its 4:3 frame into it
+     (pillarbox on a wide screen). Absolute, so its size never feeds back into the layout. */
+  #stage { flex: 1 1 auto; min-height: 0; width: 100%; position: relative; background: #000; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
   #status { color: var(--dim); padding: 8px 16px; }
 </style>
 </head>
@@ -32,7 +34,7 @@
     Nothing is uploaded: the files stay in this browser.</span>
 </div>
 <input id="pickSave" type="file" accept=".sav" multiple hidden>
-<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+<div id="stage"><canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas></div>
 <div id="status">Loading…</div>
 <script>
   // The imported game files live in IndexedDB (/gamedata), as do the saves
@@ -71,6 +73,10 @@
     },
   };
   window.onerror = function (m) { Module.setStatus('Error: ' + m); };
+  // SDL re-reads the canvas's CSS size on the window's resize event; the stage
+  // also changes size when the import bar or the status line shows or hides.
+  new ResizeObserver(function () { window.dispatchEvent(new Event('resize')); })
+    .observe(document.getElementById('stage'));
 
   async function addFiles(files) {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist();

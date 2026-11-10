@@ -7,6 +7,7 @@
 
 #include <SDL.h>
 
+#include <cstdio>
 #include <cstring>
 #include <span>
 #include <string>
@@ -41,6 +42,24 @@ PortOptions& port() {
     return p;
 }
 
+const char* scaleName(legacy::ScaleMode m) {
+    switch (m) {
+        case legacy::ScaleMode::Sharp:   return "sharp";
+        case legacy::ScaleMode::Integer: return "integer";
+        case legacy::ScaleMode::Stretch: return "stretch";
+        default:                         return "smooth";
+    }
+}
+
+bool parseScale(std::string_view name, legacy::ScaleMode& out) {
+    for (int i = 0; i < int(legacy::ScaleMode::Count); ++i)
+        if (name == scaleName(legacy::ScaleMode(i))) {
+            out = legacy::ScaleMode(i);
+            return true;
+        }
+    return false;
+}
+
 void loadPort() {
     const auto bytes = legacy::vfs::readSave(kPortFile);
     if (!bytes) return;
@@ -49,12 +68,27 @@ void loadPort() {
     port().infiniteUnitTime = s.find("infinite_unit_time=1") != std::string::npos;
     port().twTutorial = s.find("tw_tutorial=1") != std::string::npos;
     port().instantWin = s.find("instant_win=1") != std::string::npos;
+    // The value after "key=", up to the line's end.
+    const auto value = [&](std::string_view key) -> std::string {
+        const std::size_t at = s.find(std::string("\n") + std::string(key) + "=");
+        const std::size_t from = at != std::string::npos ? at + key.size() + 2
+                               : s.starts_with(std::string(key) + "=") ? key.size() + 1 : std::string::npos;
+        if (from == std::string::npos) return {};
+        return s.substr(from, s.find('\n', from) - from);
+    };
+    if (int w = 0, h = 0; std::sscanf(value("window").c_str(), "%dx%d", &w, &h) == 2 && w >= 320 && h >= 240 &&
+                          w <= 16384 && h <= 16384) {
+        port().windowW = w;
+        port().windowH = h;
+    }
+    parseScale(value("scale"), port().scale);
 }
 
 void savePort() {
     const std::string s = std::string("fullscreen=") + (port().fullscreen ? "1" : "0") + "\ninfinite_unit_time=" +
                           (port().infiniteUnitTime ? "1" : "0") + "\ntw_tutorial=" + (port().twTutorial ? "1" : "0") +
-                          "\ninstant_win=" + (port().instantWin ? "1" : "0") + "\n";
+                          "\ninstant_win=" + (port().instantWin ? "1" : "0") + "\nwindow=" + std::to_string(port().windowW) +
+                          "x" + std::to_string(port().windowH) + "\nscale=" + scaleName(port().scale) + "\n";
     try {
         legacy::vfs::writeSave(kPortFile, std::span<const std::uint8_t>(reinterpret_cast<const std::uint8_t*>(s.data()), s.size()));
     } catch (const std::exception& ex) {

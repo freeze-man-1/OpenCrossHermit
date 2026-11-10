@@ -14,6 +14,7 @@
 #include "game/option/options.hpp"
 #include "game/state/exe_image.hpp"
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
@@ -46,8 +47,24 @@ int main(int argc, char** argv) {
             }
             return files.empty() ? 0 : ch::import::importCli(files);
         }
+    // The window from the port's settings (next to the saves); --window WxH,
+    // --scale smooth|sharp|integer|stretch, --fullscreen and --windowed override them for this run.
+    ch::options::loadPort();
+    auto& display = ch::options::port();
     for (int i = 1; i < argc; ++i)
         if (std::strcmp(argv[i], "--data") == 0) ++i;
+        else if (std::strcmp(argv[i], "--window") == 0 && i + 1 < argc) {
+            if (int w = 0, h = 0; std::sscanf(argv[++i], "%dx%d", &w, &h) == 2 && w > 0 && h > 0) {
+                display.windowW = w;
+                display.windowH = h;
+            }
+        }
+        else if (std::strcmp(argv[i], "--scale") == 0 && i + 1 < argc) {
+            if (!ch::options::parseScale(argv[++i], display.scale))
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "--scale: smooth, sharp, integer or stretch");
+        }
+        else if (std::strcmp(argv[i], "--fullscreen") == 0) display.fullscreen = true;
+        else if (std::strcmp(argv[i], "--windowed") == 0) display.fullscreen = false;
         else if (std::strcmp(argv[i], "--title") == 0) boot = ch::SceneId::Title;
         else if (std::strcmp(argv[i], "--newgame") == 0) boot = ch::SceneId::WeekStart;
         else if (std::strcmp(argv[i], "--jp") == 0) language = "jp";
@@ -64,8 +81,8 @@ int main(int argc, char** argv) {
         // static: must outlive main() under Emscripten's simulated infinite loop
         static legacy::Engine engine({ .title = "Cross Hermit",
                                        .logicalW = ch::kScreenW, .logicalH = ch::kScreenH,
-                                       .windowScale = 1, .tickHz = 60.0,
-                                       .scaleMode = legacy::ScaleMode::Letterbox });
+                                       .windowScale = 1, .windowW = display.windowW, .windowH = display.windowH,
+                                       .tickHz = 60.0, .scaleMode = display.scale });
         // The release's files and tables, then the game. Without any release
         // imported, and on F9, the game files screen (game/import).
         // (static, as is all it uses: the web build's main() unwinds before the loop runs)
@@ -101,7 +118,6 @@ int main(int argc, char** argv) {
             engine.setFullscreen(ch::options::port().fullscreen);
             ch::options::savePort();
         });
-        ch::options::loadPort();
 #ifndef __EMSCRIPTEN__
         if (ch::options::port().fullscreen) engine.setFullscreen(true);   // (a browser refuses without a key or click)
 #endif

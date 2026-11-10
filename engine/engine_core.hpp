@@ -178,13 +178,22 @@ private:
 };
 
 // ------------------------------------------------------------ Engine ------
-enum class ScaleMode : std::uint8_t { Integer, Letterbox, Stretch };
+// How the logicalW x logicalH frame fills the window. All but Stretch keep the
+// aspect and leave black bars (pillarbox on a wide window, letterbox on a tall one).
+enum class ScaleMode : std::uint8_t {
+    Smooth,    // as large as fits, bilinear
+    Sharp,     // as large as fits, nearest-neighbour
+    Integer,   // the largest whole multiple that fits, nearest; fits like Sharp below 1x
+    Stretch,   // fills the window, aspect ignored
+    Count
+};
 
 struct EngineConfig {
     std::string title    = "Legacy Port";
     int         logicalW = 640;          // replace with DDraw SetDisplayMode() values
     int         logicalH = 480;
     int         windowScale = 2;
+    int         windowW = 0, windowH = 0;   // window size in points; 0: logical size x windowScale
     double      tickHz   = 60.0;         // replace with original logic rate
     ScaleMode   scaleMode = ScaleMode::Integer;
     std::string orgName  = "legacy-port";
@@ -226,15 +235,26 @@ public:
     void setHotkey(SDL_Scancode key, std::function<void()> fn) { hotkeys_.emplace_back(key, std::move(fn)); }
     // Fills the screen, keeping the aspect (applyScaling). In a browser it only
     // takes effect during a key or mouse press, so call it from one.
+    // Fullscreen is the desktop's resolution, the frame scaled per scaleMode.
     void setFullscreen(bool on);
     [[nodiscard]] bool fullscreen() const noexcept {
         return (SDL_GetWindowFlags(window_.get()) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
     }
+    // The windowed size in points, centred; while fullscreen it applies on leaving.
+    void setWindowSize(int w, int h);
+    void setScaleMode(ScaleMode m) noexcept { cfg_.scaleMode = m; }
+    // Window sizes worth offering: common ones that fit the desktop, plus the current one.
+    [[nodiscard]] std::vector<SDL_Point> windowSizes() const;
+    // Where the frame lands in the window's output, in pixels (high-DPI aware).
+    [[nodiscard]] SDL_Rect frameRect() const;
+    // A point in window coordinates (mouse events), or normalized 0..1 (touch
+    // fingers), as logical coordinates, kept inside the frame.
+    [[nodiscard]] SDL_Point logicalFromWindow(float x, float y) const;
+    [[nodiscard]] SDL_Point logicalFromNormalized(float x, float y) const;
 
 private:
     static void tickThunk(void* self);
     void frame();
-    void applyScaling();
 
     static constexpr double kMaxFrameSec      = 0.25;  // tab-switch / breakpoint guard
     static constexpr int    kMaxStepsPerFrame = 8;     // spiral-of-death guard
@@ -242,6 +262,7 @@ private:
     EngineConfig            cfg_;
     WindowPtr               window_;
     RendererPtr             renderer_;
+    TexturePtr              frame_;   // logicalW x logicalH target the scene draws into, then scaled to the window
     std::unique_ptr<IScene> scene_, pendingScene_;
     InputState              input_;
     std::uint64_t           perfFreq_ = 1, lastCounter_ = 0, tickCount_ = 0;
@@ -257,6 +278,7 @@ private:
     std::uint64_t              autoClick_ = 0;
     struct MouseStep { std::uint64_t at; SDL_Point pt; int button; };   // 1/-1 left press/release, 2/-2 right
     std::vector<MouseStep>     mouseScript_;   // CH_MOUSE
+    bool                       mouseScriptWindow_ = false;   // CH_MOUSE_WINDOW: its points are window coordinates, mapped like real mouse events
     std::vector<std::pair<std::uint64_t, std::string>> textScript_;   // CH_TEXT=text@tick;...
     struct KeyStep { std::uint64_t at; SDL_Scancode key; };
     std::vector<KeyStep>       keyScript_;     // CH_KEYS=scancode@tick;...

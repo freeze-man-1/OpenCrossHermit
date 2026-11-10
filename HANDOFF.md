@@ -33,7 +33,7 @@ CH_MAP=<n> CH_AUTOSKIP=1 SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy timeout
 Debug env vars:
 - Logging: `CH_SCRIPT` (stage script trace), `CH_UNITS` (unit states and hits), `CH_PERF`, `CH_DEBUG` (map/cell info line).
 - Control: `CH_MAP` (stage), `CH_AUTOSKIP` (skip dialogue), `CH_EXIT_SCENE=<n>`.
-- Input and capture: `CH_SHOTS=t1,t2` (BMP screenshots at ticks), `CH_MOUSE="x,y@tick:d;..."` (scripted clicks). `CH_KEYS="41@tick;..."` (scripted keys by SDL scancode, 41 = Escape; released 2 ticks later).
+- Input and capture: `CH_SHOTS=t1,t2` (BMP screenshots of the whole window at ticks), `CH_MOUSE="x,y@tick:d;..."` (scripted clicks, in 1024x768 game coordinates; with `CH_MOUSE_WINDOW=1` in window coordinates, mapped like real mouse events). `CH_KEYS="41@tick;..."` (scripted keys by SDL scancode, 41 = Escape; released 2 ticks later).
 
 ## How coverage is measured
 - Regenerate: `python3 tools/inventory/build_inventory.py`. It writes `functions.csv` and `report.html`.
@@ -66,7 +66,7 @@ The repo is prepared for GitHub: no game data, no exe-derived tables, no secrets
   - Both regions now sign through Cloudflare Workers (`apinator-auth-{us,eu}.booddr1980.workers.dev`). `apinator-{us,eu}.public` (committed: key, cluster, auth URL, no secret) stand in for the git-ignored `.env` files in a fresh clone or CI, so the GitHub builds and Pages get both servers; a local `.env` wins, and a secret in a `.public` is never read.
 - **Web:** `web/shell.html` mounts IDBFS at `/save` and `/gamedata` before `main()`. It has file add, drag-and-drop and erase.
   - Build locally: `export EM_CACHE=$HOME/.cache/emscripten EM_FROZEN_CACHE=0 && cmake --build build-web -j16`. `.github/workflows/build.yml` also builds it and deploys to Pages.
-  - The canvas is not `SDL_WINDOW_RESIZABLE` on the web: with that flag SDL takes the window size from the canvas's CSS size and the canvas collapses to about 1x0. CSS does the scaling.
+  - The canvas fills the page (`#stage`, absolutely positioned so its own size never feeds back into the layout) and the window is `SDL_WINDOW_RESIZABLE`, so SDL sizes the canvas from its CSS size, and the engine pillarboxes the 4:3 frame into it as on desktop. A `ResizeObserver` on `#stage` sends the window a `resize` event, because SDL only re-reads the CSS size then. (Before, the canvas sized itself by `aspect-ratio`, and the resizable flag made it collapse to about 1x0.)
   - WebGL is required; without it `SDL_CreateRenderer` fails (the app's built-in browser pane has none). Test with Chromium: `--headless=new --use-angle=swiftshader --enable-unsafe-swiftshader`.
   - Tested: a full JP import (ISO plus update), reload, and the opening; the TW disc ISO added to it, and the title, Load, team and Save screens in TW.
   - Save download and upload: `webInput` / `webDraw` in `saveload_task.cpp` (web only; native has empty bodies) and `chDownload` / `chPickSave` / `addSaves` in the shell. Uploads go through `logic::saveCheck` (`tests/save_check_test.cpp`); `saveValid` stays the looser check for listing and loading. The buttons act on the release, because the file dialog would swallow the mouse-up of a press and leave the button stuck down. Tested in headless Chromium only: the dialog opening is confirmed by Playwright's file chooser event, so a real dialog, Firefox and Safari are untried (Safari is the likeliest to refuse a dialog opened from rAF).
@@ -134,6 +134,18 @@ Not covered:
 
 ## Port options (2026-11-07)
 `options::PortOptions` lives in `port_options.txt` in the save folder, not in Option.bin. The instant-win key (2026-11-08) is one too. Fullscreen (F11 in `main.cpp`, `Engine::setFullscreen`) and infinite unit time (ignored in network play, as all players must count alike) are switched from the panel in `option_task.cpp`. The fullscreen switch acts on the press because a browser only allows the request during a mouse event, and it runs at the release.
+
+## Window size, widescreen and scaling (2026-11-09)
+- The scene always draws into a 1024x768 target texture (`Engine::frame_`); `Engine::frame()` then copies it once into the window at `frameRect()`. So screens keep their original 1024x768 coordinates at any window size, and nothing in `game/` knows the output size.
+- `ScaleMode` (`port_options.txt` `scale=`): `smooth` (default: as large as fits, bilinear), `sharp` (nearest), `integer` (whole multiples, nearest; below 1x it fits like sharp), `stretch` (fills, aspect ignored). All but stretch pillarbox on wide outputs and letterbox on tall ones.
+- Window size (`window=WxH`, desktop only; the web page sizes its canvas): the Option panel steps through common 4:3, 16:9, 16:10 and 21:9 sizes that fit the desktop (left click next, right click previous). Fullscreen (F11) is always the desktop's resolution (`SDL_WINDOW_FULLSCREEN_DESKTOP`), no mode change.
+- CLI for this run only: `--window 1920x1080`, `--scale integer`, `--fullscreen`, `--windowed`.
+- Mouse: the engine maps SDL mouse events itself (`logicalFromWindow`, high-DPI aware; points in the black bars clamp to the frame's edge). SDL's touch-to-mouse events take the same path. Code reading `SDL_FINGER*` events (normalized 0..1) must use `Engine::logicalFromNormalized`, not multiply by 1024x768.
+- Tested: desktop headless at 1024x768, 1280x720, 1920x1080 (smooth and integer), 2560x1080 (the Tutorial battle), with clicks given in window coordinates; web in headless Chromium at 1280x720, 1920x1080, 1024x768, 2560x1080, a live resize to 1000x900, and F11 fullscreen. Not tried: desktop fullscreen on a real display (the offscreen driver's display is 1024x768), high-DPI screens, Windows and macOS.
+- **Widening the playfield itself** (showing more of the battle map on a wide screen) is not done, and is not just a renderer change:
+  - The battle view is `TacticsMap::kViewW = 0x400` by `kViewH = 0x238` at `kViewY = 0x1e`, and the scroll limits, edge scrolling, the minimap's view box, fog and the HUD (top bar, bottom panel, unit panel) all assume it. About 30 files under `game/` use 0x400 / 0x300 / 1024 / 768 literally.
+  - What is drawn and what the mouse can reach in a battle must stay the same for every player in a network game (the clicks become orders), and the original's script events scroll the camera to fixed positions.
+  - A safe way would be render-only: keep the 1024-wide logical view and its scroll position for the logic, and draw extra map columns left and right of the frame in the side bars (map tiles and units only, no input there). That needs the map renderer to draw into a wider target with an x offset, the HUD drawn at 1024x768 on top, and fog/visibility checked for the extra columns. Menus and ADV screens would stay pillarboxed.
 
 The same panel switches language: `options::languages()` is filled in by `main.cpp`, and its `switchTo` saves the choice and restarts on the option screen through `SwitchScene` (`data_scene.hpp`), so the old `GameSystem` and its audio device are gone before the new one opens. The option screen is only reachable from the title, so no game in progress is lost; the volumes are written first because they normally go in only on OK.
 

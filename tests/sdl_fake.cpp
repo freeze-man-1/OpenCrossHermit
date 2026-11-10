@@ -16,14 +16,20 @@ const char* SDL_GetError() { return "fake"; }
 SDL_bool SDL_SetHint(const char*, const char*) { return SDL_TRUE; }
 SDL_Window* SDL_CreateWindow(const char*, int, int, int, int, Uint32) { return reinterpret_cast<SDL_Window*>(&dummy); }
 int SDL_SetWindowFullscreen(SDL_Window*, Uint32) { return 0; }
+Uint32 SDL_GetWindowFlags(SDL_Window*) { return 0; }
+void SDL_GetWindowSize(SDL_Window*, int* w, int* h) { *w = 1024; *h = 768; }
+void SDL_SetWindowSize(SDL_Window*, int, int) {}
+void SDL_SetWindowPosition(SDL_Window*, int, int) {}
+int SDL_GetWindowDisplayIndex(SDL_Window*) { return 0; }
+int SDL_GetDisplayBounds(int, SDL_Rect* r) { *r = {0, 0, 1024, 768}; return 0; }
 void SDL_DestroyWindow(SDL_Window*) {}
 SDL_Renderer* SDL_CreateRenderer(SDL_Window*, int, Uint32) { return reinterpret_cast<SDL_Renderer*>(&dummy); }
 void SDL_DestroyRenderer(SDL_Renderer*) {}
 void SDL_DestroyTexture(SDL_Texture*) {}
 int SDL_GetRendererOutputSize(SDL_Renderer*, int* w, int* h) { *w = 1024; *h = 768; return 0; }
-int SDL_RenderSetLogicalSize(SDL_Renderer*, int, int) { return 0; }
-int SDL_RenderSetScale(SDL_Renderer*, float, float) { return 0; }
-int SDL_RenderSetIntegerScale(SDL_Renderer*, SDL_bool) { return 0; }
+int SDL_SetRenderTarget(SDL_Renderer*, SDL_Texture*) { return 0; }
+int SDL_SetTextureScaleMode(SDL_Texture*, SDL_ScaleMode) { return 0; }
+int SDL_RenderCopy(SDL_Renderer*, SDL_Texture*, const SDL_Rect*, const SDL_Rect*) { return 0; }   // the frame into the window
 Uint64 SDL_GetPerformanceFrequency() { return 1000; }
 Uint64 SDL_GetPerformanceCounter() { return 0; }
 int SDL_PollEvent(SDL_Event*) { return 0; }

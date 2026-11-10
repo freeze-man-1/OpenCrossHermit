@@ -73,30 +73,31 @@ Engine::Engine(EngineConfig cfg) : cfg_(std::move(cfg)) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0)
         throw std::runtime_error(std::string("SDL_Init: ") + SDL_GetError());
 
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");  // nearest-neighbour: preserve pixel art
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");  // nearest-neighbour: preserve pixel art (the frame's own filter is per ScaleMode)
 #ifdef __EMSCRIPTEN__
     SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
 #endif
 
-#ifdef __EMSCRIPTEN__
-    // The page's CSS scales the canvas. A resizable window would instead take
-    // its size from the canvas's CSS size, which here depends on that same
-    // canvas's size, and it collapses to nothing.
-    const Uint32 windowFlags = SDL_WINDOW_ALLOW_HIGHDPI;
-#else
+    // Web: resizable makes SDL size the canvas from its CSS size, which
+    // web/shell.html takes from the page (never from the canvas itself).
     const Uint32 windowFlags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
-#endif
+    if (cfg_.windowW <= 0 || cfg_.windowH <= 0) {
+        cfg_.windowW = cfg_.logicalW * cfg_.windowScale;
+        cfg_.windowH = cfg_.logicalH * cfg_.windowScale;
+    }
     window_.reset(SDL_CreateWindow(cfg_.title.c_str(),
-        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        cfg_.logicalW * cfg_.windowScale, cfg_.logicalH * cfg_.windowScale,
-        windowFlags));
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, cfg_.windowW, cfg_.windowH, windowFlags));
     if (!window_) throw std::runtime_error(std::string("SDL_CreateWindow: ") + SDL_GetError());
 
     renderer_.reset(SDL_CreateRenderer(window_.get(), -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE));
     if (!renderer_) throw std::runtime_error(std::string("SDL_CreateRenderer: ") + SDL_GetError());
 
-    applyScaling();
+    // The scene always draws at the logical size; frame() scales the result once.
+    frame_.reset(SDL_CreateTexture(renderer_.get(), SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   cfg_.logicalW, cfg_.logicalH));
+    if (!frame_) throw std::runtime_error(std::string("SDL_CreateTexture (frame): ") + SDL_GetError());
+    SDL_SetTextureBlendMode(frame_.get(), SDL_BLENDMODE_NONE);
 
 #ifdef __EMSCRIPTEN__
     EM_ASM({
@@ -168,6 +169,7 @@ Engine::Engine(EngineConfig cfg) : cfg_(std::move(cfg)) {
             p = end + 1;
         }
     }
+    mouseScriptWindow_ = SDL_getenv("CH_MOUSE_WINDOW") != nullptr;
 }
 
 Engine::~Engine() {
@@ -178,23 +180,70 @@ Engine::~Engine() {
     SDL_Quit();
 }
 
-void Engine::applyScaling() {
-    SDL_Renderer* r = renderer_.get();
-    if (cfg_.scaleMode == ScaleMode::Stretch) {
-        int ow = 0, oh = 0;
-        SDL_GetRendererOutputSize(r, &ow, &oh);         // physical pixels (high-DPI aware)
-        SDL_RenderSetLogicalSize(r, 0, 0);
-        SDL_RenderSetScale(r, float(ow) / float(cfg_.logicalW), float(oh) / float(cfg_.logicalH));
-    } else {
-        SDL_RenderSetLogicalSize(r, cfg_.logicalW, cfg_.logicalH);  // letterbox + mouse remap
-        SDL_RenderSetIntegerScale(r, cfg_.scaleMode == ScaleMode::Integer ? SDL_TRUE : SDL_FALSE);
-    }
+SDL_Rect Engine::frameRect() const {
+    int ow = 0, oh = 0;
+    SDL_GetRendererOutputSize(renderer_.get(), &ow, &oh);   // physical pixels (high-DPI aware)
+    if (ow <= 0 || oh <= 0) return {0, 0, cfg_.logicalW, cfg_.logicalH};
+    if (cfg_.scaleMode == ScaleMode::Stretch) return {0, 0, ow, oh};
+    double scale = std::min(double(ow) / cfg_.logicalW, double(oh) / cfg_.logicalH);
+    if (cfg_.scaleMode == ScaleMode::Integer && scale >= 1.0) scale = std::floor(scale);
+    const int w = std::max(1, int(std::lround(cfg_.logicalW * scale)));
+    const int h = std::max(1, int(std::lround(cfg_.logicalH * scale)));
+    return {(ow - w) / 2, (oh - h) / 2, w, h};
+}
+
+SDL_Point Engine::logicalFromNormalized(float x, float y) const {
+    int ow = 0, oh = 0;
+    SDL_GetRendererOutputSize(renderer_.get(), &ow, &oh);
+    const SDL_Rect f = frameRect();
+    const auto axis = [](float n, int out, int at, int size, int logical) {
+        const double v = std::floor((double(n) * out - at) * logical / size);
+        return int(std::clamp(v, 0.0, double(logical - 1)));
+    };
+    return {axis(x, ow, f.x, f.w, cfg_.logicalW), axis(y, oh, f.y, f.h, cfg_.logicalH)};
+}
+
+SDL_Point Engine::logicalFromWindow(float x, float y) const {
+    int ww = 0, wh = 0;
+    SDL_GetWindowSize(window_.get(), &ww, &wh);
+    if (ww <= 0 || wh <= 0) return {int(x), int(y)};
+    return logicalFromNormalized(x / float(ww), y / float(wh));
 }
 
 void Engine::setFullscreen(bool on) {
     if (SDL_SetWindowFullscreen(window_.get(), on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0)
         SDL_Log("[engine] fullscreen: %s", SDL_GetError());
-    applyScaling();
+}
+
+void Engine::setWindowSize(int w, int h) {
+    cfg_.windowW = w;
+    cfg_.windowH = h;
+    SDL_SetWindowSize(window_.get(), w, h);   // fullscreen: SDL keeps it for when the window comes back
+    if (!fullscreen()) {
+        const int display = std::max(0, SDL_GetWindowDisplayIndex(window_.get()));
+        SDL_SetWindowPosition(window_.get(), SDL_WINDOWPOS_CENTERED_DISPLAY(display), SDL_WINDOWPOS_CENTERED_DISPLAY(display));
+    }
+}
+
+std::vector<SDL_Point> Engine::windowSizes() const {
+    // 4:3, 16:9, 16:10 and 21:9 sizes.
+    static constexpr SDL_Point kCommon[] = {{1024, 768}, {1280, 720}, {1280, 800}, {1280, 960}, {1366, 768},
+                                            {1600, 900}, {1600, 1200}, {1920, 1080}, {1920, 1200}, {2560, 1080},
+                                            {2560, 1440}, {3440, 1440}, {3840, 2160}};
+    SDL_Rect desk{0, 0, 0, 0};
+    const int display = std::max(0, SDL_GetWindowDisplayIndex(window_.get()));
+    const bool known = SDL_GetDisplayBounds(display, &desk) == 0 && desk.w > 0 && desk.h > 0;
+    std::vector<SDL_Point> out;
+    for (const SDL_Point& p : kCommon)
+        if (!known || (p.x <= desk.w && p.y <= desk.h)) out.push_back(p);
+    const auto same = [&](const SDL_Point& p) { return p.x == cfg_.windowW && p.y == cfg_.windowH; };
+    if (std::none_of(out.begin(), out.end(), same)) {
+        out.push_back({cfg_.windowW, cfg_.windowH});
+        std::sort(out.begin(), out.end(), [](const SDL_Point& a, const SDL_Point& b) {
+            return a.x != b.x ? a.x < b.x : a.y < b.y;
+        });
+    }
+    return out;
 }
 
 void Engine::run() {
@@ -236,17 +285,21 @@ void Engine::frame() {
             case SDL_TEXTINPUT:
                 input_.onText(e.text.text);
                 break;
-            case SDL_MOUSEMOTION:   // already remapped to logical coords by SDL_RenderSetLogicalSize
-                input_.onMouseMove(e.motion.x, e.motion.y);
+            // Window coordinates (touch arrives as these too); the frame's black bars clamp to its edge.
+            case SDL_MOUSEMOTION: {
+                const SDL_Point p = logicalFromWindow(float(e.motion.x), float(e.motion.y));
+                input_.onMouseMove(p.x, p.y);
                 break;
+            }
             case SDL_MOUSEBUTTONDOWN:
-            case SDL_MOUSEBUTTONUP:
-                input_.onMouseMove(e.button.x, e.button.y);
+            case SDL_MOUSEBUTTONUP: {
+                const SDL_Point p = logicalFromWindow(float(e.button.x), float(e.button.y));
+                input_.onMouseMove(p.x, p.y);
                 input_.onMouseButton(e.button.button, e.type == SDL_MOUSEBUTTONDOWN);
                 break;
+            }
             case SDL_WINDOWEVENT:
-                if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)    applyScaling();
-                else if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST) input_.releaseAll();
+                if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST) input_.releaseAll();
                 break;
             default: break;
         }
@@ -269,7 +322,8 @@ void Engine::frame() {
         if (autoClick_ && tickCount_ % autoClick_ == autoClick_ - 1) input_.injectClick();
         for (const auto& [at, pt, button] : mouseScript_) {
             if (at > tickCount_) continue;
-            input_.onMouseMove(pt.x, pt.y);                          // last one due wins
+            const SDL_Point p = mouseScriptWindow_ ? logicalFromWindow(float(pt.x), float(pt.y)) : pt;
+            input_.onMouseMove(p.x, p.y);                            // last one due wins
             if (button != 0 && at == tickCount_)
                 input_.onMouseButton(std::abs(button) == 2 ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT, button > 0);
         }
@@ -286,11 +340,18 @@ void Engine::frame() {
     }
     if (steps == kMaxStepsPerFrame) accumulator_ = std::fmod(accumulator_, dt);
 
-    // 3. Render (replaces Blt/BltFast + Flip)
+    // 3. Render (replaces Blt/BltFast + Flip): the scene into the frame, the frame into the window.
     SDL_Renderer* r = renderer_.get();
+    SDL_SetRenderTarget(r, frame_.get());
     SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
     SDL_RenderClear(r);
     if (scene_) scene_->render(*this, r, accumulator_ / dt);
+    SDL_SetRenderTarget(r, nullptr);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
+    SDL_RenderClear(r);
+    SDL_SetTextureScaleMode(frame_.get(), cfg_.scaleMode == ScaleMode::Smooth ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
+    const SDL_Rect dst = frameRect();
+    SDL_RenderCopy(r, frame_.get(), nullptr, &dst);
     // Several ticks can run per frame, so a requested tick fires once it has passed.
     if (auto due = std::find_if(shotTicks_.begin(), shotTicks_.end(), [&](std::uint64_t t) { return t <= tickCount_; });
         due != shotTicks_.end()) {
