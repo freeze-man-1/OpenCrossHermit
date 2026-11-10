@@ -1043,8 +1043,10 @@ def main():
     english_opening.build(PACK / "images", GAME.parent, args.preview)
     import english_tutorial     # here: they import this module
     import english_net
+    import english_tactics
     english_tutorial.build(args.preview)
     english_net.build(args.preview)
+    english_tactics.build(args.preview)
     with zipfile.ZipFile(ROOT / "english.zip", "w", zipfile.ZIP_DEFLATED) as z:
         for f in sorted(PACK.rglob("*")):
             if f.is_file():

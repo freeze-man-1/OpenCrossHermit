@@ -167,6 +167,7 @@ the game (or switch language and back) to see changes, with no need to zip each 
 images and writes `english.zip`. So far it covers the Option screen, the web build's
 save buttons, the opening (`tools/english_opening.py`), the team and character screens,
 the team screen's tutorial menus and callouts (`tools/english_tutorial.py`), the network and SAVE/LOAD screens (`tools/english_net.py`), and in battle
-the menu, the top bar and the results screen. Where text sat on art, the
+the menu, the top bar, the results screen, and the battle-start banners and starting-member
+panel (`tools/english_tactics.py`). Where text sat on art, the
 art under it is rebuilt as a diff (the opening's title card, the battle menu, top bar and
 results screen), so the pack holds no game pixels and can be shared.
