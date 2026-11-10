@@ -75,10 +75,10 @@ LECTURES = sum(LECTURES, [])
 
 LABELS = {
     "data/menu/handata.bin": {
-        0: [((928, 12, 1020, 33), "To Title"),    # Office, Roster and Wait: han_bar()
+        0: [# To Title, Office, Roster and Wait: han_bar()
             ((8, 48, 92, 68), "This Week"), ((240, 46, 460, 68), "Advance Schedule"),
-            ((580, 46, 640, 65), "Quest"), ((932, 73, 1016, 94), "Quest Week"), ((938, 107, 974, 127), "Limit"),
-            ((938, 136, 974, 157), "Free"), ((580, 447, 640, 466), "Lecture"),
+            ((580, 46, 645, 65), "Quest"), ((932, 73, 1016, 94), "Quest Week"), ((938, 107, 974, 127), "Limit"),
+            ((938, 136, 974, 157), "Free"), ((580, 441, 640, 466), "Lecture"),
             ((596, 173, 652, 191), "Summary"), ((712, 173, 764, 191), "Goal"), ((826, 173, 878, 191), "Terms"), ((941, 173, 993, 191), "Force"),
             ((940, 473, 976, 491), "Basic"), ((940, 505, 976, 523), "Mid"), ((940, 536, 976, 554), "Adv."),
             ((16, 600, 96, 617), "Level"), ((16, 623, 96, 640), "Class"), ((12, 646, 100, 663), "Total Power")]
@@ -237,8 +237,14 @@ def even_sizes(frame, labels):
     return sizes
 
 
-def draw_label(over, erase, frame, box, text, sizes, fixed=None):
-    """fixed: the plate's colour, where what's outside the label doesn't match what's behind it."""
+# The banks whose dark-on-light labels are drawn light (draw_label).
+LIGHT_LETTERS = {"data/menu/handata.bin"}
+
+
+def draw_label(over, erase, frame, box, text, sizes, fixed=None, light=False):
+    """fixed: the plate's colour, where what's outside the label doesn't match what's behind it.
+    light: dark letters on a light plate become light ones, as on the character screen (dimmer
+    looks stay as much dimmer)."""
     x0, y0, x1, y1 = box = clamp(frame, box)
     H, W = frame.shape[:2]
     # Opaque all round means a plate; otherwise it's text on a transparent sheet.
@@ -247,6 +253,8 @@ def draw_label(over, erase, frame, box, text, sizes, fixed=None):
     plate = (ring > 0).mean() > 0.5
     fill = np.full((y1 - y0, x1 - x0, 3), fixed, float) if fixed else blend_background(frame, box)
     colour = text_colour(frame, box, fill)
+    if light and sum(colour) < fill.mean() * 3:
+        colour = tuple(int(np.clip(v, 0, 255)) for v in np.array((244, 240, 228)) - sum(colour) / 3)
     if plate:
         rng = np.random.default_rng(x0 * 4099 + y0)
         rgb = np.clip(fill + rng.normal(0, 1.5, fill.shape[:2])[..., None], 0, 255).astype(np.uint8)
@@ -278,7 +286,9 @@ def game_images(preview):
             erase = Image.new("RGBA", size, (0, 0, 0, 0))
             sizes = even_sizes(frame, labels)
             for box, text, *fixed in labels:
-                draw_label(over, erase, frame, box, text, sizes, *fixed)
+                if (rel, f) == HAN_BUTTONS_AT and text in HAN_BUTTONS:
+                    continue                        # han_buttons()
+                draw_label(over, erase, frame, box, text, sizes, *fixed, light=rel in LIGHT_LETTERS)
             over.save(out_dir / f"{f}.png", optimize=True)
             erased = np.array(erase)[..., 3] > 0
             if erased.any():
@@ -814,6 +824,64 @@ def bar_ink(text):
     return a, glow
 
 
+# handata.bin frame 0's selectable buttons, in all their looks: drawn like the character screen's
+# (koji_buttons) by han_buttons(), not as plain labels.
+HAN_BUTTONS_AT = ("data/menu/handata.bin", 0)
+HAN_BUTTONS = {"Summary", "Goal", "Terms", "Force", "Basic", "Mid", "Adv.", "Level", "Class", "Total Power", "Limit", "Free"}
+
+
+def han_buttons(sheet):
+    """On han_bar's sheet: each button's Japanese covered from its face row by row, as a diff, and the English in the
+    character screen's sans: dark with a light edge on a lit face, the Japanese's light colour with a
+    dark edge on a dim one, so the chosen one stands out."""
+    rel, index = HAN_BUTTONS_AT
+    frame = sheet.frame
+    for box, text, *_ in LABELS[rel][index]:
+        if text not in HAN_BUTTONS:
+            continue
+        x0, y0, x1, y1 = clamp(frame, (box[0] - 3, box[1] - 1, box[2] + 3, box[3] + 1))
+        face = frame[y0:y1, x0:x1, :3]
+        row = np.median(face, axis=1, keepdims=True)
+        core = np.abs(face - row).max(axis=2) > 36
+        core[:, :2] = core[:, -2:] = False
+        label = ndimage.binary_dilation(core, iterations=1)
+        label[:, :2] = label[:, -2:] = False             # the face's own rim at the box's sides
+        ys, xs = np.where(label)
+        if not len(xs):
+            continue
+        tx0, tx1, ty0, ty1 = x0 + xs.min(), x0 + xs.max() + 1, y0 + ys.min(), y0 + ys.max() + 1
+        lit = (face - row)[core].mean() < 0              # dark letters: the lit look
+        # The face made clean: each row its own median shade (the bevel stays, the mottle and the
+        # Japanese go), over the label's span and the box, blended in at the sides.
+        fx0, fx1 = max(min(tx0, box[0]), x0 + 2), min(max(tx1, round(box[2])), x1 - 2)
+        fy0, fy1 = min(ty0, y0 - 3), max(ty1, y1 + 3)       # rim rows keep their own shade
+        big = frame[fy0:fy1, fx0:fx1, :3]
+        mask = np.zeros(big.shape[:2], bool)
+        mask[ty0 - fy0:ty1 - fy0] = label[ty0 - y0:ty1 - y0, fx0 - x0:fx1 - x0]
+        known = np.where(mask[..., None], np.nan, big)
+        shade = np.nan_to_num(np.nanmedian(known, axis=1), nan=row.mean())
+        # Inside the face the brushed stripes are smoothed into one gradient; the rim rows stay sharp.
+        inner = slice(y0 + 1 - fy0, y1 - 1 - fy0)
+        shade[inner] = ndimage.gaussian_filter1d(shade, 3.0, axis=0, mode="nearest")[inner]
+        w = fx1 - fx0
+        blend = np.clip(np.minimum(np.arange(w), np.arange(w)[::-1]) / 2 + 0.25, 0, 1)[None, :, None]
+        # The face's border lines stand out from its shade: they stay, only the stripes go.
+        blend = blend * (np.abs(big - shade[:, None, :]).max(axis=2) < 26)[..., None]
+        blend = np.maximum(blend, mask[..., None])                # the Japanese always goes
+        sheet.rebuild((slice(fy0, fy1), slice(fx0, fx1)), shade[:, None, :] * blend + big * (1 - blend))
+        jp = face[core]
+        fill, edge = ((8, 8, 8), (239, 239, 231)) if lit else \
+            (tuple(int(v) for v in np.percentile(jp, 90, axis=0)), (24, 24, 18))
+        size = min(15, y1 - y0 - 3)
+        while True:
+            img = english_opening.render(text, size, fill, edge, 1, font_path=MENU_FONT).astype(float)
+            if img.shape[1] <= x1 - x0 + 12 or size <= 9:
+                break
+            size -= 1
+        cy = (y0 + y1) / 2
+        put(sheet.over, img[..., 3] / 255, round((x0 + x1 - img.shape[1]) / 2), round(cy + 1 - img.shape[0] / 2), img[..., :3])
+
+
 def han_bar():
     """The team screen's top bar and 待機 plates (handata.bin frame 0).
 
@@ -842,6 +910,14 @@ def han_bar():
         for cover, colour in ((rim, (16, 16, 16)), (glow, (255, 255, 255)), (a, (8, 8, 8))):
             put(lit, cover[max(-ly, 0):], lx, max(ly, 0), colour)
         sheet.over[sy:sy + 24, sx:sx + 76] = lit[:, 20:96]
+    # To Title: the bar rebuilt under it (the watermark runs on behind it), the letters in the
+    # Japanese's light grey with its soft dark glow.
+    cover_along(sheet, (916, 4, 1020, 38), HAN_BAR_KEEP[:3] + boxes, (0, 900))
+    a = np.pad(serif_ink("To Title", 21, RESULTS_FONT), 6)
+    glow = np.clip(ndimage.gaussian_filter(ndimage.maximum_filter(a, 5), 2.0) * 1.6, 0, 1) * 0.9
+    x, y = round(970 - a.shape[1] / 2), round(22 - a.shape[0] / 2)
+    put(sheet.over, glow, x, y, (6, 6, 6))
+    put(sheet.over, a, x, y, (206, 204, 198))
     for y0, y1 in HAN_WAIT:
         x0, x1 = 13, 49
         t = np.linspace(0, 1, x1 - x0)[:, None]
@@ -850,6 +926,7 @@ def han_bar():
             sheet.rebuild((y, slice(x0, x1)), left * (1 - t) + right * t)
         a, top = ink("Wait", 16)
         put(sheet.over, a, x0 + 1, round(y0 + 4 - top), (255, 255, 255))
+    han_buttons(sheet)
     english_opening.erase_png(erase).save(erased, optimize=True)
     sheet.save(rel, 0)
 
