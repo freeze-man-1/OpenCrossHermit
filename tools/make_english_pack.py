@@ -830,49 +830,124 @@ HAN_BUTTONS_AT = ("data/menu/handata.bin", 0)
 HAN_BUTTONS = {"Summary", "Goal", "Terms", "Force", "Basic", "Mid", "Adv.", "Level", "Class", "Total Power", "Limit", "Free"}
 
 
+def label_texels(face):
+    """A button face's label texels: what stands out from its row, and the soft edge round it."""
+    row = np.median(face, axis=1, keepdims=True)
+    core = np.abs(face - row).max(axis=2) > 36
+    core[:, :2] = core[:, -2:] = False                  # the face's own rim at the sides
+    faint = np.abs(face - row).max(axis=2) > 18          # the strokes' soft edges, near them
+    label = ndimage.binary_dilation(core, iterations=2) | (ndimage.binary_dilation(core, iterations=4) & faint)
+    label[:, :2] = label[:, -2:] = False
+    return core, label, row
+
+
+def blank_faces(frame, buttons):
+    """Each button's face without its label. Buttons of one look are the same art, so their faces are
+    lined up (the first one's size, centred on each) and each texel taken from the ones whose label
+    leaves it clear (a label: what differs from their median); one that all the labels cover
+    comes from the face's other side, mirrored, else the clean texels beside it in its row.
+    buttons: (x0, y0, x1, y1) regions holding each face. Returns [(region, rgb)], lined up."""
+    groups = []                                  # [reference region, [(region, face, label, index)]]
+    order = []
+    for x0, y0, x1, y1 in buttons:
+        best = None
+        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+        for g in groups:
+            rx0, ry0, rx1, ry1 = g[0]
+            w, h = rx1 - rx0, ry1 - ry0
+            ref = frame[ry0:ry1, rx0:rx1, :3]
+            for dy in range(-4, 5):
+                for dx in range(-4, 5):
+                    ax, ay = cx - w // 2 + dx, cy - h // 2 + dy
+                    if ay < 0 or ax < 0 or ay + h > frame.shape[0] or ax + w > frame.shape[1]:
+                        continue
+                    d = np.median(np.abs(frame[ay:ay + h, ax:ax + w, :3] - ref).max(axis=2))
+                    if d < 8 and (best is None or d < best[0]):
+                        best = (d, g, (ax, ay, ax + w, ay + h))
+        region = best[2] if best else (x0, y0, x1, y1)
+        face = frame[region[1]:region[3], region[0]:region[2], :3]
+        member = (region, face, label_texels(face)[1], len(order))
+        order.append(None)
+        if best:
+            best[1][1].append(member)
+        else:
+            groups.append([region, [member]])
+    made = []
+    for _, members in groups:
+        faces = np.stack([m[1] for m in members])
+        if len(members) > 2:
+            # The labels: what stands out in a face's own row (faint too: a dim look's letters are low),
+            # but not what they all have alike (the art: the groove, the rim); then again as what
+            # differs from the median without them.
+            seed = np.stack([ndimage.binary_dilation(np.abs(f - np.median(f, axis=1, keepdims=True)).max(axis=2) > 16)
+                             for f in faces])
+            common = seed.all(axis=0)
+            shared = ndimage.binary_dilation(common & ((faces.max(axis=0) - faces.min(axis=0)).max(axis=2) > 30),
+                                             iterations=2)     # where a label may be in all of them
+            seed &= ~common
+            blank = np.nanmedian(np.where(seed[..., None], np.nan, faces), axis=0)
+            blank = np.where(np.isnan(blank), np.median(faces, axis=0), blank)
+            for _ in range(3):
+                masks = ndimage.binary_dilation(np.abs(faces - blank).max(axis=3) > 24, iterations=2,
+                                                structure=np.ones((1, 3, 3), bool))
+                blank = np.nanmedian(np.where(masks[..., None], np.nan, faces), axis=0)
+        else:
+            masks = np.stack([m[2] for m in members])
+            blank = np.nanmedian(np.where(masks[..., None], np.nan, faces), axis=0)
+            shared = np.zeros(blank.shape[:2], bool)
+        made.append([members, blank, shared])
+    for members, blank, shared in made:
+        hole = np.isnan(blank).any(axis=2)
+        if hole.any() or shared.any():
+            # What every label covers: the face is the same mirrored, so the other side where it's clear
+            # (the axis: the flip that matches best where both sides are).
+            w = blank.shape[1]
+            def flip(k):
+                cols = k - np.arange(w)
+                f = np.full_like(blank, np.nan)
+                ok = (cols >= 0) & (cols < w)
+                f[:, ok] = blank[:, cols[ok]]
+                return f
+            def misfit(k):
+                d = np.abs(flip(k) - blank).max(axis=2)
+                return np.nanmedian(d) if np.isfinite(d).sum() > blank.shape[0] * w // 3 else np.inf
+            k = min(range(w // 2, w + w // 2), key=misfit)
+            if misfit(k) < 6:
+                mirrored = flip(k)
+                # A label left in all of them shows as what the other side hasn't.
+                left = shared & (np.abs(blank - mirrored).max(axis=2) > 30)
+                blank = np.where((hole | left)[..., None] & np.isfinite(mirrored), mirrored, blank)
+        # Then the row's nearest clean texels either side, a few averaged.
+        hole = np.isnan(blank).any(axis=2)
+        for y in range(blank.shape[0]):
+            clear = np.flatnonzero(~hole[y])
+            for c in np.flatnonzero(hole[y]):
+                near = np.concatenate((clear[clear < c][-2:], clear[clear > c][:2]))
+                blank[y, c] = blank[y, near].mean(axis=0) if len(near) else 0
+        for m in members:
+            order[m[3]] = (m[0], blank)
+    return order
+
+
 def han_buttons(sheet):
-    """On han_bar's sheet: each button's Japanese covered from its face row by row, as a diff, and the English in the
+    """On han_bar's sheet: each button's face blank (blank_faces) and the English on it in the
     character screen's sans: dark with a light edge on a lit face, the Japanese's light colour with a
     dark edge on a dim one, so the chosen one stands out."""
     rel, index = HAN_BUTTONS_AT
     frame = sheet.frame
-    for box, text, *_ in LABELS[rel][index]:
-        if text not in HAN_BUTTONS:
+    labels = [(clamp(frame, (box[0] - 3, box[1] - 4, box[2] + 3, box[3] + 4)), text)
+              for box, text, *_ in LABELS[rel][index] if text in HAN_BUTTONS]
+    for (x0, y0, x1, y1), rgb in blank_faces(frame, [r for r, _ in labels]):
+        sheet.rebuild((slice(y0, y1), slice(x0, x1)), rgb)
+    for (x0, y0, x1, y1), text in labels:
+        face = frame[y0 + 3:y1 - 3, x0:x1, :3]
+        core, _, row = label_texels(face)
+        if not core.any():
             continue
-        x0, y0, x1, y1 = clamp(frame, (box[0] - 3, box[1] - 1, box[2] + 3, box[3] + 1))
-        face = frame[y0:y1, x0:x1, :3]
-        row = np.median(face, axis=1, keepdims=True)
-        core = np.abs(face - row).max(axis=2) > 36
-        core[:, :2] = core[:, -2:] = False
-        label = ndimage.binary_dilation(core, iterations=1)
-        label[:, :2] = label[:, -2:] = False             # the face's own rim at the box's sides
-        ys, xs = np.where(label)
-        if not len(xs):
-            continue
-        tx0, tx1, ty0, ty1 = x0 + xs.min(), x0 + xs.max() + 1, y0 + ys.min(), y0 + ys.max() + 1
         lit = (face - row)[core].mean() < 0              # dark letters: the lit look
-        # The face made clean: each row its own median shade (the bevel stays, the mottle and the
-        # Japanese go), over the label's span and the box, blended in at the sides.
-        fx0, fx1 = max(min(tx0, box[0]), x0 + 2), min(max(tx1, round(box[2])), x1 - 2)
-        fy0, fy1 = min(ty0, y0 - 3), max(ty1, y1 + 3)       # rim rows keep their own shade
-        big = frame[fy0:fy1, fx0:fx1, :3]
-        mask = np.zeros(big.shape[:2], bool)
-        mask[ty0 - fy0:ty1 - fy0] = label[ty0 - y0:ty1 - y0, fx0 - x0:fx1 - x0]
-        known = np.where(mask[..., None], np.nan, big)
-        shade = np.nan_to_num(np.nanmedian(known, axis=1), nan=row.mean())
-        # Inside the face the brushed stripes are smoothed into one gradient; the rim rows stay sharp.
-        inner = slice(y0 + 1 - fy0, y1 - 1 - fy0)
-        shade[inner] = ndimage.gaussian_filter1d(shade, 3.0, axis=0, mode="nearest")[inner]
-        w = fx1 - fx0
-        blend = np.clip(np.minimum(np.arange(w), np.arange(w)[::-1]) / 2 + 0.25, 0, 1)[None, :, None]
-        # The face's border lines stand out from its shade: they stay, only the stripes go.
-        blend = blend * (np.abs(big - shade[:, None, :]).max(axis=2) < 26)[..., None]
-        blend = np.maximum(blend, mask[..., None])                # the Japanese always goes
-        sheet.rebuild((slice(fy0, fy1), slice(fx0, fx1)), shade[:, None, :] * blend + big * (1 - blend))
-        jp = face[core]
         fill, edge = ((8, 8, 8), (239, 239, 231)) if lit else \
-            (tuple(int(v) for v in np.percentile(jp, 90, axis=0)), (24, 24, 18))
-        size = min(15, y1 - y0 - 3)
+            (tuple(int(v) for v in np.percentile(face[core], 90, axis=0)), (24, 24, 18))
+        size = min(15, y1 - y0 - 9)
         while True:
             img = english_opening.render(text, size, fill, edge, 1, font_path=MENU_FONT).astype(float)
             if img.shape[1] <= x1 - x0 + 12 or size <= 9:
