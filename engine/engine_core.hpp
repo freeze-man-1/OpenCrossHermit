@@ -263,9 +263,15 @@ public:
     // fingers), as logical coordinates, kept inside the frame.
     [[nodiscard]] SDL_Point logicalFromWindow(float x, float y) const;
     [[nodiscard]] SDL_Point logicalFromNormalized(float x, float y) const;
+    // Puts the pointer on a logical point now and again as the window settles after a
+    // resize (it moves and changes size under the pointer), for half a second.
+    void keepMouseAt(int x, int y);
 
 private:
     static void tickThunk(void* self);
+    void warpMouse();
+    SDL_Point     keepMouse_{};
+    std::uint32_t keepMouseUntil_ = 0;   // SDL_GetTicks() deadline, 0 when none
     void frame();
 
     static constexpr double kMaxFrameSec      = 0.25;  // tab-switch / breakpoint guard

@@ -226,6 +226,22 @@ SDL_Point Engine::logicalFromWindow(float x, float y) const {
     return logicalFromNormalized(x / float(ww), y / float(wh));
 }
 
+void Engine::keepMouseAt(int x, int y) {
+    keepMouse_ = {x, y};
+    keepMouseUntil_ = SDL_GetTicks() + 500;
+    warpMouse();
+}
+
+void Engine::warpMouse() {
+    int ww = 0, wh = 0, ow = 0, oh = 0;
+    SDL_GetWindowSize(window_.get(), &ww, &wh);
+    SDL_GetRendererOutputSize(renderer_.get(), &ow, &oh);
+    if (ww <= 0 || wh <= 0 || ow <= 0 || oh <= 0) return;
+    const SDL_Rect f = frameRect();   // output pixels; the warp takes window points
+    const double px = f.x + (keepMouse_.x + 0.5) * f.w / cfg_.logicalW, py = f.y + (keepMouse_.y + 0.5) * f.h / cfg_.logicalH;
+    SDL_WarpMouseInWindow(window_.get(), int(px * ww / ow), int(py * wh / oh));
+}
+
 void Engine::setFullscreen(bool on) {
     if (SDL_SetWindowFullscreen(window_.get(), on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0)
         SDL_Log("[engine] fullscreen: %s", SDL_GetError());
@@ -334,6 +350,11 @@ void Engine::frame() {
             }
             case SDL_WINDOWEVENT:
                 if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST) input_.releaseAll();
+                if ((e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED || e.window.event == SDL_WINDOWEVENT_MOVED) &&
+                    keepMouseUntil_ != 0) {
+                    if (SDL_TICKS_PASSED(SDL_GetTicks(), keepMouseUntil_)) keepMouseUntil_ = 0;
+                    else warpMouse();
+                }
                 break;
             default: break;
         }

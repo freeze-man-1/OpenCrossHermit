@@ -26,7 +26,7 @@ enum PortItem { kItemFullscreen, kItemInfinite, kItemInstantWin, kItemUiStyle, k
                 kItemWindow, kItemScale };
 constexpr int kLanguageW = 184, kLanguageX = kPortSwitchX + kPortSwitchW - kLanguageW;
 constexpr int kListRowH = 28;
-constexpr std::size_t kListRows = 8;
+constexpr std::size_t kListRows = 14;
 constexpr int kListPrio = 0x20;
 } // namespace
 
@@ -101,9 +101,9 @@ std::vector<int> OptionTask::portItems() const {
 
 int OptionTask::portRows() const { return int(portItems().size()); }
 
-int OptionTask::languageRowY() const {
+int OptionTask::rowY(int item) const {
     const std::vector<int> items = portItems();
-    const auto at = std::find(items.begin(), items.end(), int(kItemLanguage));
+    const auto at = std::find(items.begin(), items.end(), item);
     return kPortY + 7 + int(at - items.begin()) * kPortRowH;
 }
 
@@ -128,28 +128,78 @@ int listY(int rowY, std::size_t rows) {
 }
 } // namespace
 
+OptionTask::ListChoices OptionTask::listChoices() const {
+    ListChoices out;
+    const auto& p = options::port();
+    if (listFor_ == kItemLanguage) {
+        const auto& l = options::languages();
+        for (const auto& c : l.all) {
+            if (c.id == l.current) out.current = int(out.names.size());
+            out.names.push_back(c.name);
+        }
+    } else if (listFor_ == kItemWindow) {
+        for (const SDL_Point& s : ctx_.engine.windowSizes()) {
+            if (s.x == p.windowW && s.y == p.windowH) out.current = int(out.names.size());
+            out.names.push_back(std::to_string(s.x) + " x " + std::to_string(s.y));
+        }
+    } else if (listFor_ == kItemScale) {
+        for (int m = 0; m < int(legacy::ScaleMode::Count); ++m) {
+            if (legacy::ScaleMode(m) == p.scale) out.current = m;
+            out.names.push_back(scaleLabel(legacy::ScaleMode(m)));
+        }
+    }
+    if (out.names.size() > kListRows) out.names.resize(kListRows);
+    return out;
+}
+
 int OptionTask::listHover() const {
     const auto& m = ctx_.mouse();
-    const std::size_t rows = std::min(options::languages().all.size(), kListRows);
-    const int y = listY(languageRowY(), rows);
+    const std::size_t rows = listChoices().names.size();
+    const int y = listY(rowY(listFor_), rows);
     if (m.x < kLanguageX || m.x >= kLanguageX + kLanguageW || m.y < y || m.y >= y + int(rows) * kListRowH) return -1;
     return (m.y - y) / kListRowH;
 }
 
-void OptionTask::drawLanguageList() {
-    const auto& l = options::languages();
-    const std::size_t rows = std::min(l.all.size(), kListRows);
-    const int y = listY(languageRowY(), rows), hot = listHover();
+void OptionTask::drawList() {
+    const ListChoices c = listChoices();
+    const std::size_t rows = c.names.size();
+    const int y = listY(rowY(listFor_), rows), hot = listHover();
     ysub::fill(ctx_, kLanguageX, y, kLanguageW, int(rows) * kListRowH, kListPrio, 0xff20281eu);
     ysub::outline(ctx_, kLanguageX, y, kLanguageX + kLanguageW - 1, y + int(rows) * kListRowH - 1, kListPrio - 1, 0xffc8ccb8u);
     for (std::size_t i = 0; i < rows; ++i) {
         const int ry = y + int(i) * kListRowH;
-        const bool current = l.all[i].id == l.current;
+        const bool current = int(i) == c.current;
         if (current || hot == int(i))
             ysub::fill(ctx_, kLanguageX + 1, ry + 1, kLanguageW - 2, kListRowH - 2, kListPrio - 2, current ? 0xff7d8a68u : 0xff3c4a38u);
         ctx_.draw.text({.x = kLanguageX + kLanguageW / 2, .y = ry + kListRowH / 2, .priority = kListPrio - 3, .argb = 0xffffffffu,
-                        .text = l.all[i].name, .fontPx = 16, .bold = true, .centred = true});
+                        .text = c.names[i], .fontPx = 16, .bold = true, .centred = true});
     }
+}
+
+void OptionTask::choose(int row) {
+    if (row < 0 || row == listChoices().current) return;
+    auto& p = options::port();
+    ctx_.audio->sePlay(5);
+    if (listFor_ == kItemLanguage) {
+        const auto& l = options::languages();
+        storeLevels();                           // the restart reads the volumes back
+        options::save(ctx_.work);
+        l.switchTo(l.all[std::size_t(row)].id);
+        return;
+    }
+    if (listFor_ == kItemWindow) {
+        const SDL_Point s = ctx_.engine.windowSizes()[std::size_t(row)];
+        p.windowW = s.x;
+        p.windowH = s.y;
+        ctx_.engine.setWindowSize(s.x, s.y);
+        // The window moves and changes size under the pointer: keep it on this button,
+        // not wherever it lands (the OK button, often).
+        ctx_.engine.keepMouseAt(kLanguageX + kLanguageW / 2, rowY(kItemWindow) + (kPortRowH - 3) / 2);
+    } else if (listFor_ == kItemScale) {
+        p.scale = legacy::ScaleMode(row);
+        ctx_.engine.setScaleMode(p.scale);
+    }
+    options::savePort();
 }
 
 void OptionTask::storeLevels() {
@@ -160,30 +210,19 @@ void OptionTask::storeLevels() {
 // during a mouse event, and the request runs at the release.
 void OptionTask::portInput() {
     const auto& mouse = ctx_.mouse();
-    if (listOpen_) {
+    if (listFor_ >= 0) {
         // Closes on the release: the original's controls act on it, and must not see this one.
         if (mouse.pressed & legacy::kMouseLeft) {
-            const auto& l = options::languages();
-            const int row = listHover();
-            if (row >= 0 && l.all[std::size_t(row)].id != l.current) {
-                ctx_.audio->sePlay(5);
-                storeLevels();                           // the restart reads the volumes back
-                options::save(ctx_.work);
-                l.switchTo(l.all[std::size_t(row)].id);
-            }
+            choose(listHover());
             listClosing_ = true;
         }
-        if (listClosing_ && (mouse.released & legacy::kMouseLeft)) listOpen_ = listClosing_ = false;
+        if (listClosing_ && (mouse.released & legacy::kMouseLeft)) {
+            listFor_ = -1;
+            listClosing_ = false;
+        }
         return;
     }
     auto& p = options::port();
-    // The window size and the scaling step on with the left button, back with the right.
-    if (const int item = portHover(); (item == kItemWindow || item == kItemScale) && (mouse.pressed & legacy::kMouseRight)) {
-        stepDisplay(item, -1);
-        ctx_.audio->sePlay(5);
-        options::savePort();
-        return;
-    }
     if ((mouse.pressed & legacy::kMouseLeft) == 0) return;
     switch (portHover()) {
         case kItemFullscreen:
@@ -192,8 +231,10 @@ void OptionTask::portInput() {
             break;
         case kItemWindow:
         case kItemScale:
-            stepDisplay(portHover(), 1);
-            break;
+        case kItemLanguage:
+            ctx_.audio->sePlay(5);
+            listFor_ = portHover();
+            return;
         case kItemInfinite:
             p.infiniteUnitTime = !p.infiniteUnitTime;
             break;
@@ -206,10 +247,6 @@ void OptionTask::portInput() {
         case kItemTutorial:
             p.twTutorial = !p.twTutorial;
             break;
-        case kItemLanguage:
-            ctx_.audio->sePlay(5);
-            listOpen_ = true;
-            return;
         case kItemChapters:     // left as the back button leaves, input() then ends the screen
             ctx_.audio->sePlay(5);
             chapters_ = true;
@@ -218,24 +255,6 @@ void OptionTask::portInput() {
     }
     ctx_.audio->sePlay(5);
     options::savePort();
-}
-
-void OptionTask::stepDisplay(int item, int step) {
-    auto& p = options::port();
-    if (item == kItemScale) {
-        constexpr int n = int(legacy::ScaleMode::Count);
-        p.scale = legacy::ScaleMode((int(p.scale) + step + n) % n);
-        ctx_.engine.setScaleMode(p.scale);
-        return;
-    }
-    const std::vector<SDL_Point> sizes = ctx_.engine.windowSizes();
-    if (sizes.empty()) return;
-    const auto at = std::find_if(sizes.begin(), sizes.end(), [&](const SDL_Point& s) { return s.x == p.windowW && s.y == p.windowH; });
-    const int i = at == sizes.end() ? 0 : int(at - sizes.begin());
-    const SDL_Point next = sizes[std::size_t((i + step + int(sizes.size())) % int(sizes.size()))];
-    p.windowW = next.x;
-    p.windowH = next.y;
-    ctx_.engine.setWindowSize(next.x, next.y);
 }
 
 std::string OptionTask::scaleLabel(legacy::ScaleMode m) const {
@@ -256,7 +275,7 @@ void OptionTask::drawPortPanel() {
     ysub::fill(ctx_, kPortX, kPortY, kPortW, height, kFramePrio, 0xff3c4a38u);
     ysub::outline(ctx_, kPortX, kPortY, kPortX + kPortW - 1, kPortY + height - 1, kFramePrio - 1, kPale);
     const bool tw = ctx_.version == GameVersion::Tw;
-    const int hot = listOpen_ ? -1 : portHover();
+    const int hot = listFor_ >= 0 ? -1 : portHover();
     const auto rowY = [](int row) { return kPortY + 7 + row * kPortRowH; };
     const auto label = [&](int row, const std::string& text) {
         ctx_.draw.text({.x = kPortX + 14, .y = rowY(row) + 3, .priority = kTextPrio, .argb = kText, .text = text,
@@ -277,12 +296,12 @@ void OptionTask::drawPortPanel() {
     toggle(row++, tw ? "全螢幕 (F11)" : tr("フルスクリーン (F11)"), ctx_.engine.fullscreen(), kItemFullscreen);
 #ifndef __EMSCRIPTEN__
     label(row, tw ? "視窗大小" : tr("ウィンドウサイズ"));
-    button(kLanguageX, row, kLanguageW, std::to_string(options::port().windowW) + " x " + std::to_string(options::port().windowH),
+    button(kLanguageX, row, kLanguageW, std::to_string(options::port().windowW) + " x " + std::to_string(options::port().windowH) + " ▼",
            !ctx_.engine.fullscreen(), hot == kItemWindow);
     ++row;
 #endif
     label(row, tw ? "畫面縮放" : tr("拡大方法"));
-    button(kLanguageX, row, kLanguageW, scaleLabel(options::port().scale), true, hot == kItemScale);
+    button(kLanguageX, row, kLanguageW, scaleLabel(options::port().scale) + " ▼", false, hot == kItemScale);
     ++row;
     toggle(row++, tw ? "單位時間無限 (單人)" : tr("ユニット時間無限 (シングル)"), options::port().infiniteUnitTime, kItemInfinite);
     toggle(row++, tw ? "按Enter立即勝利 (單人)" : tr("Enterで即勝利 (シングル)"), options::port().instantWin, kItemInstantWin);
@@ -298,7 +317,7 @@ void OptionTask::drawPortPanel() {
         button(kLanguageX, row, kLanguageW, name + " ▼", false, hot == kItemLanguage);
         ++row;
     }
-    if (listOpen_) drawLanguageList();
+    if (listFor_ >= 0) drawList();
     if (tw) toggle(row++, "標題畫面顯示教學", options::port().twTutorial, kItemTutorial);
     // The original's debug chapter select (scene 0x16): no menu in either exe leads to it.
     label(row, tw ? "章節選擇 (除錯)" : tr("章選択 (デバッグ)"));
@@ -306,14 +325,14 @@ void OptionTask::drawPortPanel() {
 }
 
 bool OptionTask::input() {
-    const bool listWasOpen = listOpen_;
+    const bool listWasOpen = listFor_ >= 0;
     portInput();
     if (chapters_) {
         storeLevels();
         options::apply(ctx_.work, *ctx_.audio, ctx_.version);
         return true;
     }
-    if (listWasOpen || listOpen_) {
+    if (listWasOpen || listFor_ >= 0) {
         hover_.fill(-1);
         return false;
     }

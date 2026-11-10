@@ -37,13 +37,16 @@ private:
     void portInput();
     void drawPortPanel();
     void storeLevels();                            // FUN_0044d5b0
-    [[nodiscard]] int languageRowY() const;
+    // The open list (language, window size or scaling): its choices and the current one.
+    struct ListChoices { std::vector<std::string> names; int current = -1; };
+    [[nodiscard]] ListChoices listChoices() const;
+    [[nodiscard]] int rowY(int item) const;        // the panel row of a PortItem
     [[nodiscard]] int listHover() const;           // the list's row under the mouse, or -1
-    void drawLanguageList();
+    void drawList();
+    void choose(int row);                          // picks a row of the open list
     [[nodiscard]] std::vector<int> portItems() const;   // the panel's PortItem per row
     [[nodiscard]] int portRows() const;
     [[nodiscard]] int portHover() const;           // a PortItem under the mouse, or -1
-    void stepDisplay(int item, int step);          // the window size or the scaling, to the next (+1) or previous (-1)
     [[nodiscard]] std::string scaleLabel(legacy::ScaleMode m) const;
 
     GameContext& ctx_;
@@ -52,7 +55,8 @@ private:
     // Screen fade (FUN_00410930 / FUN_00410a60): alpha << 16 in 8.16.
     std::int32_t fade_ = 0xff0000, fadeStep_ = 0;
     int          fadeLeft_ = 0;
-    bool         listOpen_ = false, listClosing_ = false;   // the language list
+    int          listFor_ = -1;                             // the PortItem whose list is open, or -1
+    bool         listClosing_ = false;
     bool         chapters_ = false;                         // leaving for the chapter select
 };
 

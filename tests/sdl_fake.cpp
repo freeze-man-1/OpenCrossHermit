@@ -27,6 +27,7 @@ SDL_Renderer* SDL_CreateRenderer(SDL_Window*, int, Uint32) { return reinterpret_
 void SDL_DestroyRenderer(SDL_Renderer*) {}
 void SDL_DestroyTexture(SDL_Texture*) {}
 int SDL_GetRendererOutputSize(SDL_Renderer*, int* w, int* h) { *w = 1024; *h = 768; return 0; }
+void SDL_WarpMouseInWindow(SDL_Window*, int, int) {}
 int SDL_SetRenderTarget(SDL_Renderer*, SDL_Texture*) { return 0; }
 int SDL_SetTextureScaleMode(SDL_Texture*, SDL_ScaleMode) { return 0; }
 int SDL_RenderCopy(SDL_Renderer*, SDL_Texture*, const SDL_Rect*, const SDL_Rect*) { return 0; }   // the frame into the window
