@@ -117,7 +117,7 @@ script for another language can import it and call it with its own lists (set
 | Skill names (character screen, skill lists) | `data/menu/kojindata.bin` frame 8: 120 x 12 cells from (0, 756), 4 columns of 21 | `skill_names(columns, font)` |
 | Students' short names on the character screen's face cards | `data/menu/kojindata.bin` frame 10: 64 x 16 rows at x 304, 34 rows | `name_column(rel, 10, 304, names)` |
 | Short names on the battle results' unit cards | `data/tacticsresult/tacticsresult.bin` frame 2: 64 x 16 rows at x 256, 35 rows (the students, then Denehere) | `name_column(rel, 2, 256, names)` |
-| Names on the week's results cards | `data/allresult/allresult.bin` frame 1: 64 x 16 rows at x 304 (students); frame 2 (512 x 512): at x 228, the 18 leaders | `week_results()` (also frame 0's small words, `WEEK_WORDS`, and its two buttons) |
+| Names on the week's results cards | `data/allresult/allresult.bin` frame 1: 64 x 16 rows at x 304 (students); frame 2 (512 x 512): at x 228, the 18 leaders | `week_results()` (also frame 0's small words, `WEEK_WORDS`, its buttons and 班); `week_plates()` copies the team screen's quest and lecture plates, the same sheets (frames 3..6 = `handata.bin` 4..7) |
 | Quest names on the team screen's plates | `data/menu/handata.bin` frame 4: the boxes in `QUEST_LABELS` | `quest_plates(preview, labels, font)` |
 
 - The lists run in the game's order. `STUDENTS`, `SKILL_COLUMNS` and `QUEST_LABELS` hold the
@@ -168,7 +168,7 @@ the game (or switch language and back) to see changes, with no need to zip each 
 images and writes `english.zip`. So far it covers the Option screen, the web build's
 save buttons, the opening (`tools/english_opening.py`), the team and character screens,
 the team screen's tutorial menus and callouts (`tools/english_tutorial.py`), the network and SAVE/LOAD screens (`tools/english_net.py`), and in battle
-the menu, the top bar, the results screen, the week's results (names, small words and buttons; its quest and lecture plates and 班 are still Japanese), and the battle-start banners and starting-member
+the menu, the top bar, the results screen, the week's results, and the battle-start banners and starting-member
 panel (`tools/english_tactics.py`). Where text sat on art, the
 art under it is rebuilt as a diff (the opening's title card, the battle menu, top bar and
 results screen), so the pack holds no game pixels and can be shared.

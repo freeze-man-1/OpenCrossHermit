@@ -13,6 +13,7 @@ The English takes the colour of the text it replaces, so dim button states stay 
 Needs Pillow, NumPy and SciPy. Pass --preview DIR to write the painted frames there.
 """
 import argparse
+import shutil
 import random
 import re
 import struct
@@ -1146,6 +1147,7 @@ WEEK_WORDS = ["Heavy", "Sword", "Hunter", "Priest", "Mage", "Sage",
 WEEK_BUTTONS_AT = [((470, 732, 684, 762), "View Awards"), ((40, 810, 254, 840), "View Awards"),
                    ((766, 732, 980, 762), "Continue"), ((40, 772, 254, 802), "Continue")]
 WEEK_HELD = ((60, 734, 222, 762), "Class EXP Held")
+WEEK_TEAM = ((204, 103, 227, 125), 138, "Team")    # the first team's 班 under its number, the rows' step, the word
 
 
 def week_results(preview=None, words=WEEK_WORDS):
@@ -1160,6 +1162,14 @@ def week_results(preview=None, words=WEEK_WORDS):
     for box, text in WEEK_BUTTONS_AT:
         face_label(sheet, box, text, 17, RESULTS_FONT)
     face_label(sheet, *WEEK_HELD, 16, RESULTS_FONT)
+    (x0, y0, x1, y1), step, word = WEEK_TEAM
+    a = ink(word, 9)[0]
+    t = np.linspace(0, 1, x1 - x0)[:, None]
+    for g in range(5):      # the marble under each 班, row by row from the marble either side of it
+        for y in range(y0 + g * step, y1 + g * step):
+            left, right = sheet.frame[y, x0 - 3:x0, :3].mean(axis=0), sheet.frame[y, x1:x1 + 3, :3].mean(axis=0)
+            sheet.rebuild((y, slice(x0, x1)), left * (1 - t) + right * t)
+        shadowed(over, a, round((x0 + x1 - a.shape[1]) / 2), y0 + g * step + 6, (255, 255, 255))
     inks = [ink(w, 10) for w in words]
     for i, (a, top) in enumerate(inks):
         if a.shape[1] > 36:     # a long word is squeezed sideways into its row
@@ -1169,6 +1179,18 @@ def week_results(preview=None, words=WEEK_WORDS):
     erase = np.zeros((1024, 1024), bool)
     erase[844:844 + 12 * len(words), :36] = True
     english_opening.erase_png(erase).save(out / "0.erase.png", optimize=True)
+
+
+def week_plates():
+    """The week's results' quest and lecture plates (allresult.bin frames 3 and 4..6) are the team
+    screen's sheets (handata.bin frames 4 and 5..7) again, so that screen's pictures serve both.
+    Call it once those are drawn."""
+    src, dst = PACK / "images/data/menu/handata.bin", PACK / "images/data/allresult/allresult.bin"
+    ours, theirs = frames_of(GAME / "data/allresult/allresult.bin"), frames_of(GAME / "data/menu/handata.bin")
+    for i in range(3, 7):
+        assert (english_opening.decode(ours[i]) == english_opening.decode(theirs[i + 1])).all(), f"allresult.bin frame {i} differs"
+        for f in src.glob(f"{i + 1}.*"):
+            shutil.copyfile(f, dst / f.name.replace(str(i + 1), str(i), 1))
 
 
 def results_names():
@@ -1227,6 +1249,7 @@ def main():
     skill_names()
     quest_plates(args.preview)
     han_bar()
+    week_plates()
     english_opening.build(PACK / "images", GAME.parent, args.preview)
     import english_tutorial     # here: they import this module
     import english_net
