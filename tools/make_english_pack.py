@@ -1121,20 +1121,54 @@ def quest_plates(preview, labels=QUEST_LABELS, font=FONT):
     sheet.save(rel, 4, preview, "handata_4")
 
 
-def name_column(rel, index, x, names):
+def name_column(rel, index, x, names, size=(1024, 512)):
     """A frame's column of short names: one per 16-texel row from (x, 0), 64 wide, white.
-    names: in unit order (the 34 students, then Denehere where the frame has him)."""
+    names: in unit order (the 34 students, then Denehere where the frame has him).
+    size: the frame's height and width."""
     out = PACK / "images" / rel
     out.mkdir(parents=True, exist_ok=True)
-    over = np.zeros((1024, 512, 4), float)
+    over = np.zeros((*size, 4), float)
     for i, name in enumerate(names):
         a, top = ink(name, 12)
         a = a[:, :62]
         put(over, a, x + (64 - a.shape[1]) // 2, i * 16 + 3 - round(top), (255, 255, 255))    # caps from row 3
     Image.fromarray(over.round().astype(np.uint8), "RGBA").save(out / f"{index}.png", optimize=True)
-    erase = np.zeros((1024, 512), bool)
+    erase = np.zeros(size, bool)
     erase[:16 * len(names), x:x + 64] = True
     english_opening.erase_png(erase).save(out / f"{index}.erase.png", optimize=True)
+
+
+# allresult.bin frame 0's small white words, 36 x 12 rows from (0, 844): the five job types, the
+# leaders' 賢者, the seven group moods from best to worst, then 講義 and 冒険.
+WEEK_WORDS = ["Heavy", "Sword", "Hunter", "Priest", "Mage", "Sage",
+              "Superb", "Joyful", "Great", "Good", "Fair", "Uneasy", "Hostile", "Lecture", "Quest"]
+# Frame 0's two buttons, each on the screen and as its lit copy below it, and the bottom bar's 学級の積立 Exp.
+WEEK_BUTTONS_AT = [((470, 732, 684, 762), "View Awards"), ((40, 810, 254, 840), "View Awards"),
+                   ((766, 732, 980, 762), "Continue"), ((40, 772, 254, 802), "Continue")]
+WEEK_HELD = ((60, 734, 222, 762), "Class EXP Held")
+
+
+def week_results(preview=None, words=WEEK_WORDS):
+    """The week's results (allresult.bin): the students' names on the member cards (frame 1, the
+    character screen's column), the leaders' (frame 2, `OTHERS`) and frame 0's small words."""
+    rel = "data/allresult/allresult.bin"
+    name_column(rel, 1, 304, STUDENTS)
+    name_column(rel, 2, 228, OTHERS, (512, 512))
+    out = PACK / "images" / rel
+    sheet = Sheet(english_opening.decode(frames_of(GAME / rel)[0]).astype(float))
+    over = sheet.over
+    for box, text in WEEK_BUTTONS_AT:
+        face_label(sheet, box, text, 17, RESULTS_FONT)
+    face_label(sheet, *WEEK_HELD, 16, RESULTS_FONT)
+    inks = [ink(w, 10) for w in words]
+    for i, (a, top) in enumerate(inks):
+        if a.shape[1] > 36:     # a long word is squeezed sideways into its row
+            a = np.array(Image.fromarray((a * 255).astype(np.uint8)).resize((36, a.shape[0]), Image.LANCZOS)).astype(float) / 255
+        put(over, a, (36 - a.shape[1]) // 2, 844 + i * 12 + 2 - round(top), (255, 255, 255))    # caps from row 2
+    sheet.save(rel, 0, preview, "allresult_0")
+    erase = np.zeros((1024, 1024), bool)
+    erase[844:844 + 12 * len(words), :36] = True
+    english_opening.erase_png(erase).save(out / "0.erase.png", optimize=True)
 
 
 def results_names():
@@ -1189,6 +1223,7 @@ def main():
     game_images(args.preview)
     koji_buttons()
     koji_names()
+    week_results(args.preview)
     skill_names()
     quest_plates(args.preview)
     han_bar()
