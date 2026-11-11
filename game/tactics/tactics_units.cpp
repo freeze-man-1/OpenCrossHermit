@@ -1600,10 +1600,19 @@ void TacticsUnits::planRoute(Unit& u) {
     if (to.first < 0 || to == from) return;
     u.routeCut = true;                             // until a route reaches `to`
     // The other units' cells (othersOn), gathered once for the searches.
+    // The port's change: the walkers of the unit's own side and its allies
+    // are left out, so a route goes through them and not round them (the
+    // original closes every unit's cell here, though the walk itself has
+    // always let a unit through its own side's, FUN_0047dec0 in walk(); a
+    // group in a narrow way then found no route and stood waiting). Other
+    // sides' units, and every building, base and gate, close their cells as before.
     const int mw = map_->cellsW(), mh = map_->cellsH();
     std::vector<std::uint8_t> taken(std::size_t(mw) * std::size_t(mh), 0);
+    const auto walksAside = [&](const Unit& o) {
+        return o.kind() < 0x183 && (o.team() == u.team() || relationOf(u, o) == 4);
+    };
     for (const Unit& o : units_)
-        if (o.used && o.onField() && &o != &u && o.cx() >= 0 && o.cy() >= 0 && o.cx() < mw && o.cy() < mh)
+        if (o.used && o.onField() && &o != &u && !walksAside(o) && o.cx() >= 0 && o.cy() >= 0 && o.cx() < mw && o.cy() < mh)
             taken[std::size_t(o.cy()) * std::size_t(mw) + std::size_t(o.cx())] = 1;
     const tactics::Occupied occupied = [&](int cx, int cy) {
         return cx >= 0 && cy >= 0 && cx < mw && cy < mh && taken[std::size_t(cy) * std::size_t(mw) + std::size_t(cx)] != 0;
