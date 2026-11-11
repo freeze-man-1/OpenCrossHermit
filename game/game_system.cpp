@@ -251,6 +251,7 @@ void GameSystem::fixedUpdate(legacy::Engine& engine, double) {
     if (auto next = ctx_.scenes.take()) dispatchScene(*next);
 
     ctx_.draw.clear();
+    engine.setPieces({});   // a scene with a split view sets it again
     ctx_.tasks.runFrame();
     ctx_.audio->tick();
     presented_ = ctx_.draw;
@@ -261,11 +262,24 @@ void GameSystem::fixedUpdate(legacy::Engine& engine, double) {
     if (ctx_.quitRequested) engine.requestQuit();   // WinMain: +0x8e0 -> DestroyWindow
 }
 
-void GameSystem::render(legacy::Engine&, SDL_Renderer* r, double) {
+void GameSystem::render(legacy::Engine& engine, SDL_Renderer* r, double) {
     // Debug: CH_PERF logs the draw list's size and the time to render it.
     static const bool perf = SDL_getenv("CH_PERF") != nullptr;
     const std::uint64_t t0 = perf ? SDL_GetPerformanceCounter() : 0;
-    presented_.render(r, *ctx_.sprites);
+    if (!engine.split()) {
+        presented_.render(r, *ctx_.sprites);
+    } else {
+        // A split view: each layer into its own frame (Engine puts the pieces together).
+        SDL_Texture* frame = SDL_GetRenderTarget(r);
+        presented_.render(r, *ctx_.sprites, 0);
+        for (int layer = 1; layer < legacy::Engine::kLayers; ++layer) {
+            SDL_SetRenderTarget(r, engine.layerTarget(layer));
+            SDL_SetRenderDrawColor(r, 0, 0, 0, 0);
+            SDL_RenderClear(r);
+            presented_.render(r, *ctx_.sprites, layer);
+        }
+        SDL_SetRenderTarget(r, frame);
+    }
     if (perf) {
         static std::uint64_t total = 0;
         static int frames = 0;

@@ -31,6 +31,8 @@ struct Point { float x = 0.f, y = 0.f; };
 struct Gestures {
     int   fingers = 0;                 // down now
     bool  used = false;                // any touch since start (a UI may then show its touch controls)
+    Point at;                          // the first finger, where it is (or was last)
+    bool  lifted = false;              // the last finger came up this tick
     bool  tap = false;           Point tapAt;
     bool  longPress = false;     Point longPressAt;
     // One-finger drag: began / ended are this tick's edges, active while it lasts.
@@ -80,6 +82,7 @@ public:
         ++count_;
         g_.fingers = count_;
         if (count_ == 1) {
+            g_.at = p;
             if (state_ != State::Idle) return;
             state_ = State::Pending;
             start_ = last_ = p;
@@ -97,6 +100,7 @@ public:
     void move(std::int64_t id, Point p, std::uint32_t ms) {
         const int k = slot(id);
         if (k >= 0) pos_[k] = p;
+        if (k == 0) g_.at = p;
         if (state_ == State::Two) {
             if (count_ < 2 || k < 0) return;
             const Point c = mid();
@@ -135,6 +139,8 @@ public:
             return;
         }
         if (count_ == 1) {
+            g_.at = p;
+            g_.lifted = true;
             update(ms);
             if (state_ == State::Pending) {
                 g_.tap = true;
@@ -174,11 +180,13 @@ public:
     // The next step for the mouse, if any.
     [[nodiscard]] bool hasMouseStep() const noexcept { return !steps_.empty(); }
     MouseStep popMouseStep() { MouseStep s = steps_.front(); steps_.pop_front(); return s; }
+    // A step from a UI that reads the gestures itself (with the mouse stand-in off).
+    void addMouseStep(MouseStep s) { push(s); }
 
     // This tick's gestures; the edges and deltas start over.
     [[nodiscard]] const Gestures& gestures() const noexcept { return g_; }
     void endTick() {
-        g_.tap = g_.longPress = g_.dragBegan = g_.dragEnded = false;
+        g_.tap = g_.longPress = g_.dragBegan = g_.dragEnded = g_.lifted = false;
         g_.pan = {};
         g_.pinch = 1.f;
     }

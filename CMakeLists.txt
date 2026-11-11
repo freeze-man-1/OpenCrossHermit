@@ -65,6 +65,7 @@ add_executable(game
   game/tactics/tactics_goals.cpp
   game/tactics/tactics_path.cpp
   game/tactics/tactics_hud.cpp
+  game/tactics/tactics_wide.cpp
   game/state/unit_stats.cpp
   game/text/sjis.cpp
   game/text/text_renderer.cpp)

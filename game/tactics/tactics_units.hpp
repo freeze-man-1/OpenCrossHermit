@@ -279,6 +279,9 @@ public:
     // slot to centre the view on (its first member on the field when that
     // was already picked), else -1. False for an empty group.
     bool recallGroup(int g, int& centre);
+    [[nodiscard]] int groupSize(int g) const { return g >= 0 && g < 10 ? int(groups_[std::size_t(g)].size()) : 0; }
+    // The port's stance key: the stance after the first picked unit's of ours, -1 with none picked.
+    [[nodiscard]] int nextStance() const;
     bool selectOnScreen();                             // FUN_004948f0 (Ctrl + A)
     bool selectLike(const Unit& u);                    // FUN_00494a50 (double click)
     [[nodiscard]] bool inGroup(const Unit& u) const;   // FUN_004944a0
@@ -296,7 +299,9 @@ public:
         bool dragging = false;                   // +0x19b8: a box drag
         bool shift = false, shiftUp = false;     // DIK 0x2a / 0x36 held, released
         int  fkey = -1;                          // F1..F8 pressed (DAT_0061aea0)
+        int  stance = -1;                        // the port's stance key: as a click on that stance's button
         bool sortie = false;                     // +0x108b48
+        bool faces = true;                       // the pointer may be on the roster (the wide view: only on its HUD)
     };
     bool commandBar(const BarInput& in);         // FUN_0049b180; true when it took the click (+0x2f150)
     void updateHelp(const BarInput& in, int shown);   // FUN_0049c400
@@ -383,6 +388,15 @@ public:
     void requestHold(int kind, bool on) noexcept { holdKind_ = kind; holdOn_ = on; }
     // The player's scrolling and selection (+0x108b36 / 38), the timers (+0x108b39).
     [[nodiscard]] bool inputOpen() const noexcept { return inputOpen_; }
+    // For the wide battle view (tactics_wide), which shows the HUD's parts
+    // on their own: a command bar button's place, a roster face's, and what
+    // the panel and the help lines last showed.
+    [[nodiscard]] SDL_Rect barBox(int button) const;
+    [[nodiscard]] bool faceBox(const Unit& u, SDL_Rect& box) const;   // false: not on the roster
+    [[nodiscard]] bool callReady() const noexcept { return callReady_; }
+    [[nodiscard]] int panelShown() const noexcept { return panelShown_; }
+    [[nodiscard]] bool helpShown() const noexcept { return helpKind_ >= 0 && helpId_ >= 0; }
+    [[nodiscard]] int ownSelected() const;
     [[nodiscard]] int timersWanted() noexcept { return std::exchange(timersWanted_, -1); }
     // FUN_00473860's tallies: what each team's kills were worth (+0x2ef14)
     // and how many of its units fell (+0x2ef34, FUN_00430b20).

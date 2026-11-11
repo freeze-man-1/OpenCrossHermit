@@ -31,6 +31,7 @@
 #include "tactics_map.hpp"
 #include "tactics_script.hpp"
 #include "tactics_units.hpp"
+#include "tactics_wide.hpp"
 #include "../ysub/chat_box.hpp"
 
 #include <array>
@@ -81,6 +82,7 @@ private:
     TacticsMap   map_;
     TacticsUnits units_;
     StageScript  script_;
+    TacticsWide  wide_{ctx_, map_, units_};
     BattleClock  clock_;
     StageChecks  checks_;
     int          rank_ = 0;                      // +0x117c38 -> +0x174
@@ -148,6 +150,7 @@ private:
     bool         objectivesShade_ = false;       // +0x11804c
     int          menuButton_ = -1;               // FUN_00458800's result this frame
     int          pressX_ = -1, pressY_ = -1;     // the mouse +0x19bc / 0x19c0: where the press began
+    bool         stanceKey_ = false;             // the port's stance key this frame
     int          fkey_ = -1;                     // F1..F8 this frame (DAT_0061aea0)
     bool         shiftWas_ = false, shiftUp_ = false;
 };

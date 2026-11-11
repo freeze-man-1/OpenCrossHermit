@@ -2142,6 +2142,12 @@ void TacticsUnits::storeGroup(int g) {
     }
 }
 
+int TacticsUnits::nextStance() const {
+    for (const Unit& u : units_)
+        if (u.used && u.selected && u.team() == viewer_ && u.onField()) return (u.stance() + 1) % 4;
+    return -1;
+}
+
 bool TacticsUnits::recallGroup(int g, int& centre) {
     centre = -1;
     if (g < 0 || g >= 10 || groups_[std::size_t(g)].empty()) return false;
@@ -2382,6 +2388,13 @@ bool TacticsUnits::commandBar(const BarInput& in) {
     const auto arm = [&](int c, bool ready) {      // FUN_0049be60
         hold(*lead, ready ? 1 : -1, c);
     };
+    if (in.stance >= 0 && in.stance < 4) {
+        for (Unit& u : units_)
+            if (u.used && u.selected && u.team() == viewer_ && !down(u) && u.stance() != in.stance)
+                queueOrder(u, {0xd, in.stance, 0, -1});
+        ctx_.audio->sePlay(5);
+        return true;
+    }
     // FUN_0049b6a0: 0 nothing, 1 handled (the map may still see the
     // click), 2 taken.
     const auto buttons = [&](bool press) -> int {
@@ -2700,6 +2713,24 @@ void TacticsUnits::talk(bool sortie) {
     }
 }
 
+SDL_Rect TacticsUnits::barBox(int button) const {
+    const BarPos b = barButton(button, ctx_.version);
+    return {b.x, b.y, 0x24, 0x24};
+}
+
+bool TacticsUnits::faceBox(const Unit& u, SDL_Rect& box) const {
+    if (!u.used || u.face < 0 || u.team() != viewer_) return false;
+    const GameVersion v = ctx_.version;
+    box = {logic::sdS16(0x617ef0 + std::uint32_t(u.face) * 4, v), logic::sdS16(0x617ef0 + std::uint32_t(u.face) * 4 + 2, v),
+           0x32, 0x39};
+    return true;
+}
+
+int TacticsUnits::ownSelected() const {
+    return int(std::count_if(units_.begin(), units_.end(),
+                             [&](const Unit& u) { return u.used && u.selected && u.team() == viewer_; }));
+}
+
 int TacticsUnits::selectedCount() const {
     return int(std::count_if(units_.begin(), units_.end(), [](const Unit& u) { return u.used && u.selected; }));
 }
@@ -2766,7 +2797,7 @@ bool TacticsUnits::callDrag(const BarInput& in) {
             int column = 0;
             if (r(0x617ed0) <= in.x && in.x <= r(0x617ed8) && r(0x617ed4) <= in.y && in.y <= r(0x617edc)) column |= 1;
             if (r(0x617ee0) <= in.x && in.x <= r(0x617ee8) && r(0x617ee4) <= in.y && in.y <= r(0x617eec)) column |= 2;
-            if (column != 0 && callFaceAt(in.x, in.y, column)) callState_ = 1;
+            if (in.faces && column != 0 && callFaceAt(in.x, in.y, column)) callState_ = 1;
         } else if (button == 2 && callState_ != 0 && (std::abs(in.x - callPressX_) > 4 || std::abs(in.y - callPressY_) > 4)) {
             // FUN_00412810: past the system's drag distance. FUN_00481a60
             // lets go of the picked who may not come (FUN_0046a7a0), then
@@ -4931,8 +4962,10 @@ void TacticsUnits::draw(int hover) const {
                   groundY_ - map_->scrollY() + TacticsMap::kViewY, 800);
     drawCallRing();                                  // FUN_0046b670 -> FUN_00482150
     // FUN_0046b670 -> FUN_00493b80: the flares at their place on the screen.
+    const auto layer = ctx_.draw.setLayer(1);         // on the minimap: the HUD's
     for (const Flare& f : flares_)
         if (f.on) anm_.draw(f.node, ctx_.draw, *ctx_.sprites, kSprite, f.x, f.y, 0xc4);
+    ctx_.draw.setLayer(layer);
     drawPopups();
 }
 
@@ -4946,7 +4979,9 @@ void TacticsUnits::drawDot(const Unit& u) const {
     const int c = rel == 0 ? (u.selected ? 0 : 1) : rel == 1 ? 3 : 2;
     const int mapW = map_->cellsW() * TacticsMap::kCellW, mapH = map_->cellsH() * TacticsMap::kCellH;
     const int x = TacticsMap::kMiniX + u.px() * map_->miniW() / mapW, y = TacticsMap::kMiniY + u.py() * map_->miniH() / mapH;
+    const auto layer = ctx_.draw.setLayer(1);         // the HUD's (the wide view)
     ysub::fill(ctx_, x - 1, y - 1, 3, 3, 0xc6, kColours[c]);
+    ctx_.draw.setLayer(layer);
 }
 
 // FUN_0046d340: the gauge under a unit, on a dark frame.

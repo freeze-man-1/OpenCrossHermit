@@ -150,6 +150,10 @@ public:
     // click, drag = left drag. setTouchMouse(false) leaves the mouse alone.
     [[nodiscard]] const touch::Gestures& touch() const noexcept { return touch_.gestures(); }
     void setTouchMouse(bool on) { touch_.setEmulateMouse(on); }
+    [[nodiscard]] bool touchMouse() const noexcept { return touch_.emulateMouse(); }
+    // With the stand-in off, a UI turns the gestures into mouse steps itself;
+    // they reach mouse() from the next tick on, as the stand-in's do.
+    void queueMouse(const touch::MouseStep& s) { touch_.addMouseStep(s); }
     // Text entry (the original used the IME edit box, FUN_00425a10..): while
     // enabled, typed UTF-8 text and Backspace / Enter presses collect per tick.
     struct TextInput { std::string typed; int backspaces = 0; bool enter = false; bool selectAll = false; };   // selectAll: Ctrl+A
@@ -214,6 +218,16 @@ struct EngineConfig {
 
 class Engine;
 
+// One piece of a split view (Engine::setPieces): `src` of a layer's frame
+// lands on `dst` in the window's output (pixels). Layer 0 is the scene's own
+// frame; the others are transparent where nothing was drawn.
+struct ViewPiece {
+    SDL_Rect     src{};
+    SDL_FRect    dst{};
+    std::uint8_t layer = 0;
+    bool         input = true;   // the pointer can be on it (off: it only shows)
+};
+
 class IScene {
 public:
     virtual ~IScene() = default;
@@ -263,6 +277,22 @@ public:
     // fingers), as logical coordinates, kept inside the frame.
     [[nodiscard]] SDL_Point logicalFromWindow(float x, float y) const;
     [[nodiscard]] SDL_Point logicalFromNormalized(float x, float y) const;
+
+    // ---- Split view (a port addition, for wide windows and phones): while a
+    // scene keeps pieces set, the window shows those instead of the one frame,
+    // and the pointer maps back through the piece it is on. A press on a
+    // layer 0 piece stays with it until the button (or finger) lifts, kept
+    // inside its `src`. Off every piece the pointer is on layer -1, at the
+    // nearest point of the first piece. The scene sets the pieces each tick it
+    // wants them (GameSystem clears them before the tasks run).
+    static constexpr int kLayers = 3;
+    void setPieces(std::vector<ViewPiece> pieces) { pieces_ = std::move(pieces); }
+    [[nodiscard]] bool split() const noexcept { return !pieces_.empty(); }
+    [[nodiscard]] SDL_Texture* layerTarget(int layer);          // 1..kLayers-1, made when first asked for
+    [[nodiscard]] int pointerLayer() const noexcept { return split() ? pointerLayer_ : 0; }
+    [[nodiscard]] SDL_FPoint pointerOutput() const noexcept { return pointerOut_; }   // output pixels
+    [[nodiscard]] bool pointerIsTouch() const noexcept { return pointerTouch_; }      // a finger moved it last
+    [[nodiscard]] SDL_Point outputSize() const;
     // Puts the pointer on a logical point now and again as the window settles after a
     // resize (it moves and changes size under the pointer), for half a second.
     void keepMouseAt(int x, int y);
@@ -273,6 +303,16 @@ private:
     SDL_Point     keepMouse_{};
     std::uint32_t keepMouseUntil_ = 0;   // SDL_GetTicks() deadline, 0 when none
     void frame();
+    // The pointer at a normalized window point, as logical coordinates; notes where it is.
+    // grab: 1 a press there, -1 the last button or finger lifted, 0 a move.
+    SDL_Point pointerAt(float nx, float ny, int grab, bool touch);
+    std::vector<ViewPiece>   pieces_;
+    std::optional<ViewPiece> grab_;
+    std::array<TexturePtr, kLayers - 1> layers_;
+    int        pointerLayer_ = 0;
+    SDL_FPoint pointerOut_{};
+    bool       pointerTouch_ = false;
+    int        fingersDown_ = 0;
 
     static constexpr double kMaxFrameSec      = 0.25;  // tab-switch / breakpoint guard
     static constexpr int    kMaxStepsPerFrame = 8;     // spiral-of-death guard
@@ -291,7 +331,8 @@ private:
 
     // Debug hooks (environment): CH_SHOTS="tick,tick,..." saves shot_<tick>.bmp
     // after rendering that tick; CH_AUTOCLICK=N clicks every N ticks;
-    // CH_MOUSE=x,y[@tick];... parks the pointer there (from that tick on).
+    // CH_MOUSE=x,y[@tick];... parks the pointer there (from that tick on);
+    // CH_TOUCH works one finger.
     std::vector<std::uint64_t> shotTicks_;
     std::uint64_t              autoClick_ = 0;
     struct MouseStep { std::uint64_t at; SDL_Point pt; int button; };   // 1/-1 left press/release, 2/-2 right
@@ -300,6 +341,8 @@ private:
     std::vector<std::pair<std::uint64_t, std::string>> textScript_;   // CH_TEXT=text@tick;...
     struct KeyStep { std::uint64_t at; SDL_Scancode key; };
     std::vector<KeyStep>       keyScript_;     // CH_KEYS=scancode@tick;...
+    struct TouchStep { std::uint64_t at; SDL_Point pt; int kind; };     // 1 down, 0 move, -1 up
+    std::vector<TouchStep>     touchScript_;   // CH_TOUCH=x,y@tick:d;x,y@tick:m;x,y@tick:u (one finger, output pixels)
 };
 
 } // namespace legacy

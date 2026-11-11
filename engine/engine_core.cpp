@@ -155,7 +155,7 @@ Engine::Engine(EngineConfig cfg) : cfg_(std::move(cfg)) {
             at = end + 1;
         }
     }
-    // CH_KEYS=scancode@tick;...: that SDL scancode (41 is Escape) pressed at that tick, released 2 later.
+    // CH_KEYS=scancode@tick;...: that SDL scancode (41 is Escape, 224 Ctrl) pressed at that tick, released 2 later.
     if (const char* s = SDL_getenv("CH_KEYS")) {
         std::string all = s;
         for (std::size_t at = 0; at < all.size();) {
@@ -186,6 +186,23 @@ Engine::Engine(EngineConfig cfg) : cfg_(std::move(cfg)) {
         }
     }
     mouseScriptWindow_ = SDL_getenv("CH_MOUSE_WINDOW") != nullptr;
+    // CH_TOUCH=x,y@tick:d;x,y@tick:m;x,y@tick:u: one finger down / moved / up at output pixels.
+    if (const char* s = SDL_getenv("CH_TOUCH")) {
+        for (const char* p = s; *p;) {
+            char* end = nullptr;
+            const long x = std::strtol(p, &end, 10);
+            const long y = *end == ',' ? std::strtol(end + 1, &end, 10) : 0;
+            const unsigned long long at = *end == '@' ? std::strtoull(end + 1, &end, 10) : 0;
+            int kind = 0;
+            if (*end == ':') {
+                kind = end[1] == 'd' ? 1 : end[1] == 'u' ? -1 : 0;
+                end += 2;
+            }
+            touchScript_.push_back({at, SDL_Point{static_cast<int>(x), static_cast<int>(y)}, kind});
+            if (*end != ';') break;
+            p = end + 1;
+        }
+    }
 }
 
 Engine::~Engine() {
@@ -224,6 +241,59 @@ SDL_Point Engine::logicalFromWindow(float x, float y) const {
     SDL_GetWindowSize(window_.get(), &ww, &wh);
     if (ww <= 0 || wh <= 0) return {int(x), int(y)};
     return logicalFromNormalized(x / float(ww), y / float(wh));
+}
+
+SDL_Point Engine::outputSize() const {
+    int ow = 0, oh = 0;
+    SDL_GetRendererOutputSize(renderer_.get(), &ow, &oh);
+    return {ow, oh};
+}
+
+SDL_Texture* Engine::layerTarget(int layer) {
+    if (layer < 1 || layer >= kLayers) return frame_.get();
+    TexturePtr& t = layers_[std::size_t(layer - 1)];
+    if (!t) {
+        t.reset(SDL_CreateTexture(renderer_.get(), SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, cfg_.logicalW, cfg_.logicalH));
+        if (!t) throw std::runtime_error(std::string("SDL_CreateTexture(layer): ") + SDL_GetError());
+        // What was blended into the clear layer is already times its alpha.
+        const SDL_BlendMode pre = SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD,
+                                                             SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD);
+        if (SDL_SetTextureBlendMode(t.get(), pre) != 0) SDL_SetTextureBlendMode(t.get(), SDL_BLENDMODE_BLEND);
+    }
+    return t.get();
+}
+
+SDL_Point Engine::pointerAt(float nx, float ny, int grab, bool touch) {
+    const SDL_Point out = outputSize();
+    pointerOut_ = {nx * float(out.x), ny * float(out.y)};
+    pointerTouch_ = touch;
+    if (pieces_.empty()) {
+        grab_.reset();
+        pointerLayer_ = 0;
+        return logicalFromNormalized(nx, ny);
+    }
+    const ViewPiece* on = grab_ ? &*grab_ : nullptr;
+    bool off = false;
+    if (!on) {
+        for (auto it = pieces_.rbegin(); it != pieces_.rend() && !on; ++it)     // the last set is on top
+            if (it->input && pointerOut_.x >= it->dst.x && pointerOut_.y >= it->dst.y && pointerOut_.x < it->dst.x + it->dst.w &&
+                pointerOut_.y < it->dst.y + it->dst.h)
+                on = &*it;
+        if (!on) {
+            on = &pieces_.front();
+            off = true;
+        }
+    }
+    const auto axis = [](float o, float at, float size, int src, int len) {
+        const double v = std::floor((double(o) - at) * len / std::max(size, 1.f));
+        return src + int(std::clamp(v, 0.0, double(len - 1)));
+    };
+    const SDL_Point p{axis(pointerOut_.x, on->dst.x, on->dst.w, on->src.x, on->src.w),
+                      axis(pointerOut_.y, on->dst.y, on->dst.h, on->src.y, on->src.h)};
+    pointerLayer_ = off ? -1 : on->layer;
+    if (grab > 0 && !grab_ && !off && on->layer == 0) grab_ = *on;
+    if (grab < 0) grab_.reset();
+    return p;
 }
 
 void Engine::keepMouseAt(int x, int y) {
@@ -320,7 +390,9 @@ void Engine::frame() {
             // Window coordinates; the frame's black bars clamp to its edge. Fingers come as SDL_FINGER*.
             case SDL_MOUSEMOTION: {
                 if (e.motion.which == SDL_TOUCH_MOUSEID) break;
-                const SDL_Point p = logicalFromWindow(float(e.motion.x), float(e.motion.y));
+                int ww = 1, wh = 1;
+                SDL_GetWindowSize(window_.get(), &ww, &wh);
+                const SDL_Point p = pointerAt(float(e.motion.x) / float(std::max(ww, 1)), float(e.motion.y) / float(std::max(wh, 1)), 0, false);
                 input_.onMouseMove(p.x, p.y);
                 break;
             }
@@ -331,16 +403,24 @@ void Engine::frame() {
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP: {
                 if (e.button.which == SDL_TOUCH_MOUSEID) break;
-                const SDL_Point p = logicalFromWindow(float(e.button.x), float(e.button.y));
+                int ww = 1, wh = 1;
+                SDL_GetWindowSize(window_.get(), &ww, &wh);
+                const bool down = e.type == SDL_MOUSEBUTTONDOWN;
+                const bool last = !down && (SDL_GetMouseState(nullptr, nullptr) & ~SDL_BUTTON(e.button.button)) == 0;
+                const SDL_Point p = pointerAt(float(e.button.x) / float(std::max(ww, 1)), float(e.button.y) / float(std::max(wh, 1)),
+                                              down ? 1 : last ? -1 : 0, false);
                 input_.onMouseMove(p.x, p.y);
-                input_.onMouseButton(e.button.button, e.type == SDL_MOUSEBUTTONDOWN);
+                input_.onMouseButton(e.button.button, down);
                 break;
             }
             case SDL_FINGERDOWN:
             case SDL_FINGERMOTION:
             case SDL_FINGERUP: {
                 // Normalized to the window: mapped into the frame as the mouse is.
-                const SDL_Point lp = logicalFromNormalized(e.tfinger.x, e.tfinger.y);
+                if (e.type == SDL_FINGERDOWN) ++fingersDown_;
+                else if (e.type == SDL_FINGERUP) fingersDown_ = std::max(fingersDown_ - 1, 0);
+                const SDL_Point lp = pointerAt(e.tfinger.x, e.tfinger.y,
+                                               e.type == SDL_FINGERDOWN ? 1 : e.type == SDL_FINGERUP && fingersDown_ == 0 ? -1 : 0, true);
                 const touch::Point p{float(lp.x), float(lp.y)};
                 auto& t = input_.touch_;
                 if (e.type == SDL_FINGERDOWN)        t.down(e.tfinger.fingerId, p, e.tfinger.timestamp);
@@ -379,13 +459,34 @@ void Engine::frame() {
         if (autoClick_ && tickCount_ % autoClick_ == autoClick_ - 1) input_.injectClick();
         for (const auto& [at, pt, button] : mouseScript_) {
             if (at > tickCount_) continue;
-            const SDL_Point p = mouseScriptWindow_ ? logicalFromWindow(float(pt.x), float(pt.y)) : pt;
+            SDL_Point p = pt;
+            if (mouseScriptWindow_) {                                // as a real mouse event there
+                int ww = 1, wh = 1;
+                SDL_GetWindowSize(window_.get(), &ww, &wh);
+                const bool edge = button != 0 && at == tickCount_;
+                p = pointerAt((float(pt.x) + 0.5f) / float(std::max(ww, 1)), (float(pt.y) + 0.5f) / float(std::max(wh, 1)),
+                              edge ? (button > 0 ? 1 : -1) : 0, false);
+            }
             input_.onMouseMove(p.x, p.y);                            // last one due wins
             if (button != 0 && at == tickCount_)
                 input_.onMouseButton(std::abs(button) == 2 ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT, button > 0);
         }
         for (const auto& [at, key] : keyScript_)
-            if (at == tickCount_ || at + 2 == tickCount_) input_.onKey(key, at == tickCount_);
+            if (at == tickCount_ || at + 2 == tickCount_) {
+                input_.onKey(key, at == tickCount_);
+                // And in SDL's own table, which the battle's keys read (Ctrl as its modifier).
+                const_cast<Uint8*>(SDL_GetKeyboardState(nullptr))[key] = at == tickCount_;
+                if (key == SDL_SCANCODE_LCTRL) SDL_SetModState(at == tickCount_ ? KMOD_LCTRL : KMOD_NONE);
+            }
+        for (const auto& [at, pt, kind] : touchScript_) {
+            if (at != tickCount_) continue;
+            const SDL_Point out = outputSize();
+            const SDL_Point lp = pointerAt((float(pt.x) + 0.5f) / float(std::max(out.x, 1)), (float(pt.y) + 0.5f) / float(std::max(out.y, 1)), kind, true);
+            const touch::Point p{float(lp.x), float(lp.y)};
+            if (kind > 0)       input_.touch_.down(1, p, SDL_GetTicks());
+            else if (kind == 0) input_.touch_.move(1, p, SDL_GetTicks());
+            else                input_.touch_.up(1, p, SDL_GetTicks());
+        }
         input_.applyTouch();
         input_.beginTick();
         // Debug: CH_INPUT_LOG logs each tick's mouse button edges and touch gestures.
@@ -418,9 +519,18 @@ void Engine::frame() {
     SDL_SetRenderTarget(r, nullptr);
     SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
     SDL_RenderClear(r);
-    SDL_SetTextureScaleMode(frame_.get(), cfg_.scaleMode == ScaleMode::Smooth ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
-    const SDL_Rect dst = frameRect();
-    SDL_RenderCopy(r, frame_.get(), nullptr, &dst);
+    if (pieces_.empty()) {
+        SDL_SetTextureScaleMode(frame_.get(), cfg_.scaleMode == ScaleMode::Smooth ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
+        const SDL_Rect dst = frameRect();
+        SDL_RenderCopy(r, frame_.get(), nullptr, &dst);
+    } else {
+        // A split view's pieces land at odd scales: always filtered.
+        for (const ViewPiece& p : pieces_) {
+            SDL_Texture* t = layerTarget(p.layer);
+            SDL_SetTextureScaleMode(t, SDL_ScaleModeLinear);
+            SDL_RenderCopyF(r, t, &p.src, &p.dst);
+        }
+    }
     // Several ticks can run per frame, so a requested tick fires once it has passed.
     if (auto due = std::find_if(shotTicks_.begin(), shotTicks_.end(), [&](std::uint64_t t) { return t <= tickCount_; });
         due != shotTicks_.end()) {

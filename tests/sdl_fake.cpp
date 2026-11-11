@@ -69,11 +69,17 @@ int SDL_RenderReadPixels(SDL_Renderer*, const SDL_Rect*, Uint32, void*, int) { r
 int SDL_SaveBMP_RW(SDL_Surface*, SDL_RWops*, int) { return -1; }
 void SDL_StartTextInput(void) {}
 SDL_Keymod SDL_GetModState(void) { return KMOD_NONE; }
+const Uint8* SDL_GetKeyboardState(int* n) { static Uint8 keys[SDL_NUM_SCANCODES]; if (n) *n = SDL_NUM_SCANCODES; return keys; }
+void SDL_SetModState(SDL_Keymod) {}
 void SDL_StopTextInput(void) {}
 void SDL_FreeSurface(SDL_Surface*) {}
 SDL_Texture* SDL_CreateTexture(SDL_Renderer*, Uint32, int, int, int) { return reinterpret_cast<SDL_Texture*>(&dummy); }
 int SDL_UpdateTexture(SDL_Texture*, const SDL_Rect*, const void*, int) { return 0; }
 int SDL_SetTextureBlendMode(SDL_Texture*, SDL_BlendMode) { return 0; }
+int SDL_RenderCopyF(SDL_Renderer*, SDL_Texture*, const SDL_Rect*, const SDL_FRect*) { return 0; }   // a piece of the split view
+Uint32 SDL_GetMouseState(int* x, int* y) { if (x) *x = 0; if (y) *y = 0; return 0; }
+SDL_BlendMode SDL_ComposeCustomBlendMode(SDL_BlendFactor, SDL_BlendFactor, SDL_BlendOperation, SDL_BlendFactor, SDL_BlendFactor,
+                                         SDL_BlendOperation) { return SDL_BLENDMODE_BLEND; }
 void SDL_Log(const char* fmt, ...) {
     va_list ap; va_start(ap, fmt); std::vfprintf(stderr, fmt, ap); va_end(ap); std::fputc('\n', stderr);
 }

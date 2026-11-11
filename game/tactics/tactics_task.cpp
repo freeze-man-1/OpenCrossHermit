@@ -352,6 +352,8 @@ Co<> TacticsTask::start(std::uint32_t) {
     std::uint64_t perfStart = SDL_GetPerformanceCounter(), perfTicks = 0;
     int perfFrames = 0;
     for (;;) {
+        // The port's wide view, while the battle is the player's to play.
+        wide_.frame(menu_ != 2 && !script_.eventRunning() && units_.inputOpen() && !netChatOpen_ && !net_ && blinds_ == 0, menu_ == 1);
         // FUN_004539b0: with the menu or the objectives up (+0x30) nothing
         // runs but FUN_00453d00 and the drawing.
         if (menu_ != 0) {
@@ -567,7 +569,7 @@ Co<> TacticsTask::start(std::uint32_t) {
 void TacticsTask::scroll() {
     const auto& in = ctx_.engine.input();
     const auto& m = ctx_.mouse();
-    const int edge = m.held == 0 ? TacticsMap::edges(m.x, m.y) : 0;
+    const int edge = wide_.on() ? wide_.edges() : m.held == 0 && (wide_.mouseLive() || ctx_.engine.pointerIsTouch()) ? TacticsMap::edges(m.x, m.y) : 0;
     int dx = 0, dy = 0;
     if (in.held(legacy::Action::Left) || (edge & 4)) dx -= 0x10;
     if (in.held(legacy::Action::Right) || (edge & 8)) dx += 0x10;
@@ -610,6 +612,11 @@ bool TacticsTask::keys() {
     fkey_ = -1;
     for (int i = 0; i < 8 && fkey_ < 0; ++i)
         if (keyHit(SDL_SCANCODE_F1 + i)) fkey_ = i;
+    // The port's keys for the left hand (W A S D move the view): Q E R T and
+    // F G V B the eight skills, C the next stance.
+    for (int i = 0; i < 8 && fkey_ < 0 && !ctrl; ++i)
+        if (keyHit(TacticsWide::kSkillKeys[i])) fkey_ = i;
+    stanceKey_ = !ctrl && keyHit(SDL_SCANCODE_C);
     const bool shift = (SDL_GetModState() & KMOD_SHIFT) != 0;
     shiftUp_ = shiftWas_ && !shift;
     shiftWas_ = shift;
@@ -638,7 +645,7 @@ TacticsUnits::BarInput TacticsTask::barInput() const {
     return {.x = m.x, .y = m.y, .pressed = (m.pressed & legacy::kMouseLeft) != 0,
             .held = (m.held & legacy::kMouseLeft) != 0, .released = (m.released & legacy::kMouseLeft) != 0,
             .dragging = dragging_ && dragged_, .shift = (SDL_GetModState() & KMOD_SHIFT) != 0, .shiftUp = shiftUp_,
-            .fkey = fkey_, .sortie = sortie_.phase < kSortieDone};
+            .fkey = fkey_, .stance = stanceKey_ ? units_.nextStance() : -1, .sortie = sortie_.phase < kSortieDone, .faces = wide_.onHud()};
 }
 
 void TacticsTask::mouse() {
@@ -698,7 +705,7 @@ void TacticsTask::mouse() {
         return;
     }
     if ((m.pressed & legacy::kMouseLeft) && !dragging_) {
-        if (const int slot = units_.rosterAt(m.x, m.y); slot >= 0) {
+        if (const int slot = wide_.onHud() ? units_.rosterAt(m.x, m.y) : -1; slot >= 0) {
             if (units_.callArmed()) {
                 faceHeld_ = slot;
                 return;
@@ -712,13 +719,13 @@ void TacticsTask::mouse() {
         // FUN_0046f8b0(.., 1): a click in either roster column (DAT_00617eb0:
         // x 0..49 and 974..1023, y 30..599) that misses the faces picks
         // nothing on the map below it (but may start a box over the faces).
-        if (rosterColumn(m.x, m.y, m.x, m.y) != 0) {
+        if (!wide_.on() && rosterColumn(m.x, m.y, m.x, m.y) != 0) {
             startDrag(true);
             return;
         }
     }
     int cx = 0, cy = 0;
-    const bool onMap = map_.cellAt(m.x, m.y, cx, cy);
+    const bool onMap = map_.cellAt(m.x, m.y, cx, cy) && wide_.onMap();
     const int wx = m.x + map_.scrollX(), wy = m.y - TacticsMap::kViewY + map_.scrollY();
     // The original reads Shift from its key mask (DAT_007a49fc +0x194c & 0x40000).
     const bool toggle = (SDL_GetModState() & KMOD_SHIFT) != 0;
@@ -728,7 +735,7 @@ void TacticsTask::mouse() {
     if (dragging_ && (m.released & legacy::kMouseLeft)) {
         const int sx0 = dragX_ - map_.scrollX(), sy0 = dragY_ + TacticsMap::kViewY - map_.scrollY();
         // FUN_0046f8b0(.., 1) -> FUN_0046eda0: a box over the roster's faces picks those.
-        if (dragged_ && units_.selectFaces(sx0, sy0, m.x, m.y, toggle, false) > 0) {
+        if (dragged_ && wide_.onHud() && units_.selectFaces(sx0, sy0, m.x, m.y, toggle, false) > 0) {
             dragging_ = false;
             return;
         }
@@ -738,11 +745,13 @@ void TacticsTask::mouse() {
             return;
         }
         // FUN_0046f8b0(.., 0): a box wholly inside a roster column picks nothing.
-        if (dragged_ && rosterColumn(std::min(sx0, m.x), std::min(sy0, m.y), std::max(sx0, m.x), std::max(sy0, m.y)) != 0) {
+        if (dragged_ && !wide_.on() && rosterColumn(std::min(sx0, m.x), std::min(sy0, m.y), std::max(sx0, m.x), std::max(sy0, m.y)) != 0) {
             dragging_ = false;
             return;
         }
-        if (dragged_) units_.selectBox(dragX_, dragY_, wx, wy, toggle);
+        if (dragged_) {
+            if (wide_.onMap()) units_.selectBox(dragX_, dragY_, wx, wy, toggle);
+        }
         else if (onMap) {
             // FUN_0046efa0(0): a double click on one of ours on the field
             // without Shift picks its like in view (FUN_00494a50).
@@ -1404,17 +1413,21 @@ void TacticsTask::drawBlinds() {
 void TacticsTask::draw() {
     const auto& m = ctx_.mouse();
     int cx = 0, cy = 0;
-    const bool onMap = map_.cellAt(m.x, m.y, cx, cy);
+    const bool onMap = map_.cellAt(m.x, m.y, cx, cy) && wide_.onMap();
     const TacticsUnits::Unit* hover = onMap ? units_.pointedUnit(m.x, m.y) : nullptr;
     map_.draw(kMapPrio);
     units_.draw(hover ? hover->slot : -1);
     script_.draw();                                  // FUN_00454f50 during an event: FUN_00497c90, FUN_00456650
+    ctx_.draw.setLayer(1);
     if (net_) drawTalk();                            // FUN_00457c40
+    ctx_.draw.setLayer(0);
     if (net_ && script_.waitingForOthers())
         ctx_.draw.text({.x = 0x200, .y = 0x60, .priority = 1, .argb = 0xffffffff, .text = "Waiting for the other players...", .fontPx = 16, .centred = true});
     drawSortie();
     drawBanner();
+    ctx_.draw.setLayer(1);
     drawMenu();
+    ctx_.draw.setLayer(0);
     drawBlinds();
     // (FUN_004539b0 also calls FUN_0043d970 each frame, which is empty.)
     // FUN_00453e10 -> FUN_0043b3c0 -> FUN_0043cd70: while the left button
@@ -1426,6 +1439,9 @@ void TacticsTask::draw() {
         const int x0 = dragX_ - map_.scrollX(), y0 = dragY_ - map_.scrollY() + TacticsMap::kViewY;
         ysub::outline(ctx_, x0, y0, m.x, m.y, 2, 0x80ffffffu, kBlendAdd);
     }
+    wide_.draw();
+    // The HUD on its own layer, the pointer on a third (the wide view places them apart).
+    ctx_.draw.setLayer(1);
     // FUN_00453e10: the top bar and the two bottom panels.
     ysub::drawSub(ctx_, {.bank = static_cast<std::uint8_t>(kCommonBank), .frame = 0}, 200, 0, 0);
     ysub::drawSub(ctx_, {.bank = static_cast<std::uint8_t>(kCommonBank), .frame = 1}, 200, 0x18c, 600);
@@ -1436,7 +1452,7 @@ void TacticsTask::draw() {
     // the first picked.
     // The roster faces count as under the pointer too (the port's).
     int under = hover && units_.isSeen(*hover) ? hover->slot : -1;
-    if (const int r = units_.rosterAt(m.x, m.y); r >= 0) under = r;
+    if (const int r = wide_.onHud() ? units_.rosterAt(m.x, m.y) : -1; r >= 0) under = r;
     const int shown = units_.updatePanel(under, sortie_.phase < kSortieDone);   // FUN_0049cc60
     units_.talk(sortie_.phase < kSortieDone);                // FUN_0046db20 -> FUN_0049ab60
     units_.drawHud(shown, sortie_.phase < kSortieDone);
@@ -1444,7 +1460,9 @@ void TacticsTask::draw() {
     units_.drawBar(sortie_.phase < kSortieDone);                   // FUN_0049beb0
     units_.drawHelp();                               // FUN_0049c850
     units_.updateCursor(onMap, cx, cy, hover && units_.isSeen(*hover) ? hover->slot : -1);   // FUN_00490fc0
+    ctx_.draw.setLayer(2);
     if (!script_.eventRunning()) units_.drawCursor(m.x, m.y);                              // FUN_00491680
+    ctx_.draw.setLayer(0);
     if (!SDL_getenv("CH_DEBUG")) return;
     std::string info = "map " + std::to_string(mapId_) + "  scroll " + std::to_string(map_.scrollX()) + "," +
                        std::to_string(map_.scrollY());

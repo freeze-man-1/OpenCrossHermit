@@ -111,16 +111,21 @@ public:
 
 class DrawList {
 public:
-    void sprite(const SpriteCmd& c) { cmds_.emplace_back(c); }
-    void fill(const FillCmd& c)     { cmds_.emplace_back(c); }
-    void text(TextCmd c)            { cmds_.emplace_back(std::move(c)); }
-    void geometry(GeometryCmd c)    { cmds_.emplace_back(std::move(c)); }
-    void clear() noexcept           { cmds_.clear(); }
+    void sprite(const SpriteCmd& c) { cmds_.emplace_back(c); layers_.push_back(layer_); }
+    void fill(const FillCmd& c)     { cmds_.emplace_back(c); layers_.push_back(layer_); }
+    void text(TextCmd c)            { cmds_.emplace_back(std::move(c)); layers_.push_back(layer_); }
+    void geometry(GeometryCmd c)    { cmds_.emplace_back(std::move(c)); layers_.push_back(layer_); }
+    void clear() noexcept           { cmds_.clear(); layers_.clear(); layer_ = 0; }
+    // The layer what is added from now on belongs to (a port addition, for a
+    // split view: legacy::Engine::setPieces). Returns the one before.
+    std::uint8_t setLayer(std::uint8_t layer) noexcept { return std::exchange(layer_, layer); }
+    [[nodiscard]] std::uint8_t layer() const noexcept { return layer_; }
     [[nodiscard]] bool empty() const noexcept { return cmds_.empty(); }
     [[nodiscard]] std::size_t size() const noexcept { return cmds_.size(); }
     [[nodiscard]] std::size_t countSprites() const noexcept;
 
-    void render(SDL_Renderer* r, ISpriteBanks& banks) const;
+    // layer < 0: every layer, in one pass.
+    void render(SDL_Renderer* r, ISpriteBanks& banks, int layer = -1) const;
     // Debug: one line per command in render order (tools/composite_dump.py reads it).
     void dump(std::FILE* f, int tag) const;
 
@@ -128,6 +133,8 @@ private:
     using Cmd = std::variant<SpriteCmd, FillCmd, TextCmd, GeometryCmd>;
     [[nodiscard]] std::vector<std::size_t> renderOrder() const;
     std::vector<Cmd> cmds_;
+    std::vector<std::uint8_t> layers_;   // one per command
+    std::uint8_t layer_ = 0;
 };
 
 } // namespace ch

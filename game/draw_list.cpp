@@ -56,11 +56,12 @@ void DrawList::dump(std::FILE* f, int tag) const {
     }
 }
 
-void DrawList::render(SDL_Renderer* r, ISpriteBanks& banks) const {
+void DrawList::render(SDL_Renderer* r, ISpriteBanks& banks, int layer) const {
     const auto order = renderOrder();
 
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
     for (std::size_t i : order) {
+        if (layer >= 0 && layers_[i] != layer) continue;
         std::visit([&](const auto& c) {
             using T = std::decay_t<decltype(c)>;
             if constexpr (std::is_same_v<T, SpriteCmd>) {
