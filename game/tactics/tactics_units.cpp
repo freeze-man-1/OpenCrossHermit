@@ -826,8 +826,12 @@ void TacticsUnits::occupy(Unit& u) {
     } else if (--u.holdOut != 0) {
         return;
     }
+    // Message 0xe, once (FUN_0048e020): it waits in the unit's queue until
+    // FUN_0048ef60 takes it, so a tower busy with a shot still changes hands.
+    for (const Unit::Order& o : u.orders)
+        if (o.type == 0xe) return;
     if (tactics::traceUnits()) SDL_Log("[tactics] unit %d (kind %d) taken by team %d", u.slot, u.kind(), team);
-    changeTeam(u, team);
+    u.orders.push_back({.type = 0xe, .skill = team});   // +6: the new team
 }
 
 // FUN_0048ef60: a building or base changes hands through state 0x15; any
@@ -3145,6 +3149,9 @@ void TacticsUnits::runOrders(Unit& u) {
             break;
         case 0xd:
             setStance(u, o.cx);
+            break;
+        case 0xe:                                  // FUN_0048ef60: refused while busy, and tried again
+            done = changeTeam(u, o.skill);
             break;
         case 0xb:                                  // FUN_0048ea90: the call waits on a busy unit
             done = callParty(u.slot, u.callOrder);
