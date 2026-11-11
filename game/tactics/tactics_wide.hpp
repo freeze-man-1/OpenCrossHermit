@@ -5,7 +5,8 @@
 // between the top bar and the panels, the roster's faces over its sides. On a
 // window much wider than that the frame leaves black at both sides, and on a
 // phone its buttons are too small for a finger. While the battle runs free
-// (New UI style only) this shows the frame in pieces instead
+// (New UI style, and only once a finger is used: with a mouse the battle
+// keeps its own frame, widened) this shows the frame in pieces instead
 // (Engine::setPieces): the map's view as large as the window allows, the
 // roster down the left, the minimap and the command bar's buttons, enlarged,
 // down the right — in the black where there is some, else over the map's
@@ -92,6 +93,7 @@ private:
     bool fingerSized_ = false, resized_ = false;     // the layout's size, and that it changed under a finger
     bool folded_ = false;                            // the unit panel down to its portrait (a click on it)
     bool mouseLive_ = false, mouseKnown_ = false;
+    bool touched_ = false;                           // a finger has been used in this battle
     SDL_FPoint mouseFirst_{};
     // A finger's gesture.
     bool fingerWas_ = false;
