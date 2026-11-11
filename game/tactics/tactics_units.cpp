@@ -1552,7 +1552,12 @@ bool TacticsUnits::restingOn(int cx, int cy, const Unit* except) const {
 // FUN_0047d730 with units counted): the same line test and search between
 // the waypoints, walked cell by cell along Bresenham lines (FUN_00470a50).
 // The original plans each inner leg when the unit reaches it; here all are
-// planned at once. A taken goal still moves to the nearest free cell.
+// planned at once. A goal another unit stands on stays the goal: the walk
+// steps aside (stepAside) on the way or once there.
+// FUN_0047dbd0's first rule is planned in too: on an inner route's last
+// line, with the outer route not done, the unit turns for the next outer
+// waypoint (FUN_0047d830) as soon as its cell is less than 3 cells from
+// this one (+0x4d0, which FUN_0047d190 set to the waypoint).
 // (FUN_0047d830 steps the outer route to its next waypoint, +0x312, and
 // at its end checks the goal, FUN_0047d190 again if missed.)
 // (FUN_0047d570 is the request for one level: 4 when already on the goal
@@ -1573,6 +1578,7 @@ void TacticsUnits::plan(Unit& u, bool retry) {
         u.ai.set32(0x30, 0);
         u.walkPause = false;
         u.routeWait = 0;
+        u.want = u.goal;                           // FUN_0047d190: +0x4cc and +0x4d0 alike
     }
     u.routeRetry = retry;
     planRoute(u);
@@ -1591,11 +1597,8 @@ void TacticsUnits::planRoute(Unit& u) {
     if (!map_) return;
     const tactics::Cell from{u.cx(), u.cy()};
     const int type = u.moveType();
-    const auto blocked = [&](int cx, int cy) { return restingOn(cx, cy, &u); };
-    if (blocked(u.goal.first, u.goal.second)) {
-        const tactics::Cell free = tactics::nearestFree(*map_, type, u.goal, from, 4, blocked);
-        if (free.first >= 0) u.goal = free;
-    }
+    u.checked = 0;
+    u.lastLeg = static_cast<std::size_t>(-1);
     const tactics::Cell to = u.goal;
     if (to.first < 0 || to == from) return;
     u.routeCut = true;                             // until a route reaches `to`
@@ -1642,20 +1645,34 @@ void TacticsUnits::planRoute(Unit& u) {
         return tactics::localRoute(*map_, type, a, b, occ, out) == 1;
     };
     std::vector<tactics::Cell> outer, inner;
-    u.legEnd.clear();
     if (!level(from, to, nullptr, true, outer)) return;
     u.path.push_back(from);                        // path[0]: where the walk starts
     tactics::Cell at = from;
     for (std::size_t k = 0; k < outer.size(); ++k) {
         const tactics::Cell& wp = outer[k];
+        const bool more = k + 1 < outer.size();
+        if (!more) u.lastLeg = u.path.size();
         if (wp == at) continue;
         if (!level(at, wp, &occupied, false, inner)) break;
-        for (const tactics::Cell& p : inner) {
-            for (const tactics::Cell& c : tactics::lineCells(at, p)) u.path.push_back(c);
-            at = p;
+        const auto near = [&](tactics::Cell c) {
+            const int nx = wp.first - c.first, ny = wp.second - c.second;
+            return more && nx * nx + ny * ny < 9;
+        };
+        for (std::size_t i = 0; i < inner.size(); ++i) {
+            const bool last = i + 1 == inner.size();
+            if (last && near(at)) break;
+            bool turned = false;
+            for (const tactics::Cell& c : tactics::lineCells(at, inner[i])) {
+                u.path.push_back(c);
+                at = c;
+                if (last && near(c)) {
+                    turned = true;
+                    break;
+                }
+            }
+            if (turned) break;
+            at = inner[i];
         }
-        u.legEnd.resize(u.path.size(), 0);
-        if (k + 1 < outer.size()) u.legEnd.back() = 1;
     }
     u.step = 1;
     if (u.path.size() == 1) u.path.clear();
@@ -1707,36 +1724,42 @@ TacticsUnits::Walk TacticsUnits::walk(Unit& u) {
         u.routeCut = false;
         return Walk::Blocked;
     }
+    // FUN_0047da30 goes on, once for each next cell: with a unit on that
+    // cell and one on the goal's (FUN_004707b0), the unit takes another
+    // cell near where it wants to be (FUN_00470840) and searches for it,
+    // the computer's units after 0x1e frames. Each frame again while both
+    // still hold. (The original does so on every outer leg, for that leg's
+    // waypoint; here only the last leg, the goal itself, does.)
+    if (u.checked != u.step) {
+        u.checked = u.step;
+        if (u.step >= u.lastLeg && othersOn(tcx, tcy, u) && countOn(u.goal.first, u.goal.second) != 0 && stepAside(u)) {
+            if (u.human()) {
+                plan(u, true);
+            } else {
+                u.path.clear();
+                u.step = 0;
+                u.routeCut = true;
+                u.routeRetry = true;
+                u.routeWait = 0x1e;
+                if (u.clip == 3) playAnim(u, 1);
+            }
+            return Walk::On;
+        }
+    }
     const int tx = tcx * TacticsMap::kCellW + TacticsMap::kCellW / 2;
     const int ty = tcy * TacticsMap::kCellH + TacticsMap::kCellH / 2;
     int dx = tx - u.px(), dy = ty - u.py();
     if (dx == 0 && dy == 0) {
-        // FUN_0047dbd0: at the end of an inner route, with the outer one not
-        // done, a goal less than 3 cells off counts as reached.
-        if (u.step < u.legEnd.size() && u.legEnd[u.step] != 0) {
-            const int gx = u.goal.first - tcx, gy = u.goal.second - tcy;
-            if (gx * gx + gy * gy < 9) {
-                u.path.clear();
-                u.legEnd.clear();
-                u.step = 0;
-                u.routeCut = false;
-                return Walk::Arrived;
-            }
-        }
         if (++u.step < u.path.size()) return walk(u);
-        // FUN_00470840 steps aside when someone else ended on the cell: the
-        // nearest free cell (FUN_004709d0 -> FUN_0043d660, range 0x1f), checked
-        // again each frame by FUN_004707b0 (FUN_0043c0c0 on that cell).
-        // (The table's first free cell there would be its own, as the table
-        // does not count units; the port takes the nearest free cell.)
-        if (restingOn(tcx, tcy, &u)) {
-            const auto blocked = [&](int cx, int cy) { return restingOn(cx, cy, &u); };
-            u.goal = tactics::nearestFree(*map_, u.moveType(), {tcx, tcy}, {tcx, tcy}, 4, blocked);
-            plan(u);
-            if (u.path.empty()) u.routeCut = false;   // nowhere to step aside: stay
-            return u.path.empty() ? Walk::Arrived : Walk::On;
-        }
         if (u.routeCut) return walk(u);            // the cut: wait, then search again
+        // FUN_0047dbd0's end: on the goal with another unit on the cell
+        // (FUN_0043c0c0 gives 2 or more), it steps aside (FUN_00470840) and
+        // walks on to that cell; there the same again, until it stands alone.
+        if (countOn(tcx, tcy) >= 2 && stepAside(u)) {
+            plan(u, true);
+            if (!u.path.empty()) return Walk::On;
+            u.routeCut = false;                    // no way there: stay
+        }
         return Walk::Arrived;
     }
     const int type = u.moveType();
@@ -1783,7 +1806,7 @@ TacticsUnits::Walk TacticsUnits::walk(Unit& u) {
     // frames (0x1e for the players' units).
     if (u.aiControlled && u.stance() == 1 && u.post.first >= 0 && u.goal != u.post &&
         !map_->inRange(u.cx(), u.cy(), u.post.first, u.post.second, sight(u))) {
-        u.goal = u.post;
+        u.goal = u.want = u.post;                  // FUN_0047d190
         u.path.clear();
         u.step = 0;
         u.routeCut = true;
@@ -1864,9 +1887,9 @@ const std::vector<AppearOffset>& appearTable() {
 // FUN_0043be60) and not given out since the last FUN_0043d4e0 (+0x263c8,
 // up to 40: FUN_0043d530 looks, FUN_0043d5b0 adds). The table is walked
 // in groups of five, each group's order turned by a counter (+0x263c4)
-// that moves on with every call. The original does not count the units
-// standing there (a newcomer may land on one and step aside later); the
-// port skips those cells, keeping the table's order.
+// that moves on with every call. A cell a unit stands on is not open
+// (FUN_0043be60 reads the cell's count, FUN_0043c0c0's), but move type 4
+// is not asked and may land on one.
 tactics::Cell TacticsUnits::appearCell(int cx, int cy, int range, int moveType) {
     if (!map_) return {-1, -1};
     range = std::clamp(range, 0, 0x20);
@@ -1879,10 +1902,9 @@ tactics::Cell TacticsUnits::appearCell(int cx, int cy, int range, int moveType) 
         if (o.dist > range) continue;
         const int x = cx + o.dx, y = cy + o.dy;
         if (x < 0 || y < 0 || x >= map_->cellsW() || y >= map_->cellsH()) continue;
-        if (moveType != 4 && map_->moveRate(x, y, moveType) == 0) continue;
+        if (moveType != 4 && (map_->moveRate(x, y, moveType) == 0 || countOn(x, y) != 0)) continue;
         const tactics::Cell c{x, y};
         if (std::find(appearGiven_.begin(), appearGiven_.end(), c) != appearGiven_.end()) continue;
-        if (restingOn(x, y, nullptr)) continue;
         if (appearGiven_.size() < 40) appearGiven_.push_back(c);
         return c;
     }
@@ -5347,6 +5369,26 @@ bool TacticsUnits::othersOn(int cx, int cy, const Unit& u) const {
     for (const Unit& o : units_)
         if (o.used && o.onField() && &o != &u && o.cx() == cx && o.cy() == cy) return true;
     return false;
+}
+
+// FUN_0043c0c0: how many units stand on the cell.
+int TacticsUnits::countOn(int cx, int cy) const {
+    int n = 0;
+    for (const Unit& o : units_)
+        if (o.used && o.onField() && o.cx() == cx && o.cy() == cy) ++n;
+    return n;
+}
+
+// FUN_00470840 -> FUN_004709d0: a new goal (+0x4d0) from the placement
+// table (FUN_0043d4e0, then FUN_0043d660 with range 0x1f) around the cell
+// the unit wants (+0x4cc), which stays. False when the table has none.
+bool TacticsUnits::stepAside(Unit& u) {
+    appearGiven_.clear();
+    const tactics::Cell c = appearCell(u.want.first, u.want.second, 0x1f, u.moveType());
+    if (c.first < 0) return false;
+    if (tactics::traceUnits()) SDL_Log("[tactics] unit %d at %d,%d steps aside to %d,%d (wants %d,%d)", u.slot, u.cx(), u.cy(), c.first, c.second, u.want.first, u.want.second);
+    u.goal = c;
+    return true;
 }
 
 // FUN_0046c120: turn toward a map point (pixels), by the angle in 23-degree

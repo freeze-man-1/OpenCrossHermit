@@ -487,6 +487,19 @@ Co<> TacticsTask::start(std::uint32_t) {
                     long long at = -1;
                     if (std::sscanf(wipe, "%d@%lld", &team, &at) == 2 && net_->lockstep.frame() == at) units_.debugWipe(team);
                 }
+                // Debug: CH_NET_MOVE=<x>,<y>@<frame>: every unit of ours gets the walk
+                // order to that cell then (the order travels as a click's would).
+                static const char* move = SDL_getenv("CH_NET_MOVE");
+                if (int mx = -1, my = -1; move) {
+                    long long at = -1;
+                    if (std::sscanf(move, "%d,%d@%lld", &mx, &my, &at) == 3 && net_->lockstep.frame() == at) {
+                        units_.clearSelection();
+                        for (int i = 0; i < TacticsUnits::kSlots; ++i)
+                            if (units_.unit(i).used && units_.unit(i).team() == units_.viewer()) units_.selectSlot(i, true);
+                        SDL_Log("[tactics] debug move: %d units to %d,%d", units_.selectedCount(), mx, my);
+                        units_.orderAt(mx, my, -1);
+                    }
+                }
                 frame();
                 netEndFrame();
             }

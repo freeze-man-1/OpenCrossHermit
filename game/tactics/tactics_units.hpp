@@ -115,11 +115,11 @@ public:
         int               clip = -1;              // +0x54: clip playing
         bool              selected = false;       // +0x28c
         std::vector<tactics::Cell> path;          // the route being walked
-        // Where an inner route (+0x3e0) ends while the outer one (+0x2f4)
-        // goes on: FUN_0047dbd0 lets the walk end there near the goal.
-        std::vector<std::uint8_t> legEnd;
         std::size_t       step = 0;               //   and the next cell on it
-        tactics::Cell     goal{-1, -1};           // +0x4d0: where the move order points
+        std::size_t       lastLeg = static_cast<std::size_t>(-1);   // where the last outer leg starts on it
+        std::size_t       checked = 0;            // the step FUN_0047da30's step-aside test last ran for
+        tactics::Cell     goal{-1, -1};           // +0x4d0: where the walk goes
+        tactics::Cell     want{-1, -1};           // +0x4cc: where it was sent; a step aside keeps it
         tactics::Cell     post{-1, -1};           // +0x2e8 / 9: the cell it holds (stance 1)
         stats::Bytes<0x40> ai{};                  // +0x2ac: the AI record (enemy record +0x14), FUN_0047a8e0
         std::int32_t      aiScan = 0;             //   +0x28: frames since the last target scan
@@ -690,6 +690,8 @@ private:
     void trimSelection();                              // FUN_0046f170
     [[nodiscard]] bool restingOn(int cx, int cy, const Unit* except) const;
     tactics::Cell appearCell(int cx, int cy, int range, int moveType);   // FUN_0043d660
+    [[nodiscard]] int countOn(int cx, int cy) const;                     // FUN_0043c0c0
+    bool stepAside(Unit& u);                                             // FUN_00470840
     int                        appearTurn_ = 0;    // +0x263c4
     std::vector<tactics::Cell> appearGiven_;       // +0x263c8: the cells given out
     void drawGauge(const Unit& u, int x, int y, int prio) const;   // FUN_0046d340
