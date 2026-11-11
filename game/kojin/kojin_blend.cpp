@@ -673,7 +673,7 @@ int KojinBlend::totalCost(const std::array<int, 7>& adds) const {
 }
 // The classic Stats Up rule: under the level cap, and the plan's cost within shared XP and capacity.
 bool KojinBlend::canRaise(int c) const {
-    const int diff = ctx_.work.s16(0x7a528c), cap = diff < 0 || diff > 1 ? 0x87 : 100;
+    const int cap = logic::levelCap(ctx_.work);
     if (statLevel(c) + adds_[std::size_t(c)] >= cap) return false;
     auto next = adds_;
     ++next[std::size_t(c)];
