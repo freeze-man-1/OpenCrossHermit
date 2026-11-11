@@ -384,6 +384,10 @@ Co<> TacticsTask::start(std::uint32_t) {
                 // FUN_0046e9c0 -> FUN_00481610 first: the call drag.
                 const bool calling = units_.callDrag(barInput());
                 if (!keys() && !units_.commandBar(barInput()) && !calling) mouse();
+            } else {
+                // The port: a box being drawn ends when a scene (or the chat)
+                // takes the input, or it would stay up with no release to end it.
+                dragging_ = dragged_ = false;
             }
         }
         {
