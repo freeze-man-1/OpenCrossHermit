@@ -290,3 +290,17 @@ Everything the earlier audits (AI, damage, aggression, healers, banner) left out
 - `localRoute` goes on where the original's rounds would repeat (a goal walled in).
 - Reinforcements on "defensive" have no post; the pointer picks the front-most unit; one hit-effect slot per unit; a missed learnt skill shows MISS; the strike's hit falls back to the clip's end.
 - Options, off by default or solo only: instant win, endless unit time; the wide battle view shows more map (the game's sight and fog are unchanged).
+
+## Unit panel spread, scenes, held Backspace (2026-11-11)
+
+- **Unit panel in the wider view** (`TacticsUnits::drawHud`, `setPanelSpread`): with a margin
+  and the split HUD off, the panel's first two columns move left into the margin and their
+  boxes grow (a = min(margin/3, 48) for column 1, b = min(margin/4, 36) for each half of
+  column 2). The boxes are pieces of common.bin frame 3 drawn over frame 4, each stretching
+  a 2-texel column of its inside; every number and label moves with its box's anchor.
+  At 4:3 (margin 0) the original draw runs unchanged.
+- **Scenes hold the conditions**: FUN_0046b760 skips a unit's whole block while a scene holds
+  the battle, so `update()` no longer runs `tickStatus` / `regenerate` while `frozen_`.
+  (Animations, effects and `u.timer` still run in the port while frozen.)
+- **Held Backspace** repeats in text fields (`InputState::onTextRepeat`, from SDL's key repeat).
+- **Week's results in English**: `week_results()` in `tools/make_english_pack.py`.

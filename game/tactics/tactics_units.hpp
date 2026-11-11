@@ -472,6 +472,8 @@ public:
     // The HUD: the roster columns (FUN_0046da80) and the bottom-left panel
     // for `shown` (FUN_0049cce0 -> FUN_0049d160), -1 none.
     void drawHud(int shown, bool sortie = false) const;
+    // The port's wider view: the room left of the bar the unit panel may spread into (0: as the original).
+    void setPanelSpread(int px) noexcept { panelSpread_ = px; }
     // The roster face under the screen point, or -1.
     [[nodiscard]] int rosterAt(int x, int y) const;
     // Selects the unit (Shift: toggles it).
@@ -740,6 +742,7 @@ private:
     std::uint8_t                          refusedMask_ = 0;
     struct NetCall { int slot = -1, sender = -1; std::vector<std::int16_t> list; };
     NetCall                               netCall_;               // a call's list arriving in pieces
+    int                                   panelSpread_ = 0;
     bool                                  frozen_ = false;       // +0x108b3b
     bool                                  opening_ = false;      // +0x108b48
     bool                                  cards_ = false;        // the sortie's cards are up

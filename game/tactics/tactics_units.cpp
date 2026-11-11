@@ -691,8 +691,13 @@ void TacticsUnits::update() {
         if (!u.used) continue;
         if (!frozen_) applyChanges(u);            // FUN_0046b760 -> FUN_00493450
         if (u.onField()) {
-            tickStatus(u);
-            regenerate(u);
+            // FUN_0046b760 runs none of this while a scene holds the battle
+            // (+0x108b34): the conditions' times (FUN_00490350) and the
+            // HP and MP coming back (FUN_00472370) stand still.
+            if (!frozen_) {
+                tickStatus(u);
+                regenerate(u);
+            }
             if (!frozen_) checkCollapse(u);       // FUN_0046bc20, while the battle runs (+0x108b39)
             // FUN_00472770
             if (u.hp() < 1 && u.state != kFall && u.next != kFall) u.next = kFall;
@@ -5265,24 +5270,73 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
     // FUN_0049cce0 -> FUN_0049cdc0: the panel (frame 3 with a unit, else 4), then
     // FUN_0049d160 for it.
     const Unit* u = shown >= 0 && shown < kSlots && units_[std::size_t(shown)].used ? &units_[std::size_t(shown)] : nullptr;
-    ysub::drawSub(ctx_, {.bank = kHudBank, .frame = static_cast<std::uint16_t>(u ? 3 : 4)}, 200, 0, 600);
+    // The port's wider view (panelSpread_, the margin at the bar's left):
+    // the panel's first two columns move out into it and their text boxes
+    // grow, so a translation's longer words fit. The boxes are cut from
+    // frame 3 over the empty panel (frame 4), each keeping its ends and
+    // stretching two columns of its inside; the third column stays put.
+    // a: the first column's growth; b: that of each half of the second.
+    const int a = std::min(panelSpread_ / 3, 48), b = std::min(panelSpread_ / 4, 36), all = a + 2 * b;
+    const bool spread = u && all > 0;
+    ysub::drawSub(ctx_, {.bank = kHudBank, .frame = static_cast<std::uint16_t>(u && !spread ? 3 : 4)}, 200, 0, 600);
     if (!u) return;
+    if (spread) {
+        const int fw = ctx_.sprites->frameSize(kHudBank, 3).first;
+        const auto piece = [&](int sx0, int sx1, int sy0, int sy1, int x, int w) {
+            if (sx1 <= sx0 || w <= 0) return;
+            ctx_.draw.sprite(SpriteCmd{.bank = kHudBank, .frame = 3, .x = x, .y = 600 + sy0,
+                                       .w = std::int16_t(w), .h = std::int16_t(sy1 - sy0),
+                                       .src = {std::int16_t(sx0), std::int16_t(sy0), std::int16_t(sx1), std::int16_t(sy1)},
+                                       .flags = std::uint16_t(kSprBank | kSprSrcRect), .priority = 199});
+        };
+        // One row of boxes, source columns x0..x1: it starts `shift` from
+        // its place and grows by `grow` at each source column in `at`.
+        struct Grow { int at, by; };
+        const auto row = [&](int sy0, int sy1, int x0, int x1, int shift, std::initializer_list<Grow> grows) {
+            int from = x0;
+            for (const Grow& g : grows) {
+                piece(from, g.at, sy0, sy1, from + shift, g.at - from);
+                piece(g.at, g.at + 2, sy0, sy1, g.at + shift, 2 + g.by);
+                shift += g.by;
+                from = g.at + 2;
+            }
+            piece(from, x1, sy0, sy1, from + shift, x1 - from);
+        };
+        // The first column: the name; HP and MP with their grades; the two conditions.
+        row(18, 42, 74, 175, -all, {{120, a}});
+        row(44, 65, 74, 175, -all, {{96, a}});
+        row(65, 87, 74, 175, -all, {{96, a}});
+        row(109, 130, 74, 175, -all, {{128, a}});
+        row(130, 152, 74, 175, -all, {{128, a}});
+        // The second: the job and level; accuracy and kind; attack (its
+        // "~" is in the picture); the added effect; reach; area and recovery.
+        row(18, 42, 180, 305, -2 * b, {{270, 2 * b}});
+        row(44, 65, 180, 305, -2 * b, {{238, b}, {298, b}});
+        row(65, 84, 180, 305, -2 * b, {{204, b}, {298, b}});
+        row(84, 106, 180, 305, -2 * b, {{298, 2 * b}});
+        row(109, 130, 180, 245, -2 * b, {{238, b}});
+        row(130, 152, 180, 305, -2 * b, {{238, b}, {264, b}});
+        // The third, and whatever the frame holds past it.
+        piece(308, fw, 0, ctx_.sprites->frameSize(kHudBank, 3).second, 308, fw - 308);
+    }
+    // Where each group's own drawing goes then.
+    const int dFace = -all, dName = -all + a / 2, dHp = -all + a, dJob = -2 * b, dAcc = -2 * b + b / 2, dKind = -b, dRec = -b / 2;
     constexpr int kPrio = 0xc3, kNum = kPrio - 1;
     constexpr std::uint32_t kWhite = 0xffffffffu;
     const Fighter f = fighter(*u);
-    if (u->team() == viewer_) drawFace(*u, 0xd, 0x272, kPrio, 0x80, 0x80, 0x80);
+    if (u->team() == viewer_) drawFace(*u, 0xd + dFace, 0x272, kPrio, 0x80, 0x80, 0x80);
     // FUN_0046a390: all but kinds 0x1b9..0x1bf, 0x1c1, 0x1c2 show the
     // panel's model (FUN_0040a330 at (0x24, 0x2e0)).
     if (const int kind = u->kind();
         panelNode_ != AnmPlayer::kNone && u->slot == panelShown_ && !((kind >= 0x1b9 && kind <= 0x1bf) || kind == 0x1c1 || kind == 0x1c2)) {
         static const AnmPlayer::SpriteTemplate kSprite{.color = {0x80, 0x80, 0x80, 0xFF}};
-        anm_.draw(panelNode_, ctx_.draw, *ctx_.sprites, kSprite, 0x24, 0x2e0, kPrio);
+        anm_.draw(panelNode_, ctx_.draw, *ctx_.sprites, kSprite, 0x24 + dFace, 0x2e0, kPrio);
     }
-    drawGauge(*u, 0x24, 0x2e0, kPrio);
-    drawNumber(99, 0x28b, kNum, u->hp(), 3, kWhite);
-    drawNumber(0x82, 0x28b, kNum, u->maxHp(), 3, kWhite);
-    drawNumber(99, 0x29e, kNum, u->mp(), 3, kWhite);
-    drawNumber(0x82, 0x29e, kNum, u->data.s16(0x1a), 3, kWhite);
+    drawGauge(*u, 0x24 + dFace, 0x2e0, kPrio);
+    drawNumber(99 + dHp, 0x28b, kNum, u->hp(), 3, kWhite);
+    drawNumber(0x82 + dHp, 0x28b, kNum, u->maxHp(), 3, kWhite);
+    drawNumber(99 + dHp, 0x29e, kNum, u->mp(), 3, kWhite);
+    drawNumber(0x82 + dHp, 0x29e, kNum, u->data.s16(0x1a), 3, kWhite);
     // The text sprites (FUN_00408f10, white, 12 px). FUN_00467eb0 renders
     // the four tables once with the 12 px font (+0xdb80c): FUN_004671f0
     // the attack kinds, FUN_00467380 the names, FUN_00467520 the jobs,
@@ -5300,17 +5354,17 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
     const auto& jobNames = spriteTexts(ctx_.version, kJobNames);
     const auto& conditionNames = spriteTexts(ctx_.version, kConditionNames);
     const auto& attackKinds = spriteTexts(ctx_.version, kAttackKinds);
-    label(unitNames[u->kind() & 0x1ff], 0x4f, 0x26f, true);
+    label(unitNames[u->kind() & 0x1ff], 0x4f + dName, 0x26f, true);
     // The conditions: the ailment (slot 0) and the blessing (slot 2) by
     // name, with the minutes and seconds left in red and green.
     const auto condition = [&](const Status& s, int y, std::uint32_t argb) {
-        label(conditionNames[std::size_t(s.type) & 0xff], 0x54, y);
-        drawNumber(0x87, y + 2, kNum, s.time % 0x34bc0 / 0xe10, -2, argb);
-        drawNumber(0x9a, y + 2, kNum, s.time % 0xe10 / 0x3c, -2, argb);
+        label(conditionNames[std::size_t(s.type) & 0xff], 0x54 + dFace, y);
+        drawNumber(0x87 + dHp, y + 2, kNum, s.time % 0x34bc0 / 0xe10, -2, argb);
+        drawNumber(0x9a + dHp, y + 2, kNum, s.time % 0xe10 / 0x3c, -2, argb);
     };
     condition(u->status[0], 0x2ca, 0xfff66f6fu);
     condition(u->status[2], 0x2dd, 0xff18ff00u);
-    label(jobNames[u->data.u16(0xc) & 0x1ff], 0xc4, 0x26f);
+    label(jobNames[u->data.u16(0xc) & 0x1ff], 0xc4 + dJob, 0x26f);
     // FUN_0046a4c0 (one of our fighters): its time left, by the clock icon.
     if (const int k = u->kind(); u->team() == viewer_ && k >= 1 && k <= 0x2d && u->data.s32(0x24) != 0x7fffffff)
         drawTimeDigits(0x157, 0x271, kNum, u->data.s32(0x24) / 0x3c, 1, 0, kWhite);
@@ -5320,16 +5374,16 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
     // (必中 for the accuracy) and shows 魔法, 1 and 4 show 物理.
     const int job = jobSkill(*u);
     const int kind = logic::sdU8(skillRow(job) + kSkillType, v);
-    if (kind == 2) label(attackKinds[2], 0xd1, 0x28a);
-    else drawNumber(0xd3, 0x28b, kNum, f.acc, 3, kWhite);
-    if (kind == 1 || kind == 4) label(attackKinds[0], 0x10e, 0x289);
-    else if (kind == 2) label(attackKinds[1], 0x10e, 0x289);
-    label(conditionNames[u->data.u8(0x45)], 0xcf, 0x2b0);   // the added effect
-    drawNumber(0xd3, 0x29e, kNum, f.atk, 3, kWhite);
-    drawNumber(0x106, 0x29e, kNum, f.atk + f.spread, 3, kWhite);
-    drawNumber(0xd3, 0x2cc, kNum, u->data.u8(0x37), 3, kWhite);     // reach
-    drawNumber(0xd3, 0x2df, kNum, u->data.u8(0x44), 3, kWhite);     // area
-    drawNumber(0x10c, 0x2df, kNum, u->data.u16(0x34), 4, kWhite);   // recovery
+    if (kind == 2) label(attackKinds[2], 0xd1 + dJob, 0x28a);
+    else drawNumber(0xd3 + dAcc, 0x28b, kNum, f.acc, 3, kWhite);
+    if (kind == 1 || kind == 4) label(attackKinds[0], 0x10e + dKind, 0x289);
+    else if (kind == 2) label(attackKinds[1], 0x10e + dKind, 0x289);
+    label(conditionNames[u->data.u8(0x45)], 0xcf + dJob, 0x2b0);   // the added effect
+    drawNumber(0xd3 + dKind, 0x29e, kNum, f.atk, 3, kWhite);
+    drawNumber(0x106 + dKind, 0x29e, kNum, f.atk + f.spread, 3, kWhite);
+    drawNumber(0xd3 + dAcc, 0x2cc, kNum, u->data.u8(0x37), 3, kWhite);     // reach
+    drawNumber(0xd3 + dAcc, 0x2df, kNum, u->data.u8(0x44), 3, kWhite);     // area
+    drawNumber(0x10c + dRec, 0x2df, kNum, u->data.u16(0x34), 4, kWhite);   // recovery
     drawNumber(0x155, 0x28b, kNum, f.evade, 3, kWhite);
     drawNumber(0x155, 0x29d, kNum, f.guard, 3, kWhite);
     drawNumber(0x150, 0x2b1, kNum, f.sresist, 3, kWhite);
@@ -5345,7 +5399,7 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
         for (int i = 0; i < 8 && grade < 0; ++i)
             if (value <= logic::sdS16(0x6e47e8 + std::uint32_t(k) * 0x10 + std::uint32_t(i) * 2, v)) grade = i;
         if (grade < 0) continue;
-        ctx_.draw.sprite(SpriteCmd{.bank = kHudBank, .frame = static_cast<std::uint16_t>(grade + 0xb), .x = 0x9a,
+        ctx_.draw.sprite(SpriteCmd{.bank = kHudBank, .frame = static_cast<std::uint16_t>(grade + 0xb), .x = 0x9a + dHp,
                                    .y = k == 0 ? 0x288 : 0x29b, .flags = kSprBank, .priority = kNum});
     }
 }

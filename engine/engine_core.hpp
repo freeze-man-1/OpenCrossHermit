@@ -176,6 +176,7 @@ private:
         }
     }
     void onKey(SDL_Scancode sc, bool down) noexcept;
+    void onTextRepeat() noexcept;   // a held Backspace repeating (the port)
     void onMouseMove(int x, int y) noexcept { mouse_.x = x; mouse_.y = y; }
     void onMouseButton(std::uint8_t sdlButton, bool down) noexcept;
     void onWheel(int notches) noexcept { wheel_ += notches; }

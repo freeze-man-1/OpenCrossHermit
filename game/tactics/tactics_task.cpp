@@ -1516,6 +1516,7 @@ void TacticsTask::draw() {
     if (const int r = wide_.onHud() ? units_.rosterAt(m.x, m.y) : -1; r >= 0) under = r;
     const int shown = units_.updatePanel(under, sortie_.phase < kSortieDone);   // FUN_0049cc60
     units_.talk(sortie_.phase < kSortieDone);                // FUN_0046db20 -> FUN_0049ab60
+    units_.setPanelSpread(wide_.on() ? 0 : map_.margin());
     units_.drawHud(shown, sortie_.phase < kSortieDone);
     units_.updateHelp(barInput(), shown);            // FUN_0049c400
     units_.drawBar(sortie_.phase < kSortieDone);                   // FUN_0049beb0

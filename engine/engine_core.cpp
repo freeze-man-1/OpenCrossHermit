@@ -24,6 +24,10 @@ void InputState::setTextInput(bool on) noexcept {
     if (on) SDL_StartTextInput(); else SDL_StopTextInput();
 }
 
+void InputState::onTextRepeat() noexcept {
+    if (textOn_) ++text_.backspaces;
+}
+
 void InputState::onKey(SDL_Scancode sc, bool down) noexcept {
     if (down && textOn_) {
         if (sc == SDL_SCANCODE_BACKSPACE) ++text_.backspaces;
@@ -382,6 +386,8 @@ void Engine::frame() {
                     for (const auto& [key, fn] : hotkeys_)
                         if (key == e.key.keysym.scancode) fn();
                 if (!e.key.repeat) input_.onKey(e.key.keysym.scancode, e.type == SDL_KEYDOWN);
+                // The port: a held Backspace keeps deleting in a text field, at the system's repeat rate.
+                else if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_BACKSPACE) input_.onTextRepeat();
                 break;
             case SDL_DROPFILE:
                 if (e.drop.file) {
