@@ -1401,9 +1401,11 @@ bool TacticsUnits::withdraw(int slot) {
     return true;
 }
 
+// FUN_004809a0: message 0xe to the unit; FUN_0048ef60 takes it once the
+// unit is free.
 void TacticsUnits::changeSide(int slot, int team) {
     if (slot < 0 || slot >= kSlots || !units_[std::size_t(slot)].used) return;
-    changeTeam(units_[std::size_t(slot)], team);
+    units_[std::size_t(slot)].orders.push_back({.type = 0xe, .skill = team});
 }
 
 // FUN_00466640: the effect's clip through FUN_0046be50 (FUN_00465140 on
@@ -2367,7 +2369,6 @@ bool TacticsUnits::callable(const Unit& u) const {
 // stance 0..3 to +0x9f (1 makes the unit's cell its post), 4..7 the order
 // to +0xa0.
 void TacticsUnits::setStance(Unit& u, int stance) {
-    if (u.team() != viewer_) return;
     if (stance < 4) {
         u.data.set8(0x9f, static_cast<std::uint8_t>(stance));
         if (stance == 1) u.post = {u.cx(), u.cy()};
