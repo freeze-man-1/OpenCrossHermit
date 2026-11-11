@@ -60,12 +60,11 @@ void TacticsWide::frame(bool free, bool menu) {
         if (!std::exchange(mouseKnown_, true)) mouseFirst_ = p;
         else mouseLive_ = p.x != mouseFirst_.x || p.y != mouseFirst_.y;
     }
-    // Only for a finger: with a mouse the battle keeps the original's frame,
-    // which the wider view (TacticsTask::viewMargin) already fits to the window.
-    // Debug: CH_WIDE=1 / 0 turns it on or off whatever the UI style and the pointer.
+    // Switched off: every device plays the battle in the original's frame, which
+    // the wider view (TacticsTask::viewMargin) fits to the window.
+    // Debug: CH_WIDE=1 turns it on.
     static const char* const force = SDL_getenv("CH_WIDE");
-    if (engine.pointerIsTouch()) touched_ = true;
-    const bool want = force ? force[0] == '1' : ui::modern() && touched_;
+    const bool want = force && force[0] == '1';
     const bool on = free && want && out.y > 0 && out.x * 10 >= out.y * 16;
     menu_ = on && menu;
     if (ping_ > 0) --ping_;
