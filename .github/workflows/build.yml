@@ -64,7 +64,7 @@ jobs:
         run: |
           cmake --install build --config Release --prefix dist/cross-hermit
           if [ "$RUNNER_OS" = Windows ]; then cp build/Release/*.dll dist/cross-hermit/; fi
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: cross-hermit-${{ matrix.name }}
           path: dist/cross-hermit
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: mymindstorm/setup-emsdk@v14
+      - uses: mymindstorm/setup-emsdk@v15
         with: { version: 4.0.10 }
       - name: Build
         run: |
@@ -82,7 +82,7 @@ jobs:
           mkdir -p site
           cp build-web/game.html site/index.html
           cp build-web/game.js build-web/game.wasm build-web/game.data site/
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with: { path: site }
 
   pages:
