@@ -83,6 +83,7 @@ void loadPort() {
     }
     parseScale(value("scale"), port().scale);
     port().modernUi = value("ui_style") == "new";
+    port().wideBattle = value("battle_view") != "original";
 }
 
 void savePort() {
@@ -90,7 +91,8 @@ void savePort() {
                           (port().infiniteUnitTime ? "1" : "0") + "\ntw_tutorial=" + (port().twTutorial ? "1" : "0") +
                           "\ninstant_win=" + (port().instantWin ? "1" : "0") + "\nwindow=" + std::to_string(port().windowW) +
                           "x" + std::to_string(port().windowH) + "\nscale=" + scaleName(port().scale) +
-                          "\nui_style=" + (port().modernUi ? "new" : "classic") + "\n";
+                          "\nui_style=" + (port().modernUi ? "new" : "classic") + "\nbattle_view=" +
+                          (port().wideBattle ? "wide" : "original") + "\n";
     try {
         legacy::vfs::writeSave(kPortFile, std::span<const std::uint8_t>(reinterpret_cast<const std::uint8_t*>(s.data()), s.size()));
     } catch (const std::exception& ex) {

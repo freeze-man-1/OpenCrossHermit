@@ -124,8 +124,10 @@ public:
     [[nodiscard]] std::size_t size() const noexcept { return cmds_.size(); }
     [[nodiscard]] std::size_t countSprites() const noexcept;
 
-    // layer < 0: every layer, in one pass.
-    void render(SDL_Renderer* r, ISpriteBanks& banks, int layer = -1) const;
+    // layer < 0: every layer, in one pass. With `margin` (a port addition:
+    // legacy::Engine::setMargin) the target begins at x -margin, and a fill
+    // across the whole `logicalW` (a fade, a dim) covers the margins too.
+    void render(SDL_Renderer* r, ISpriteBanks& banks, int layer = -1, int margin = 0, int logicalW = 0) const;
     // Debug: one line per command in render order (tools/composite_dump.py reads it).
     void dump(std::FILE* f, int tag) const;
 

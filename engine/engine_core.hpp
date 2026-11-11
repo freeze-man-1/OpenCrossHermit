@@ -6,6 +6,7 @@
 
 #include "touch_gestures.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -293,6 +294,15 @@ public:
     [[nodiscard]] SDL_FPoint pointerOutput() const noexcept { return pointerOut_; }   // output pixels
     [[nodiscard]] bool pointerIsTouch() const noexcept { return pointerTouch_; }      // a finger moved it last
     [[nodiscard]] SDL_Point outputSize() const;
+    // ---- Side margins (a port addition, for a wider battle view): the frame
+    // grows by `m` logical pixels at each side, so logical x runs -m ..
+    // logicalW + m - 1 and x 0 stays where it was. The scene sets it each tick
+    // it wants them (GameSystem clears it before the tasks run); the frame's
+    // target follows at the next render.
+    static constexpr int kMaxMargin = 171;                       // 4:3 out to 16:9
+    void setMargin(int m) noexcept { margin_ = std::clamp(m, 0, kMaxMargin); }
+    [[nodiscard]] int margin() const noexcept { return margin_; }
+    [[nodiscard]] int frameW() const noexcept { return cfg_.logicalW + 2 * margin_; }
     // Puts the pointer on a logical point now and again as the window settles after a
     // resize (it moves and changes size under the pointer), for half a second.
     void keepMouseAt(int x, int y);
@@ -309,6 +319,9 @@ private:
     std::vector<ViewPiece>   pieces_;
     std::optional<ViewPiece> grab_;
     std::array<TexturePtr, kLayers - 1> layers_;
+    std::array<int, kLayers - 1> layerW_{};          // each one's width when made
+    int        margin_ = 0, frameTexW_ = 0;          // the margin now, and the frame target's width
+    void makeFrame();
     int        pointerLayer_ = 0;
     SDL_FPoint pointerOut_{};
     bool       pointerTouch_ = false;
@@ -320,7 +333,7 @@ private:
     EngineConfig            cfg_;
     WindowPtr               window_;
     RendererPtr             renderer_;
-    TexturePtr              frame_;   // logicalW x logicalH target the scene draws into, then scaled to the window
+    TexturePtr              frame_;   // frameW() x logicalH target the scene draws into, then scaled to the window
     std::unique_ptr<IScene> scene_, pendingScene_;
     InputState              input_;
     std::uint64_t           perfFreq_ = 1, lastCounter_ = 0, tickCount_ = 0;

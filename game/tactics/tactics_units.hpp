@@ -392,6 +392,7 @@ public:
     // on their own: a command bar button's place, a roster face's, and what
     // the panel and the help lines last showed.
     [[nodiscard]] SDL_Rect barBox(int button) const;
+    [[nodiscard]] int faceX(int face) const;
     [[nodiscard]] bool faceBox(const Unit& u, SDL_Rect& box) const;   // false: not on the roster
     [[nodiscard]] bool callReady() const noexcept { return callReady_; }
     [[nodiscard]] int panelShown() const noexcept { return panelShown_; }

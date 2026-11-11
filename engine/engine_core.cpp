@@ -110,10 +110,7 @@ Engine::Engine(EngineConfig cfg) : cfg_(std::move(cfg)) {
     if (!renderer_) throw std::runtime_error(std::string("SDL_CreateRenderer: ") + SDL_GetError());
 
     // The scene always draws at the logical size; frame() scales the result once.
-    frame_.reset(SDL_CreateTexture(renderer_.get(), SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                   cfg_.logicalW, cfg_.logicalH));
-    if (!frame_) throw std::runtime_error(std::string("SDL_CreateTexture (frame): ") + SDL_GetError());
-    SDL_SetTextureBlendMode(frame_.get(), SDL_BLENDMODE_NONE);
+    makeFrame();
 
 #ifdef __EMSCRIPTEN__
     EM_ASM({
@@ -213,14 +210,21 @@ Engine::~Engine() {
     SDL_Quit();
 }
 
+void Engine::makeFrame() {
+    frame_.reset(SDL_CreateTexture(renderer_.get(), SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, frameW(), cfg_.logicalH));
+    if (!frame_) throw std::runtime_error(std::string("SDL_CreateTexture (frame): ") + SDL_GetError());
+    SDL_SetTextureBlendMode(frame_.get(), SDL_BLENDMODE_NONE);
+    frameTexW_ = frameW();
+}
+
 SDL_Rect Engine::frameRect() const {
     int ow = 0, oh = 0;
     SDL_GetRendererOutputSize(renderer_.get(), &ow, &oh);   // physical pixels (high-DPI aware)
-    if (ow <= 0 || oh <= 0) return {0, 0, cfg_.logicalW, cfg_.logicalH};
+    if (ow <= 0 || oh <= 0) return {0, 0, frameW(), cfg_.logicalH};
     if (cfg_.scaleMode == ScaleMode::Stretch) return {0, 0, ow, oh};
-    double scale = std::min(double(ow) / cfg_.logicalW, double(oh) / cfg_.logicalH);
+    double scale = std::min(double(ow) / frameW(), double(oh) / cfg_.logicalH);
     if (cfg_.scaleMode == ScaleMode::Integer && scale >= 1.0) scale = std::floor(scale);
-    const int w = std::max(1, int(std::lround(cfg_.logicalW * scale)));
+    const int w = std::max(1, int(std::lround(frameW() * scale)));
     const int h = std::max(1, int(std::lround(cfg_.logicalH * scale)));
     return {(ow - w) / 2, (oh - h) / 2, w, h};
 }
@@ -233,7 +237,7 @@ SDL_Point Engine::logicalFromNormalized(float x, float y) const {
         const double v = std::floor((double(n) * out - at) * logical / size);
         return int(std::clamp(v, 0.0, double(logical - 1)));
     };
-    return {axis(x, ow, f.x, f.w, cfg_.logicalW), axis(y, oh, f.y, f.h, cfg_.logicalH)};
+    return {axis(x, ow, f.x, f.w, frameW()) - margin_, axis(y, oh, f.y, f.h, cfg_.logicalH)};
 }
 
 SDL_Point Engine::logicalFromWindow(float x, float y) const {
@@ -252,8 +256,9 @@ SDL_Point Engine::outputSize() const {
 SDL_Texture* Engine::layerTarget(int layer) {
     if (layer < 1 || layer >= kLayers) return frame_.get();
     TexturePtr& t = layers_[std::size_t(layer - 1)];
-    if (!t) {
-        t.reset(SDL_CreateTexture(renderer_.get(), SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, cfg_.logicalW, cfg_.logicalH));
+    if (!t || layerW_[std::size_t(layer - 1)] != frameW()) {
+        layerW_[std::size_t(layer - 1)] = frameW();
+        t.reset(SDL_CreateTexture(renderer_.get(), SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, frameW(), cfg_.logicalH));
         if (!t) throw std::runtime_error(std::string("SDL_CreateTexture(layer): ") + SDL_GetError());
         // What was blended into the clear layer is already times its alpha.
         const SDL_BlendMode pre = SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD,
@@ -308,7 +313,7 @@ void Engine::warpMouse() {
     SDL_GetRendererOutputSize(renderer_.get(), &ow, &oh);
     if (ww <= 0 || wh <= 0 || ow <= 0 || oh <= 0) return;
     const SDL_Rect f = frameRect();   // output pixels; the warp takes window points
-    const double px = f.x + (keepMouse_.x + 0.5) * f.w / cfg_.logicalW, py = f.y + (keepMouse_.y + 0.5) * f.h / cfg_.logicalH;
+    const double px = f.x + (keepMouse_.x + margin_ + 0.5) * f.w / frameW(), py = f.y + (keepMouse_.y + 0.5) * f.h / cfg_.logicalH;
     SDL_WarpMouseInWindow(window_.get(), int(px * ww / ow), int(py * wh / oh));
 }
 
@@ -512,6 +517,7 @@ void Engine::frame() {
 
     // 3. Render (replaces Blt/BltFast + Flip): the scene into the frame, the frame into the window.
     SDL_Renderer* r = renderer_.get();
+    if (frameTexW_ != frameW()) makeFrame();
     SDL_SetRenderTarget(r, frame_.get());
     SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
     SDL_RenderClear(r);
@@ -528,7 +534,8 @@ void Engine::frame() {
         for (const ViewPiece& p : pieces_) {
             SDL_Texture* t = layerTarget(p.layer);
             SDL_SetTextureScaleMode(t, SDL_ScaleModeLinear);
-            SDL_RenderCopyF(r, t, &p.src, &p.dst);
+            const SDL_Rect src{p.src.x + margin_, p.src.y, p.src.w, p.src.h};   // the textures begin at x -margin
+            SDL_RenderCopyF(r, t, &src, &p.dst);
         }
     }
     // Several ticks can run per frame, so a requested tick fires once it has passed.

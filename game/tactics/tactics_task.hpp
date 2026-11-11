@@ -63,6 +63,7 @@ private:
     [[nodiscard]] int groupKey();                // FUN_00494690: DAT_00619280 pairs
     [[nodiscard]] TacticsUnits::BarInput barInput() const;
     void draw();
+    [[nodiscard]] int viewMargin() const;        // the port's wider view
     void drawClock(int prio);                    // FUN_00467c20
     void drawTime(int x, std::int32_t frames, int prio);   // FUN_00472f40
     void drawGlyph(int sx, int sy, int x, int prio);

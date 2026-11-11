@@ -56,7 +56,7 @@ void DrawList::dump(std::FILE* f, int tag) const {
     }
 }
 
-void DrawList::render(SDL_Renderer* r, ISpriteBanks& banks, int layer) const {
+void DrawList::render(SDL_Renderer* r, ISpriteBanks& banks, int layer, int margin, int logicalW) const {
     const auto order = renderOrder();
 
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
@@ -65,23 +65,30 @@ void DrawList::render(SDL_Renderer* r, ISpriteBanks& banks, int layer) const {
         std::visit([&](const auto& c) {
             using T = std::decay_t<decltype(c)>;
             if constexpr (std::is_same_v<T, SpriteCmd>) {
-                banks.drawSprite(r, c);
+                if (margin == 0) return banks.drawSprite(r, c);
+                SpriteCmd moved = c;
+                moved.x += margin;
+                banks.drawSprite(r, moved);
             } else if constexpr (std::is_same_v<T, FillCmd>) {
                 setArgb(r, c.argb);
                 // Mode 0 (alpha test) fills are opaque: their colours carry alpha 0.
                 if (c.blend == kBlendAdd) SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_ADD);
                 else if (c.blend == kBlendTest) SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
-                const SDL_Rect rc{c.x, c.y, c.w, c.h};
+                const bool across = margin != 0 && c.x <= 0 && c.x + c.w >= logicalW;
+                const SDL_Rect rc = across ? SDL_Rect{0, c.y, logicalW + 2 * margin, c.h} : SDL_Rect{c.x + margin, c.y, c.w, c.h};
                 SDL_RenderFillRect(r, &rc);
                 if (c.blend != kBlendAlpha) SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
             } else if constexpr (std::is_same_v<T, GeometryCmd>) {
                 const SDL_Color col{std::uint8_t(c.argb >> 16), std::uint8_t(c.argb >> 8), std::uint8_t(c.argb),
                                     std::uint8_t(c.argb >> 24)};
                 std::vector<SDL_Vertex> v(c.points.size());
-                for (std::size_t k = 0; k < v.size(); ++k) v[k] = {c.points[k], col, {0, 0}};
+                for (std::size_t k = 0; k < v.size(); ++k) v[k] = {{c.points[k].x + float(margin), c.points[k].y}, col, {0, 0}};
                 SDL_RenderGeometry(r, nullptr, v.data(), int(v.size()), nullptr, 0);
             } else {
-                banks.drawText(r, c);
+                if (margin == 0) return banks.drawText(r, c);
+                TextCmd moved = c;
+                moved.x += margin;
+                banks.drawText(r, moved);
             }
         }, cmds_[i]);
     }

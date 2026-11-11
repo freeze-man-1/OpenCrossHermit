@@ -20,10 +20,10 @@ constexpr std::uint32_t kPanelSrc = 0x6068a8, kBackLitSrc = 0x6068b0, kKnobSrc =
 constexpr std::uint32_t kCells[3] = {kBgmCells, kSeCells, kVoiceCells};
 constexpr std::uint32_t kLevels[3] = {options::kBgm, options::kSe, options::kVoice};
 // The port's panel, just under the original's and as wide.
-constexpr int kPortX = kPanelX, kPortY = 473, kPortW = 400, kPortRowH = 30, kPortSwitchX = kPortX + 290, kPortSwitchW = 92;
+constexpr int kPortX = kPanelX, kPortY = 473, kPortW = 400, kPortRowMax = 30, kPortSwitchX = kPortX + 290, kPortSwitchW = 92;
 // What the mouse can be over in that panel. The language button opens a list of them.
 enum PortItem { kItemFullscreen, kItemInfinite, kItemInstantWin, kItemUiStyle, kItemTutorial, kItemLanguage, kItemChapters,
-                kItemWindow, kItemScale };
+                kItemWindow, kItemScale, kItemBattleView };
 constexpr int kLanguageW = 184, kLanguageX = kPortSwitchX + kPortSwitchW - kLanguageW;
 constexpr int kListRowH = 28;
 constexpr std::size_t kListRows = 14;
@@ -85,14 +85,14 @@ Co<> OptionTask::start(std::uint32_t) {
 }
 
 // Fullscreen, the window size (not on the web, where the page sizes it), the
-// scaling, infinite time, the instant win, the UI style, the language if it can
+// scaling, the battle's wider view, infinite time, the instant win, the UI style, the language if it can
 // change, Tutorial in the TW build, the chapter select.
 std::vector<int> OptionTask::portItems() const {
     std::vector<int> items{kItemFullscreen};
 #ifndef __EMSCRIPTEN__
     items.push_back(kItemWindow);
 #endif
-    items.insert(items.end(), {kItemScale, kItemInfinite, kItemInstantWin, kItemUiStyle});
+    items.insert(items.end(), {kItemScale, kItemBattleView, kItemInfinite, kItemInstantWin, kItemUiStyle});
     if (options::languages().switchTo) items.push_back(kItemLanguage);
     if (ctx_.version == GameVersion::Tw) items.push_back(kItemTutorial);
     items.push_back(kItemChapters);
@@ -101,18 +101,21 @@ std::vector<int> OptionTask::portItems() const {
 
 int OptionTask::portRows() const { return int(portItems().size()); }
 
+// A row's pitch: the original 30, less when the rows would run off the screen.
+int OptionTask::portRowH() const { return std::min(kPortRowMax, (0x300 - 4 - 12 - kPortY) / std::max(portRows(), 1)); }
+
 int OptionTask::rowY(int item) const {
     const std::vector<int> items = portItems();
     const auto at = std::find(items.begin(), items.end(), item);
-    return kPortY + 7 + int(at - items.begin()) * kPortRowH;
+    return kPortY + 7 + int(at - items.begin()) * portRowH();
 }
 
 int OptionTask::portHover() const {
     const auto& m = ctx_.mouse();
     const std::vector<int> items = portItems();
     for (std::size_t i = 0; i < items.size(); ++i) {
-        const int y = kPortY + 7 + int(i) * kPortRowH;
-        if (m.y < y || m.y >= y + kPortRowH - 3) continue;
+        const int y = kPortY + 7 + int(i) * portRowH();
+        if (m.y < y || m.y >= y + portRowH() - 3) continue;
         if (items[i] == kItemLanguage || items[i] == kItemWindow || items[i] == kItemScale)   // the wide buttons
             return m.x >= kLanguageX && m.x < kPortSwitchX + kPortSwitchW ? items[i] : -1;
         if (m.x < kPortSwitchX || m.x >= kPortSwitchX + kPortSwitchW) return -1;
@@ -123,8 +126,8 @@ int OptionTask::portHover() const {
 
 namespace {
 // The list opens under the button, or as low as still fits.
-int listY(int rowY, std::size_t rows) {
-    return std::min(rowY + kPortRowH - 2, 0x300 - 4 - int(rows) * kListRowH);
+int listY(int rowY, int rowH, std::size_t rows) {
+    return std::min(rowY + rowH - 2, 0x300 - 4 - int(rows) * kListRowH);
 }
 } // namespace
 
@@ -155,7 +158,7 @@ OptionTask::ListChoices OptionTask::listChoices() const {
 int OptionTask::listHover() const {
     const auto& m = ctx_.mouse();
     const std::size_t rows = listChoices().names.size();
-    const int y = listY(rowY(listFor_), rows);
+    const int y = listY(rowY(listFor_), portRowH(), rows);
     if (m.x < kLanguageX || m.x >= kLanguageX + kLanguageW || m.y < y || m.y >= y + int(rows) * kListRowH) return -1;
     return (m.y - y) / kListRowH;
 }
@@ -163,7 +166,7 @@ int OptionTask::listHover() const {
 void OptionTask::drawList() {
     const ListChoices c = listChoices();
     const std::size_t rows = c.names.size();
-    const int y = listY(rowY(listFor_), rows), hot = listHover();
+    const int y = listY(rowY(listFor_), portRowH(), rows), hot = listHover();
     ysub::fill(ctx_, kLanguageX, y, kLanguageW, int(rows) * kListRowH, kListPrio, 0xff20281eu);
     ysub::outline(ctx_, kLanguageX, y, kLanguageX + kLanguageW - 1, y + int(rows) * kListRowH - 1, kListPrio - 1, 0xffc8ccb8u);
     for (std::size_t i = 0; i < rows; ++i) {
@@ -194,7 +197,7 @@ void OptionTask::choose(int row) {
         ctx_.engine.setWindowSize(s.x, s.y);
         // The window moves and changes size under the pointer: keep it on this button,
         // not wherever it lands (the OK button, often).
-        ctx_.engine.keepMouseAt(kLanguageX + kLanguageW / 2, rowY(kItemWindow) + (kPortRowH - 3) / 2);
+        ctx_.engine.keepMouseAt(kLanguageX + kLanguageW / 2, rowY(kItemWindow) + (portRowH() - 3) / 2);
     } else if (listFor_ == kItemScale) {
         p.scale = legacy::ScaleMode(row);
         ctx_.engine.setScaleMode(p.scale);
@@ -235,6 +238,9 @@ void OptionTask::portInput() {
             ctx_.audio->sePlay(5);
             listFor_ = portHover();
             return;
+        case kItemBattleView:
+            p.wideBattle = !p.wideBattle;
+            break;
         case kItemInfinite:
             p.infiniteUnitTime = !p.infiniteUnitTime;
             break;
@@ -271,12 +277,12 @@ void OptionTask::drawPortPanel() {
     constexpr int kFramePrio = 0x5f, kTextPrio = 0x50;
     constexpr std::uint32_t kPale = 0xffc8ccb8u, kText = 0xffffffffu, kDim = 0xff9aa08cu;
     constexpr std::uint32_t kOn = 0xff7d8a68u, kOff = 0xff20281eu;
-    const int rowsShown = portRows(), height = rowsShown * kPortRowH + 12;
+    const int rowsShown = portRows(), kPortRowH = portRowH(), height = rowsShown * kPortRowH + 12;
     ysub::fill(ctx_, kPortX, kPortY, kPortW, height, kFramePrio, 0xff3c4a38u);
     ysub::outline(ctx_, kPortX, kPortY, kPortX + kPortW - 1, kPortY + height - 1, kFramePrio - 1, kPale);
     const bool tw = ctx_.version == GameVersion::Tw;
     const int hot = listFor_ >= 0 ? -1 : portHover();
-    const auto rowY = [](int row) { return kPortY + 7 + row * kPortRowH; };
+    const auto rowY = [kPortRowH](int row) { return kPortY + 7 + row * kPortRowH; };
     const auto label = [&](int row, const std::string& text) {
         ctx_.draw.text({.x = kPortX + 14, .y = rowY(row) + 3, .priority = kTextPrio, .argb = kText, .text = text,
                         .fontPx = 18, .bold = true});
@@ -302,6 +308,10 @@ void OptionTask::drawPortPanel() {
 #endif
     label(row, tw ? "畫面縮放" : tr("拡大方法"));
     button(kLanguageX, row, kLanguageW, scaleLabel(options::port().scale) + " ▼", false, hot == kItemScale);
+    ++row;
+    label(row, tw ? "戰鬥視野" : tr("戦闘の視野"));
+    button(kPortSwitchX, row, kPortSwitchW, options::port().wideBattle ? (tw ? "寬" : tr("ワイド")) : (tw ? "原版" : tr("オリジナル")),
+           options::port().wideBattle, hot == kItemBattleView);
     ++row;
     toggle(row++, tw ? "單位時間無限 (單人)" : tr("ユニット時間無限 (シングル)"), options::port().infiniteUnitTime, kItemInfinite);
     toggle(row++, tw ? "按Enter立即勝利 (單人)" : tr("Enterで即勝利 (シングル)"), options::port().instantWin, kItemInstantWin);

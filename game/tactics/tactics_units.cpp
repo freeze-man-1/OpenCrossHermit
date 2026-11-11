@@ -2171,7 +2171,7 @@ bool TacticsUnits::selectOnScreen() {
     if (!map_) return true;
     for (Unit& u : units_) {
         if (!u.used || !u.onField() || !orderable(u)) continue;
-        const int x = u.px() - map_->scrollX(), y = u.py() - map_->scrollY() + TacticsMap::kViewY;
+        const int x = u.px() - map_->viewX(), y = u.py() - map_->scrollY() + TacticsMap::kViewY;
         if (y >= 0xe && y < 0x289 && x >= -0x20 && x < 0x421) u.selected = true;
     }
     trimSelection();
@@ -2190,7 +2190,7 @@ bool TacticsUnits::selectLike(const Unit& like) {
     clearSelection();
     for (Unit& u : units_) {
         if (!u.used || !u.onField() || !orderable(u) || !map_) continue;
-        const int x = u.px() - map_->scrollX(), y = u.py() - map_->scrollY() + TacticsMap::kViewY;
+        const int x = u.px() - map_->viewX(), y = u.py() - map_->scrollY() + TacticsMap::kViewY;
         if (y < 0xe || y >= 0x289 || x < -0x20 || x >= 0x421) continue;
         if (group(cls(u)) == want) u.selected = true;
     }
@@ -2718,10 +2718,18 @@ SDL_Rect TacticsUnits::barBox(int button) const {
     return {b.x, b.y, 0x24, 0x24};
 }
 
+// A face's x on the roster (DAT_00617ef0). With the port's wider view the
+// left column (faces 0..9) keeps to the view's left edge and the right one
+// to its right edge.
+int TacticsUnits::faceX(int face) const {
+    const int margin = map_ ? map_->margin() : 0;
+    return logic::sdS16(0x617ef0 + std::uint32_t(face) * 4, ctx_.version) + (face < 10 ? -margin : margin);
+}
+
 bool TacticsUnits::faceBox(const Unit& u, SDL_Rect& box) const {
     if (!u.used || u.face < 0 || u.team() != viewer_) return false;
     const GameVersion v = ctx_.version;
-    box = {logic::sdS16(0x617ef0 + std::uint32_t(u.face) * 4, v), logic::sdS16(0x617ef0 + std::uint32_t(u.face) * 4 + 2, v),
+    box = {faceX(u.face), logic::sdS16(0x617ef0 + std::uint32_t(u.face) * 4 + 2, v),
            0x32, 0x39};
     return true;
 }
@@ -2842,7 +2850,7 @@ bool TacticsUnits::callFaceAt(int x, int y, int column) const {
     for (const Unit& u : units_) {
         if (!u.used || u.face < 0 || u.team() != viewer_) continue;
         if (!(column & (u.face < 10 ? 1 : 2))) continue;
-        const int fx = logic::sdS16(0x617ef0 + std::uint32_t(u.face) * 4, v);
+        const int fx = faceX(u.face);
         const int fy = logic::sdS16(0x617ef0 + std::uint32_t(u.face) * 4 + 2, v);
         if (x >= fx && x <= fx + 0x32 && y >= fy && y <= fy + 0x37 && callable(u) && u.selected) return true;
     }
@@ -2856,7 +2864,7 @@ bool TacticsUnits::pointedAt(const Unit& u, int x, int y) const {
     if (!map_ || y <= 0x1d || y >= 600) return false;
     const GameVersion v = ctx_.version;
     const std::uint32_t box = 0x615e5c + std::uint32_t(logic::sdU8(0x615eac + std::uint32_t(u.kind()) * 2, v)) * 4;
-    const int sx = u.px() - map_->scrollX() + sdS8(box, v);
+    const int sx = u.px() - map_->viewX() + sdS8(box, v);
     const int sy = u.py() - map_->scrollY() + 0x1e + sdS8(box + 1, v);
     return std::abs(x - sx) <= sdS8(box + 2, v) && std::abs(y - sy) <= sdS8(box + 3, v);
 }
@@ -4769,7 +4777,7 @@ void TacticsUnits::drawPopups() const {
         const Unit& u = units_[std::size_t(p.unit)];
         if (!u.used || !u.onField()) continue;
         const std::uint32_t e = p.script + std::uint32_t(p.step) * 8;
-        const int x = u.px() + std::int8_t(logic::sdU8(e, v)) + p.dx - map_->scrollX();
+        const int x = u.px() + std::int8_t(logic::sdU8(e, v)) + p.dx - map_->viewX();
         const int y = u.py() + TacticsMap::kViewY + std::int8_t(logic::sdU8(e + 1, v)) + p.dy - map_->scrollY();
         if (y < -0x22 || y >= 0x299 || x < -0x40 || x >= 0x441) continue;   // FUN_0046b130
         const int alpha = logic::sdU8(e + 3, v);
@@ -4900,7 +4908,7 @@ void TacticsUnits::draw(int hover) const {
     const int picked = selectedCount();
     for (const Unit& u : units_) {
         if (!u.used || !u.onField() || u.node == AnmPlayer::kNone || !seen(u)) continue;
-        const int x = u.px() - map_->scrollX();
+        const int x = u.px() - map_->viewX();
         const int y = u.py() - map_->scrollY() + TacticsMap::kViewY;
         if (y < -0x22 || y >= 0x299 || x < -0x40 || x >= 0x441) continue;   // FUN_0046b130
         const int prio = 0x6e8 - y;
@@ -4948,17 +4956,17 @@ void TacticsUnits::draw(int hover) const {
         const ScriptEffect& f = scriptFx_[i];
         if (!f.on) continue;
         int x = f.x, y = f.y;
-        if (f.mode == 0) { x -= map_->scrollX(); y += TacticsMap::kViewY - map_->scrollY(); }
+        if (f.mode == 0) { x -= map_->viewX(); y += TacticsMap::kViewY - map_->scrollY(); }
         else if (f.mode == 2 && f.unit >= 0 && f.unit < kSlots) {
             const Unit& t = units_[std::size_t(f.unit)];
-            x = t.px() - map_->scrollX();
+            x = t.px() - map_->viewX();
             y = t.py() - map_->scrollY() + TacticsMap::kViewY;
         }
         anm_.draw(f.node, ctx_.draw, *ctx_.sprites, kSprite, x, y, std::uint16_t(i < 5 ? 0x370 : 100));
     }
     // FUN_0046b670 -> FUN_00472a70(.., 800): the ground mark.
     if (groundX_ >= 0 && groundMark_ != AnmPlayer::kNone)
-        anm_.draw(groundMark_, ctx_.draw, *ctx_.sprites, kSprite, groundX_ - map_->scrollX(),
+        anm_.draw(groundMark_, ctx_.draw, *ctx_.sprites, kSprite, groundX_ - map_->viewX(),
                   groundY_ - map_->scrollY() + TacticsMap::kViewY, 800);
     drawCallRing();                                  // FUN_0046b670 -> FUN_00482150
     // FUN_0046b670 -> FUN_00493b80: the flares at their place on the screen.
@@ -5063,7 +5071,7 @@ int TacticsUnits::rosterAt(int x, int y) const {
     const GameVersion v = ctx_.version;
     for (const Unit& u : units_) {
         if (!u.used || u.face < 0 || u.team() != viewer_) continue;
-        const int fx = logic::sdS16(kFacePlaces + std::uint32_t(u.face) * 4, v);
+        const int fx = faceX(u.face);
         const int fy = logic::sdS16(kFacePlaces + std::uint32_t(u.face) * 4 + 2, v);
         if (x >= fx && x < fx + kFaceW && y >= fy && y < fy + kFaceH + 9) return u.slot;
     }
@@ -5097,7 +5105,7 @@ int TacticsUnits::selectFaces(int x0, int y0, int x1, int y1, bool toggle, bool 
     std::vector<Unit*> hit;
     for (Unit& u : units_) {
         if (!u.used || u.face < 0 || u.team() != viewer_) continue;
-        const int fx = logic::sdS16(kFacePlaces + std::uint32_t(u.face) * 4, v);
+        const int fx = faceX(u.face);
         const int fy = logic::sdS16(kFacePlaces + std::uint32_t(u.face) * 4 + 2, v);
         if (fx + 0x32 < x0 || fx > x1 || fy + 0x38 < y0 || fy > y1) continue;
         if (cards ? cardPickable(u) : selectable(u)) hit.push_back(&u);
@@ -5179,7 +5187,7 @@ void TacticsUnits::drawHud(int shown, bool sortie) const {
     // (cyan) bars.
     for (const Unit& u : units_) {
         if (!u.used || u.face < 0 || u.team() != viewer_) continue;
-        const int x = logic::sdS16(kFacePlaces + std::uint32_t(u.face) * 4, v);
+        const int x = faceX(u.face);
         const int y = logic::sdS16(kFacePlaces + std::uint32_t(u.face) * 4 + 2, v);
         std::uint8_t r = 0x80, g = 0x80, b = 0x80;
         switch (u.data.u8(0xf)) {

@@ -96,9 +96,15 @@ void TacticsWide::layout(SDL_Point out) {
     };
 
     // The map's view, as large as fits.
-    const float s = std::min(W / float(TacticsMap::kViewW), H / float(TacticsMap::kViewH));
-    const float mw = float(TacticsMap::kViewW) * s, mh = float(TacticsMap::kViewH) * s, mx = (W - mw) / 2, my = (H - mh) / 2;
-    add({0, TacticsMap::kViewY, TacticsMap::kViewW, TacticsMap::kViewH}, mx, my, mw, mh, 0);
+    // A window wider than the view shows more of the map at its sides (TacticsMap::setMargin).
+    const int margin = options::port().wideBattle
+                           ? std::clamp((out.x * TacticsMap::kViewH / out.y - TacticsMap::kViewW) / 2, 0, int(legacy::Engine::kMaxMargin))
+                           : 0;
+    map_.setMargin(margin);
+    const int viewW = TacticsMap::kViewW + 2 * margin;
+    const float s = std::min(W / float(viewW), H / float(TacticsMap::kViewH));
+    const float mw = float(viewW) * s, mh = float(TacticsMap::kViewH) * s, mx = (W - mw) / 2, my = (H - mh) / 2;
+    add({-margin, TacticsMap::kViewY, viewW, TacticsMap::kViewH}, mx, my, mw, mh, 0);
     mapDst_ = {mx, my, mw, mh};
 
     // The two columns: beside the view where the window is wider, else over its edges.
@@ -188,7 +194,7 @@ void TacticsWide::layout(SDL_Point out) {
     if (mouseLive_ && !ctx_.engine.pointerIsTouch()) {
         const auto& m = ctx_.mouse();
         SDL_Rect src{m.x - 48, m.y - 48, 144, 144};
-        const SDL_Rect whole{0, 0, 1024, 768};
+        const SDL_Rect whole{-map_.margin(), 0, 1024 + 2 * map_.margin(), 768};
         SDL_Rect clip{};
         if (SDL_IntersectRect(&src, &whole, &clip)) {
             const float c = std::max(1.f, H / 780.f);
@@ -381,7 +387,7 @@ void TacticsWide::touch() {
         held_ = boxing_ = panning_ = hudDrag_ = false;
     }
     if (g.twoFinger && (g.pan.x != 0 || g.pan.y != 0))
-        map_.scrollTo(map_.scrollX() - int(std::lround(g.pan.x)), map_.scrollY() - int(std::lround(g.pan.y)));
+        map_.scrollTo(map_.viewX() - int(std::lround(g.pan.x)), map_.scrollY() - int(std::lround(g.pan.y)));
 
     if (menu_) {
         if (g.tap) click(g.tapAt, false);
@@ -480,7 +486,7 @@ void TacticsWide::touch() {
             flingY_ = u->py();
         } else if (downLayer_ == 0) {
             panning_ = true;
-            panX_ = map_.scrollX();
+            panX_ = map_.viewX();
             panY_ = map_.scrollY();
         } else if (downLayer_ == kHud) {
             hudDrag_ = true;
@@ -591,9 +597,9 @@ void TacticsWide::draw() {
     }
     // Behind the wheel: the map dimmed round it.
     if (wheel_ && mapDst_.w > 0) {
-        const float s = mapDst_.w / float(TacticsMap::kViewW);
+        const float s = mapDst_.w / float(TacticsMap::kViewW + 2 * map_.margin());
         const int n = int(wheelButtons().size());
-        const int x = int((wheelAt_.x - mapDst_.x) / s), y = int((wheelAt_.y - mapDst_.y) / s) + TacticsMap::kViewY;
+        const int x = int((wheelAt_.x - mapDst_.x) / s) - map_.margin(), y = int((wheelAt_.y - mapDst_.y) / s) + TacticsMap::kViewY;
         const int r = int(wheelCell_ * ((n > 8 ? 1.75f : 1.35f) + 0.7f) / s);
         ysub::fill(ctx_, x - r, y - r * 2 / 3, 2 * r, r * 4 / 3, 3, 0x58000000u);
         ysub::fill(ctx_, x - r * 2 / 3, y - r, r * 4 / 3, 2 * r, 3, 0x58000000u);

@@ -46,6 +46,7 @@ private:
     void choose(int row);                          // picks a row of the open list
     [[nodiscard]] std::vector<int> portItems() const;   // the panel's PortItem per row
     [[nodiscard]] int portRows() const;
+    [[nodiscard]] int portRowH() const;
     [[nodiscard]] int portHover() const;           // a PortItem under the mouse, or -1
     [[nodiscard]] std::string scaleLabel(legacy::ScaleMode m) const;
 

@@ -52,6 +52,15 @@ public:
     void scrollTo(int x, int y);                   // FUN_0043b460
     void centreOn(int x, int y) { scrollTo(x - 0x200, y - 0x11d); }   // FUN_0043b400
     [[nodiscard]] int scrollX() const noexcept { return scrollX_; }
+    // A wider view (a port addition): `m` more pixels of the map shown at
+    // each side of the original's 0x400 (legacy::Engine::setMargin). The
+    // scroll stays the original's, clamped as for a 0x400 view, so the
+    // stage's scripted camera keeps its timing; what is drawn and where the
+    // pointer is go by viewX(), the scroll kept off the map's sides by the
+    // margin, so the wider view never shows past them.
+    void setMargin(int m) noexcept { margin_ = m; }
+    [[nodiscard]] int margin() const noexcept { return margin_; }
+    [[nodiscard]] int viewX() const noexcept;
     [[nodiscard]] int scrollY() const noexcept { return scrollY_; }
     [[nodiscard]] int cellsW() const noexcept { return s16(4); }
     [[nodiscard]] int cellsH() const noexcept { return s16(6); }
@@ -72,8 +81,8 @@ public:
     void drawRange(int cx, int cy, int range) const;   // FUN_0043c530
     // FUN_0043c920: the pointer on the screen's edge: 1 top (y < 1), 2
     // bottom (y > 0x2fe), 4 left (x < 1), 8 right (x > 0x3fe).
-    [[nodiscard]] static int edges(int x, int y) noexcept {
-        return (y < 1 ? 1 : y > 0x2fe ? 2 : 0) | (x < 1 ? 4 : x > 0x3fe ? 8 : 0);
+    [[nodiscard]] static int edges(int x, int y, int margin = 0) noexcept {
+        return (y < 1 ? 1 : y > 0x2fe ? 2 : 0) | (x < 1 - margin ? 4 : x > 0x3fe + margin ? 8 : 0);
     }
 
     // The fog.
@@ -105,6 +114,7 @@ private:
     std::vector<std::uint8_t>  now_, last_, ever_;   // +0xa4 / +0xa8 / +0xa0
     int                        miniW_ = 0, miniH_ = 0;
     int                        scrollX_ = 0, scrollY_ = 0;   // +0x265a6 / +0x265a8
+    int                        margin_ = 0;
 };
 
 } // namespace ch

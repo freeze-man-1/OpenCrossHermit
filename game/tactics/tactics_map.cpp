@@ -103,6 +103,12 @@ void TacticsMap::scrollTo(int x, int y) {
     scrollY_ = y;
 }
 
+int TacticsMap::viewX() const noexcept {
+    if (margin_ == 0 || !loaded()) return scrollX_;
+    const int lo = margin_, hi = cellsW() * kCellW - kViewW - margin_;
+    return hi < lo ? (lo + hi) / 2 : std::clamp(scrollX_, lo, hi);   // a map narrower than the view sits in its middle
+}
+
 std::uint8_t TacticsMap::cell(int cx, int cy, int field) const {
     if (!loaded() || cx < 0 || cy < 0 || cx >= cellsW() || cy >= cellsH()) return 0;
     return bin_[std::size_t(kHeader + (cy * cellsW() + cx) * kCellBytes + field)];
@@ -215,8 +221,9 @@ void TacticsMap::drawMinimap(int prio) const {
     ysub::drawSub(*ctx_, {.bank = static_cast<std::uint8_t>(kMiniBank), .frame = 0}, prio, kMiniX, kMiniY);
     // FUN_00441170: the view's frame.
     const int mapW = w * kCellW, mapH = h * kCellH;
-    const int fx = kMiniX + scrollX_ * miniW_ / mapW, fy = kMiniY + scrollY_ * miniH_ / mapH;
-    const int fw = kViewW * miniW_ / mapW, fh = kViewH * miniH_ / mapH;
+    const int vx = std::max(viewX() - margin_, 0), vw = std::min(kViewW + 2 * margin_, mapW);
+    const int fx = kMiniX + vx * miniW_ / mapW, fy = kMiniY + scrollY_ * miniH_ / mapH;
+    const int fw = vw * miniW_ / mapW, fh = kViewH * miniH_ / mapH;
     ysub::fill(*ctx_, fx, fy, fw, 1, 0xc5, 0xffffffffu);
     ysub::fill(*ctx_, fx, fy + fh - 1, fw, 1, 0xc5, 0xffffffffu);
     ysub::fill(*ctx_, fx, fy, 1, fh, 0xc5, 0xffffffffu);
@@ -235,7 +242,7 @@ void TacticsMap::drawRange(int cx, int cy, int range) const {
         for (int x = 0; x < size; ++x) {
             const int mx = x0 + x, my = y0 + y;
             if (mx < 0 || my < 0 || mx >= cellsW() || my >= cellsH() || mapCom_[m + std::uint32_t(y * size + x)] == 0) continue;
-            ysub::fill(*ctx_, mx * kCellW - scrollX_, my * kCellH - scrollY_ + kViewY, kCellW, kCellH, 0xeff, 0x200080ffu);
+            ysub::fill(*ctx_, mx * kCellW - viewX(), my * kCellH - scrollY_ + kViewY, kCellW, kCellH, 0xeff, 0x200080ffu);
         }
 }
 
@@ -267,7 +274,9 @@ bool TacticsMap::cellAt(int sx, int sy, int& cx, int& cy) const {
     if (!loaded()) return false;
     const int vy = sy - kViewY;
     if (vy < 0 || vy > 0x23f) return false;
-    cx = sx / kCellW + scrollX_ / kCellW + (sx % kCellW + scrollX_ % kCellW) / kCellW;
+    const int wx = sx + viewX();
+    if (wx < 0) return false;                        // left of a map narrower than the view
+    cx = wx / kCellW;
     cy = vy / kCellH + scrollY_ / kCellH + (vy % kCellH + scrollY_ % kCellH) / kCellH;
     return cx < cellsW() && cy < cellsH();
 }
@@ -276,16 +285,19 @@ void TacticsMap::draw(int prio) const {
     if (!loaded()) return;
     const int pageW = s16(8), pageH = s16(10), pagesX = s16(0xc);
     const int perPageX = pageW / kCellW, perPageY = pageH / kCellH;
-    const int ox = -(scrollX_ % kCellW), oy = kViewY - scrollY_ % kCellH;
-    const int c0 = scrollX_ / kCellW, r0 = scrollY_ / kCellH;
+    // The view's left edge on the map, floored to a cell (it is left of the map where that is narrower).
+    const int left = viewX() - margin_, c0 = left >= 0 ? left / kCellW : -((-left + kCellW - 1) / kCellW);
+    const int ox = c0 * kCellW - left - margin_, oy = kViewY - scrollY_ % kCellH;
+    const int r0 = scrollY_ / kCellH, cols = 0x21 + (2 * margin_ + kCellW - 1) / kCellW;
     for (int r = 0; r < 0x25; ++r) {
         const int cy = r0 + r;
         if (cy >= cellsH()) break;
         // Consecutive cells on the same page with the same light go out as one sprite.
         int c = 0;
-        while (c < 0x21) {
+        while (c < cols) {
             const int cx = c0 + c;
             if (cx >= cellsW()) break;
+            if (cx < 0) { ++c; continue; }
             const auto lightAt = [&](int x) {
                 const std::size_t i = std::size_t(cy * cellsW() + x);
                 return now_[i] != 0 ? now_[i] : static_cast<std::uint8_t>(ever_[i] / 3);
@@ -293,7 +305,7 @@ void TacticsMap::draw(int prio) const {
             const std::uint8_t light = lightAt(cx);
             const int page = cx / perPageX + pagesX * (cy / perPageY);
             int n = 1;
-            while (c + n < 0x21 && cx + n < cellsW() && (cx + n) / perPageX == cx / perPageX && lightAt(cx + n) == light) ++n;
+            while (c + n < cols && cx + n < cellsW() && (cx + n) / perPageX == cx / perPageX && lightAt(cx + n) == light) ++n;
             if (light != 0) {
                 // D3D modulate by light / 255; the draw list's colour is 0x80-based.
                 ysub::drawSub(*ctx_,

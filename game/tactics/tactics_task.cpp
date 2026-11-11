@@ -23,6 +23,7 @@ namespace ch {
 
 namespace {
 constexpr int kMapPrio = 0xf00;   // FUN_0043fd20(0xf00)
+constexpr int kMenuButtonW = 100; // the MENU button's end of the top bar (common.bin frame 0)
 
 // FUN_00452cf0: the trial maps (0x4c..0x50, 0x62), when not chained on,
 // bring a fixed party (0xb0-byte records) instead of the work's: those
@@ -469,6 +470,12 @@ Co<> TacticsTask::start(std::uint32_t) {
                 if (hp && std::sscanf(hp, "%d=%d@%d", &slot, &value, &at) == 3 && battleFrame == at) units_.debugHp(slot, value);
             }
             frame();
+            // Debug: CH_HASH=<n> logs the units' state every n battle frames (the network check's hash),
+            // to compare two runs of the same battle.
+            static const int hashEvery = [] { const char* v = SDL_getenv("CH_HASH"); return v ? std::atoi(v) : 0; }();
+            static int hashFrame = 0;
+            if (hashEvery > 0 && started && ++hashFrame % hashEvery == 0)
+                SDL_Log("[hash] f%d %08x seed %08x", hashFrame, units_.stateHash(), units_.checkSeed());
         } else {
             for (int n = net_->lockstep.framesToRun(); n > 0 && !over; --n) {
                 netTurn();
@@ -569,13 +576,13 @@ Co<> TacticsTask::start(std::uint32_t) {
 void TacticsTask::scroll() {
     const auto& in = ctx_.engine.input();
     const auto& m = ctx_.mouse();
-    const int edge = wide_.on() ? wide_.edges() : m.held == 0 && (wide_.mouseLive() || ctx_.engine.pointerIsTouch()) ? TacticsMap::edges(m.x, m.y) : 0;
+    const int edge = wide_.on() ? wide_.edges() : m.held == 0 && (wide_.mouseLive() || ctx_.engine.pointerIsTouch()) ? TacticsMap::edges(m.x, m.y, map_.margin()) : 0;
     int dx = 0, dy = 0;
     if (in.held(legacy::Action::Left) || (edge & 4)) dx -= 0x10;
     if (in.held(legacy::Action::Right) || (edge & 8)) dx += 0x10;
     if (in.held(legacy::Action::Up) || (edge & 1)) dy -= 0x10;
     if (in.held(legacy::Action::Down) || (edge & 2)) dy += 0x10;
-    if (dx != 0 || dy != 0) map_.scrollTo(map_.scrollX() + dx, map_.scrollY() + dy);
+    if (dx != 0 || dy != 0) map_.scrollTo(map_.viewX() + dx, map_.scrollY() + dy);
 }
 
 // FUN_004128f0(key, 1): pressed this frame (SDL scancodes for the
@@ -660,7 +667,7 @@ void TacticsTask::mouse() {
             px = (m.x - TacticsMap::kMiniX) * map_.cellsW() * TacticsMap::kCellW / map_.miniW();
             py = (m.y - TacticsMap::kMiniY) * map_.cellsH() * TacticsMap::kCellH / map_.miniH();
         } else if (map_.cellAt(m.x, m.y, cx, cy)) {
-            px = m.x + map_.scrollX();
+            px = m.x + map_.viewX();
             py = m.y - TacticsMap::kViewY + map_.scrollY();
         }
         if (px >= 0) {
@@ -726,14 +733,14 @@ void TacticsTask::mouse() {
     }
     int cx = 0, cy = 0;
     const bool onMap = map_.cellAt(m.x, m.y, cx, cy) && wide_.onMap();
-    const int wx = m.x + map_.scrollX(), wy = m.y - TacticsMap::kViewY + map_.scrollY();
+    const int wx = m.x + map_.viewX(), wy = m.y - TacticsMap::kViewY + map_.scrollY();
     // The original reads Shift from its key mask (DAT_007a49fc +0x194c & 0x40000).
     const bool toggle = (SDL_GetModState() & KMOD_SHIFT) != 0;
     if ((m.pressed & legacy::kMouseLeft) && onMap) startDrag(false);
     if (dragging_ && (m.held & legacy::kMouseLeft) && (std::abs(wx - dragX_) > 4 || std::abs(wy - dragY_) > 4))
         dragged_ = true;
     if (dragging_ && (m.released & legacy::kMouseLeft)) {
-        const int sx0 = dragX_ - map_.scrollX(), sy0 = dragY_ + TacticsMap::kViewY - map_.scrollY();
+        const int sx0 = dragX_ - map_.viewX(), sy0 = dragY_ + TacticsMap::kViewY - map_.scrollY();
         // FUN_0046f8b0(.., 1) -> FUN_0046eda0: a box over the roster's faces picks those.
         if (dragged_ && wide_.onHud() && units_.selectFaces(sx0, sy0, m.x, m.y, toggle, false) > 0) {
             dragging_ = false;
@@ -964,14 +971,15 @@ int TacticsTask::rosterColumn(int x0, int y0, int x1, int y1) const {
     const GameVersion v = ctx_.version;
     const auto r = [&](std::uint32_t a) { return logic::sdS32(a, v); };
     int hit = 0;
+    const int margin = map_.margin();                // the columns keep to the wider view's edges (TacticsUnits::faceX)
     if (x0 != x1 || y0 != y1) {
-        if (r(0x617ed0) <= x0 && x1 <= r(0x617ed8) && r(0x617ed4) <= y0 && y1 <= r(0x617edc)) hit |= 1;
-        if (r(0x617ee0) <= x0 && x1 <= r(0x617ee8) && r(0x617ee4) <= y0 && y1 <= r(0x617eec)) hit |= 2;
+        if (r(0x617ed0) - margin <= x0 && x1 <= r(0x617ed8) - margin && r(0x617ed4) <= y0 && y1 <= r(0x617edc)) hit |= 1;
+        if (r(0x617ee0) + margin <= x0 && x1 <= r(0x617ee8) + margin && r(0x617ee4) <= y0 && y1 <= r(0x617eec)) hit |= 2;
         return hit;
     }
     for (int k = 0; k < 2; ++k) {                    // FUN_0046fff0 with a zero-size point
         const std::uint32_t b = 0x617eb0 + std::uint32_t(k) * 0x10;
-        const int hw = r(b + 8) / 2, hh = r(b + 0xc) / 2, cx = r(b) + hw, cy = r(b + 4) + hh;
+        const int hw = r(b + 8) / 2, hh = r(b + 0xc) / 2, cx = r(b) + hw + (k == 0 ? -margin : margin), cy = r(b + 4) + hh;
         if (std::abs(cx - x0) <= hw && std::abs(cy - y0) <= hh) hit |= 1 << k;
     }
     return hit;
@@ -984,7 +992,7 @@ void TacticsTask::startDrag(bool face) {
     dragging_ = true;
     dragged_ = false;
     dragFace_ = face;
-    dragX_ = m.x + map_.scrollX();
+    dragX_ = m.x + map_.viewX();
     dragY_ = m.y - TacticsMap::kViewY + map_.scrollY();
 }
 
@@ -1006,11 +1014,11 @@ void TacticsTask::sortieMouse() {
         }
     }
     if (dragging_) {
-        const int wx = m.x + map_.scrollX(), wy = m.y - TacticsMap::kViewY + map_.scrollY();
+        const int wx = m.x + map_.viewX(), wy = m.y - TacticsMap::kViewY + map_.scrollY();
         if ((m.held & legacy::kMouseLeft) && (std::abs(wx - dragX_) > 4 || std::abs(wy - dragY_) > 4)) dragged_ = true;
         if (m.released & legacy::kMouseLeft) {
             if (dragged_)
-                units_.selectFaces(dragX_ - map_.scrollX(), dragY_ + TacticsMap::kViewY - map_.scrollY(), m.x, m.y, shift, true);
+                units_.selectFaces(dragX_ - map_.viewX(), dragY_ + TacticsMap::kViewY - map_.scrollY(), m.x, m.y, shift, true);
             dragging_ = false;
         }
         if (dragging_) return;
@@ -1146,7 +1154,8 @@ void TacticsTask::drawSortie() const {
 bool TacticsTask::openMenu() {
     const auto& m = ctx_.mouse();
     if (script_.eventRunning()) return false;
-    const auto in = [](int x, int y) { return x >= 9 && x <= 0x58 && y >= 3 && y <= 0x18; };
+    const int left = wide_.on() ? 0 : -map_.margin();   // the port's wider view has the button at its left edge
+    const auto in = [left](int x, int y) { return x >= left + 9 && x <= left + 0x58 && y >= 3 && y <= 0x18; };
     if (!ctx_.engine.input().pressed(legacy::Action::Menu) &&
         !((m.released & legacy::kMouseLeft) && in(m.x, m.y) && in(pressX_, pressY_)))
         return false;
@@ -1410,7 +1419,24 @@ void TacticsTask::drawBlinds() {
     }
 }
 
+// The port's wider view: how much more of the map shows at each side of the
+// original's 0x400. Single player: what the window's shape has room for, up
+// to 16:9. Network play: the same for every player whatever their window, so
+// nobody sees more of the field than another (a narrower window shows the
+// frame smaller, with bars above and below).
+int TacticsTask::viewMargin() const {
+    // Debug: CH_MARGIN=<n> sets it.
+    static const char* const force = SDL_getenv("CH_MARGIN");
+    if (force) return std::atoi(force);
+    if (net_) return legacy::Engine::kMaxMargin;
+    const SDL_Point out = ctx_.engine.outputSize();
+    if (!options::port().wideBattle || out.y <= 0) return 0;
+    return std::clamp((out.x * kScreenH / out.y - kScreenW) / 2, 0, int(legacy::Engine::kMaxMargin));
+}
+
 void TacticsTask::draw() {
+    if (!wide_.on()) map_.setMargin(viewMargin());   // the split view sets its own
+    ctx_.engine.setMargin(map_.margin());
     const auto& m = ctx_.mouse();
     int cx = 0, cy = 0;
     const bool onMap = map_.cellAt(m.x, m.y, cx, cy) && wide_.onMap();
@@ -1436,7 +1462,7 @@ void TacticsTask::draw() {
     // FUN_0043cc50 keep the box's screen rectangle, rows clamped to
     // 0x1e..599, for the pick; the port's box is in map pixels.)
     if (dragging_) {
-        const int x0 = dragX_ - map_.scrollX(), y0 = dragY_ - map_.scrollY() + TacticsMap::kViewY;
+        const int x0 = dragX_ - map_.viewX(), y0 = dragY_ - map_.scrollY() + TacticsMap::kViewY;
         ysub::outline(ctx_, x0, y0, m.x, m.y, 2, 0x80ffffffu, kBlendAdd);
     }
     wide_.draw();
@@ -1446,6 +1472,24 @@ void TacticsTask::draw() {
     ysub::drawSub(ctx_, {.bank = static_cast<std::uint8_t>(kCommonBank), .frame = 0}, 200, 0, 0);
     ysub::drawSub(ctx_, {.bank = static_cast<std::uint8_t>(kCommonBank), .frame = 1}, 200, 0x18c, 600);
     ysub::drawSub(ctx_, {.bank = static_cast<std::uint8_t>(kCommonBank), .frame = 2}, 200, 0x31a, 600);
+    // The port's wider view: the bars run on over the margins, with a plain
+    // stretch of the top bar and the empty unit panel's left end (turned
+    // round at the right). The MENU button moves out to the left edge, with
+    // the roster's faces; a plain stretch covers where it was.
+    if (const int margin = map_.margin(); margin > 0 && !wide_.on()) {
+        const auto strip = [&](int frame, int sx, int x, int y, int w, bool flip, int prio = 200) {
+            const int h = ctx_.sprites->frameSize(kCommonBank, std::uint16_t(frame)).second;
+            ctx_.draw.sprite(SpriteCmd{.bank = kCommonBank, .frame = std::uint16_t(frame), .x = x, .y = y,
+                                       .w = std::int16_t(w), .h = std::int16_t(h),
+                                       .src = {std::int16_t(sx), 0, std::int16_t(sx + w), std::int16_t(h)},
+                                       .flags = std::uint16_t(kSprBank | kSprSrcRect | (flip ? kSprFlipU : 0)), .priority = std::uint16_t(prio)});
+        };
+        strip(0, 0, -margin, 0, kMenuButtonW, false);
+        strip(0, 0x2f0, kMenuButtonW - margin, 0, margin, false, 199);
+        strip(0, 0x2f0, kScreenW, 0, margin, true);
+        strip(4, 0, -margin, 600, margin, false);
+        strip(4, 0, kScreenW, 600, margin, true);
+    }
     drawClock(199);
     map_.drawMinimap(199);                           // FUN_00440f00(.., 199)
     // The unit the panel shows (+0x109d4e): the one under the pointer, else
@@ -1464,10 +1508,10 @@ void TacticsTask::draw() {
     if (!script_.eventRunning()) units_.drawCursor(m.x, m.y);                              // FUN_00491680
     ctx_.draw.setLayer(0);
     if (!SDL_getenv("CH_DEBUG")) return;
-    std::string info = "map " + std::to_string(mapId_) + "  scroll " + std::to_string(map_.scrollX()) + "," +
+    std::string info = "map " + std::to_string(mapId_) + "  scroll " + std::to_string(map_.viewX()) + "," +
                        std::to_string(map_.scrollY());
     if (onMap) {
-        ysub::fill(ctx_, cx * TacticsMap::kCellW - map_.scrollX(), cy * TacticsMap::kCellH - map_.scrollY() + TacticsMap::kViewY,
+        ysub::fill(ctx_, cx * TacticsMap::kCellW - map_.viewX(), cy * TacticsMap::kCellH - map_.scrollY() + TacticsMap::kViewY,
                    TacticsMap::kCellW, TacticsMap::kCellH, 0xe00, 0x60ffffffu);
         info += "  cell " + std::to_string(cx) + "," + std::to_string(cy) + "  terrain " +
                 std::to_string(map_.cell(cx, cy, 0)) + "  +2 " + std::to_string(map_.cell(cx, cy, 2));

@@ -252,6 +252,7 @@ void GameSystem::fixedUpdate(legacy::Engine& engine, double) {
 
     ctx_.draw.clear();
     engine.setPieces({});   // a scene with a split view sets it again
+    engine.setMargin(0);    // and so a scene with a wider frame
     ctx_.tasks.runFrame();
     ctx_.audio->tick();
     presented_ = ctx_.draw;
@@ -267,16 +268,16 @@ void GameSystem::render(legacy::Engine& engine, SDL_Renderer* r, double) {
     static const bool perf = SDL_getenv("CH_PERF") != nullptr;
     const std::uint64_t t0 = perf ? SDL_GetPerformanceCounter() : 0;
     if (!engine.split()) {
-        presented_.render(r, *ctx_.sprites);
+        presented_.render(r, *ctx_.sprites, -1, engine.margin(), kScreenW);
     } else {
         // A split view: each layer into its own frame (Engine puts the pieces together).
         SDL_Texture* frame = SDL_GetRenderTarget(r);
-        presented_.render(r, *ctx_.sprites, 0);
+        presented_.render(r, *ctx_.sprites, 0, engine.margin(), kScreenW);
         for (int layer = 1; layer < legacy::Engine::kLayers; ++layer) {
             SDL_SetRenderTarget(r, engine.layerTarget(layer));
             SDL_SetRenderDrawColor(r, 0, 0, 0, 0);
             SDL_RenderClear(r);
-            presented_.render(r, *ctx_.sprites, layer);
+            presented_.render(r, *ctx_.sprites, layer, engine.margin(), kScreenW);
         }
         SDL_SetRenderTarget(r, frame);
     }

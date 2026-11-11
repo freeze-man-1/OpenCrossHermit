@@ -36,6 +36,7 @@ struct PortOptions {
     int windowW = 1024, windowH = 768;   // the window when not fullscreen (desktop builds; the web page sizes its own)
     legacy::ScaleMode scale = legacy::ScaleMode::Smooth;   // how the 1024x768 frame fills the window or screen
     bool modernUi = false;           // UI style: false = Classic (the original's), true = New (touch friendly)
+    bool wideBattle = true;          // a window wider than 4:3 shows more of a battle's map at the sides (single player)
 };
 // "smooth", "sharp", "integer", "stretch": the file's spelling of a ScaleMode.
 [[nodiscard]] const char* scaleName(legacy::ScaleMode m);
